@@ -62,8 +62,10 @@ skills qui apportent une valeur directe, vérifier le résultat.
 
 | Type de tâche | Skills à charger |
 |---|---|
-| Interface, composant, style | `vehora-design-system` + `vehora-ux` |
-| Parcours utilisateur, formulaire, navigation | `vehora-ux` |
+| Interface, composant, style | `vehora-design-system` + `vehora-frontend` |
+| Parcours utilisateur, formulaire, navigation | `vehora-ux` + `vehora-frontend` |
+| Composant Angular, service, route, performance, accessibilité | `vehora-frontend` |
+| Démarrage de session, commit, clôture de phase, Git | `vehora-workflow` |
 | Table, migration, policy, requête Supabase | `vehora-supabase` (+ `vehora-security` si données sensibles ou permissions) |
 | Auth, RLS, permissions, audit | `vehora-security` + `vehora-supabase` |
 | Espace Super Admin, abonnements, flags | `vehora-super-admin` + `vehora-security` + `vehora-supabase` |
@@ -74,11 +76,20 @@ Skills natifs utiles : `/security-review` (revue de sécurité d'un diff),
 `/code-review`, `/simplify`, `update-config`, `session-start-hook`.
 
 **Outils réellement disponibles** : MCP Supabase, MCP GitHub, Chromium +
-Playwright préinstallés (`/opt/pw-browsers` — ne jamais lancer
-`playwright install`), PostgreSQL 16 local pour `scripts/validate-sql.sh`.
+Playwright préinstallés en environnement cloud (`/opt/pw-browsers` — **ne jamais
+y lancer `playwright install`** ; en local, si), PostgreSQL 16 pour
+`scripts/validate-sql.sh`, Docker, Node 22.
+
+Un hook `SessionStart` (`.claude/hooks/session-start.sh`) vérifie
+l'environnement à chaque ouverture de session et installe les dépendances npm
+quand un `package.json` existe.
+
 Les plugins `frontend-design`, `web-design-guidelines`, `supabase`,
 `playwright`, `claude-code-setup`, `claude-security` **n'existent pas** dans cet
-environnement : ne pas tenter de les installer, ne pas prétendre les utiliser.
+environnement (catalogue, skills claude.ai et registre MCP vérifiés) : ne pas
+tenter de les installer, ne pas prétendre les utiliser. Leurs besoins sont
+couverts par le MCP Supabase, Playwright préinstallé, `/security-review` et les
+skills projet `vehora-frontend` et `vehora-workflow`.
 
 ## Cycle obligatoire par phase
 
