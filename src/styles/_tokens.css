@@ -1,0 +1,98 @@
+/* VEHORA — tokens de design.
+   Aucune couleur en dur ailleurs dans le projet : toujours var(--vh-*). */
+
+:root {
+  /* Couleurs — thème sombre (défaut) */
+  --vh-bg: #0b1120;
+  --vh-surface-1: #111827;
+  --vh-surface-2: #172033;
+  --vh-surface-3: #1e293b;
+  --vh-primary: #3b82f6;
+  --vh-primary-hover: #2563eb;
+  --vh-accent: #06b6d4;
+  --vh-success: #22c55e;
+  --vh-warning: #f59e0b;
+  --vh-error: #ef4444;
+  --vh-text: #f8fafc;
+  --vh-text-muted: #94a3b8;
+  --vh-border: #263449;
+
+  /* Statuts de prestation */
+  --vh-status-arrived: var(--vh-text-muted);
+  --vh-status-inspection: var(--vh-accent);
+  --vh-status-waiting: var(--vh-warning);
+  --vh-status-in-progress: var(--vh-primary);
+  --vh-status-control: var(--vh-accent);
+  --vh-status-ready: var(--vh-success);
+  --vh-status-delivered: var(--vh-text-muted);
+  --vh-status-cancelled: var(--vh-error);
+
+  /* Espacement — échelle 4px */
+  --vh-space-1: 4px;
+  --vh-space-2: 8px;
+  --vh-space-3: 12px;
+  --vh-space-4: 16px;
+  --vh-space-6: 24px;
+  --vh-space-8: 32px;
+  --vh-space-12: 48px;
+  --vh-space-16: 64px;
+
+  /* Rayons */
+  --vh-radius-control: 6px;
+  --vh-radius-card: 10px;
+  --vh-radius-modal: 16px;
+
+  /* Profondeur — discrète : surface + bordure d'abord */
+  --vh-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --vh-shadow-2: 0 4px 12px rgb(0 0 0 / 0.35);
+  --vh-shadow-3: 0 12px 32px rgb(0 0 0 / 0.45);
+
+  /* Typographie */
+  --vh-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vh-text-xs: 12px;
+  --vh-text-sm: 14px;
+  --vh-text-base: 16px;
+  --vh-text-lg: 20px;
+  --vh-text-xl: 24px;
+  --vh-text-2xl: 32px;
+  --vh-text-3xl: 40px;
+
+  /* Mouvement */
+  --vh-duration-fast: 150ms;
+  --vh-duration-base: 220ms;
+  --vh-duration-slow: 300ms;
+  --vh-ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* Cibles tactiles — minimum absolu et action opérationnelle primaire */
+  --vh-touch-min: 44px;
+  --vh-touch-primary: 56px;
+}
+
+/* Mode clair — exigence terrain : écrans opérationnels utilisés en plein soleil.
+   Mêmes tokens, valeurs redéfinies. Livré en phase 2. */
+[data-theme='light'] {
+  --vh-bg: #f5f7fa;
+  --vh-surface-1: #ffffff;
+  --vh-surface-2: #eef2f7;
+  --vh-surface-3: #e2e8f0;
+  --vh-primary: #1d4ed8;
+  --vh-primary-hover: #1e40af;
+  --vh-accent: #0e7490;
+  --vh-success: #15803d;
+  --vh-warning: #b45309;
+  --vh-error: #b91c1c;
+  --vh-text: #0b1120;
+  --vh-text-muted: #475569;
+  --vh-border: #cbd5e1;
+  --vh-shadow-1: 0 1px 2px rgb(11 17 32 / 0.08);
+  --vh-shadow-2: 0 4px 12px rgb(11 17 32 / 0.1);
+  --vh-shadow-3: 0 12px 32px rgb(11 17 32 / 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vh-duration-fast: 0ms;
+    --vh-duration-base: 0ms;
+    --vh-duration-slow: 0ms;
+  }
+}
