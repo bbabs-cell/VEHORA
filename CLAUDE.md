@@ -54,6 +54,32 @@ Et : OPÉRATIONNEL > ESTHÉTIQUE · SÉCURITÉ > VITESSE DE DEV · SIMPLICITÉ >
   d'abstraction sans bénéfice concret. Pas de fichier géant.
 - **Progressif.** Une phase à la fois. Jamais de génération massive.
 
+## Skills projet — choisir avant d'agir
+
+Les skills vivent dans `.claude/skills/`. **Ne jamais tous les charger.** Avant
+chaque tâche importante : identifier le type de tâche, charger uniquement les
+skills qui apportent une valeur directe, vérifier le résultat.
+
+| Type de tâche | Skills à charger |
+|---|---|
+| Interface, composant, style | `vehora-design-system` + `vehora-ux` |
+| Parcours utilisateur, formulaire, navigation | `vehora-ux` |
+| Table, migration, policy, requête Supabase | `vehora-supabase` (+ `vehora-security` si données sensibles ou permissions) |
+| Auth, RLS, permissions, audit | `vehora-security` + `vehora-supabase` |
+| Espace Super Admin, abonnements, flags | `vehora-super-admin` + `vehora-security` + `vehora-supabase` |
+| Paiements, caisse, devises, réseau, terrain | `vehora-west-africa` (+ `vehora-ux`) |
+| Tests, validation, clôture de phase | `vehora-qa` |
+
+Skills natifs utiles : `/security-review` (revue de sécurité d'un diff),
+`/code-review`, `/simplify`, `update-config`, `session-start-hook`.
+
+**Outils réellement disponibles** : MCP Supabase, MCP GitHub, Chromium +
+Playwright préinstallés (`/opt/pw-browsers` — ne jamais lancer
+`playwright install`), PostgreSQL 16 local pour `scripts/validate-sql.sh`.
+Les plugins `frontend-design`, `web-design-guidelines`, `supabase`,
+`playwright`, `claude-code-setup`, `claude-security` **n'existent pas** dans cet
+environnement : ne pas tenter de les installer, ne pas prétendre les utiliser.
+
 ## Cycle obligatoire par phase
 
 ```
