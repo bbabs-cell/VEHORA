@@ -254,4 +254,23 @@ exception
 end;
 $$;
 
+-- Une organisation doit rester supprimable : l'invariant « dernier
+-- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
+do $$
+declare v_org uuid := 'bbbbbbbb-0000-0000-0000-000000000002';
+begin
+  delete from public.organizations where id = v_org;
+  if exists (select 1 from public.organization_memberships where organization_id = v_org) then
+    raise exception 'ÉCHEC — adhésions orphelines après suppression d''organisation';
+  end if;
+  raise notice 'ok — organisation supprimable en cascade';
+exception
+  when others then
+    if sqlerrm like '%VEHORA_LAST_OWNER%' then
+      raise exception 'ÉCHEC — l''invariant dernier propriétaire bloque la suppression d''organisation';
+    else raise;
+    end if;
+end;
+$$;
+
 rollback;
