@@ -210,8 +210,121 @@ thème sombre et clair. Les deux sont lisibles et conformes au design system.
 
 Aucune vulnérabilité CRITICAL ou HIGH non corrigée.
 
+---
+
+# Phase 1 — clôture : parcours connecté vérifié de bout en bout
+
+Le hook a été activé dans le tableau de bord Supabase. Tout ce qui restait en
+suspens est désormais vérifié **en conditions réelles**.
+
+## Le parcours complet fonctionne
+
+Compte de démonstration créé (`Station Awa`, Dakar, propriétaire Awa Diop).
+Connexion réelle via l'API Auth :
+
+```
+role (Supabase)   : authenticated     ← intact, PostgREST fonctionne
+vehora_role       : OWNER
+role_scope        : ORGANIZATION
+org_id            : ec299e27-…
+permissions       : 30
+is_platform_admin : false
+durée de vie      : 900 s             ← conforme à l'ADR-001
+```
+
+Lecture via l'API, filtrée par la RLS : l'organisation et la station de Awa
+sont visibles, le référentiel des rôles est lisible, le journal d'audit ne
+l'est pas. Rien d'autre.
+
+## Tests de sécurité par l'API réelle, avec un vrai jeton
+
+Une seconde organisation (`Moussa Wash`, Bamako) a servi de cible.
+
+| Tentative | Résultat |
+|---|---|
+| Lire l'organisation B par son identifiant | `[]` — invisible |
+| Lister les stations de B | `[]` |
+| Créer une station chez B (`organization_id` falsifié) | **403** RLS |
+| Renommer l'organisation B | 0 ligne |
+| Supprimer l'organisation B | 0 ligne |
+| S'attribuer `SUPER_ADMIN` sur B (escalade) | **403** RLS |
+| Écrire directement dans le journal d'audit | **403** RLS |
+| Modifier le référentiel des rôles | 0 ligne |
+| Lister les profils | 1 seul — le sien |
+| Appeler le hook en RPC (schéma `vehora`) | **406** — schéma non exposé |
+| Appeler le hook en RPC (schéma `public`) | **403** — exécution refusée |
+| Jeton dont les claims sont réécrits côté client | **401** — signature invalide |
+
+Les trois derniers sont les plus importants : le schéma `vehora` n'est pas
+exposé à PostgREST, le hook n'est pas appelable depuis l'extérieur, et forger
+des claims côté client ne sert à rien puisque la signature est vérifiée.
+
+## Défauts trouvés pendant cette clôture
+
+### Défaut de méthode — un test passait pour la mauvaise raison
+
+Le test « des identifiants invalides affichent une erreur » vérifiait seulement
+qu'une alerte apparaissait. Or, dans l'environnement cloud, l'appel réseau
+échouait et l'alerte affichée était « Connexion au serveur impossible ». **Le
+test passait sans jamais joindre Supabase.**
+
+Corrigé : le test exige désormais le message « Identifiants incorrects », donc
+une vraie réponse du serveur. Leçon inscrite dans la méthode : une assertion
+qui se contente de « quelque chose s'est affiché » ne prouve rien.
+
+### Erreur de diagnostic de ma part — relais `public` inutile
+
+J'avais conclu que le tableau de bord ne proposait pas le schéma `vehora` et
+créé un relais dans `public`. En réalité le schéma était bien proposé : le hook
+était simplement resté **désactivé**. Le relais a été supprimé
+(`20260912110000`) : une fonction inutilisée dans `public`, même verrouillée,
+reste de la surface exposée en plus.
+
+### Environnement — le proxy cloud coupe le navigateur
+
+Le proxy sortant du bac à sable ferme le tunnel en cours d'échange quand c'est
+Chromium qui l'emprunte (`ERR_CONNECTION_RESET`), alors que la même requête
+aboutit depuis Node (`200`). Ce n'est pas un défaut de VEHORA.
+
+Contourné dans le harnais de test (`e2e/relais-reseau.ts`) : les appels vers
+Supabase sont rejoués depuis Node. L'application n'est pas modifiée — elle émet
+les mêmes requêtes vers le vrai backend et reçoit les vraies réponses. En local,
+où le navigateur sort directement, le relais ne s'installe pas.
+
+### Piège de création de compte
+
+Créer un utilisateur par `insert` direct dans `auth.users` échoue à la connexion
+avec « Database error querying schema ». La vraie cause, trouvée dans les
+journaux : `confirmation_token` et sept autres colonnes texte sont lues comme
+non nullables par GoTrue. Elles doivent valoir `''`, jamais `NULL`. À retenir
+pour l'approvisionnement d'organisations en phase 2 — où l'on passera de
+préférence par l'API Admin plutôt que par du SQL direct.
+
+## Bilan des tests de la phase 1
+
+| Suite | Résultat |
+|---|---|
+| Types stricts | ✅ |
+| Build, budgets appliqués | ✅ 109 kB transférés |
+| Sécurité SQL locale | ✅ 17 assertions |
+| Parcours Playwright (mobile + desktop) | ✅ **16 tests** |
+| Sécurité par l'API réelle | ✅ 12 tentatives bloquées |
+| Advisors Supabase | ✅ aucune alerte de base |
+
+## Risques résiduels
+
+| Risque | Gravité | Traitement |
+|---|---|---|
+| Protection contre les mots de passe compromis désactivée | LOW | un réglage dans Authentication → Policies |
+| Jeton en `localStorage` : une faille XSS le volerait | MEDIUM | inhérent à Supabase ; Angular échappe par défaut, aucun `innerHTML` |
+| Compte de démonstration avec mot de passe connu en base | LOW | à supprimer avant toute mise en production |
+| Policies Storage non écrites | MEDIUM | phase 5 |
+| Aucun approvisionnement d'organisation (tout est créé en SQL) | MEDIUM | phase 2 |
+
+**Aucune vulnérabilité CRITICAL ou HIGH ouverte. Phase 1 validée.**
+
 ## Suite — phase 2
 
-Design system appliqué, layout, navigation, responsive, et mode clair
-fonctionnel. Puis création d'une organisation et d'un premier compte réel, pour
-tester le parcours connecté de bout en bout.
+Design system appliqué, layout applicatif, navigation, responsive complet et
+mode clair fonctionnel. Puis approvisionnement d'organisation : créer une
+entreprise et son premier propriétaire depuis l'application, sans SQL.

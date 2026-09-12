@@ -9,6 +9,27 @@ import { defineConfig, devices } from '@playwright/test';
 const chromiumPreinstalle = process.env['VEHORA_CHROMIUM'] ?? undefined;
 
 /**
+ * En environnement cloud, le trafic sortant passe par un proxy que le
+ * navigateur n'hérite pas des variables d'environnement. Sans cela, l'appel à
+ * Supabase échoue et le test se termine sur « Connexion au serveur
+ * impossible ». En local, laisser la variable vide.
+ */
+const proxySortant = process.env['HTTPS_PROXY'];
+const optionsLancement = {
+  executablePath: chromiumPreinstalle,
+  ...(proxySortant
+    ? {
+        args: [
+          `--proxy-server=${proxySortant}`,
+          // Le serveur de développement est local : il ne doit jamais passer
+          // par le proxy, qui répondrait 405.
+          '--proxy-bypass-list=localhost;127.0.0.1;[::1]',
+        ],
+      }
+    : {}),
+};
+
+/**
  * Les parcours critiques sont testés au format téléphone d'abord : c'est
  * l'appareil réel des utilisateurs (skill vehora-west-africa).
  */
@@ -26,14 +47,16 @@ export default defineConfig({
       name: 'mobile',
       use: {
         ...devices['Pixel 5'],
-        launchOptions: { executablePath: chromiumPreinstalle },
+        launchOptions: optionsLancement,
+        ignoreHTTPSErrors: Boolean(proxySortant),
       },
     },
     {
       name: 'desktop',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: { executablePath: chromiumPreinstalle },
+        launchOptions: optionsLancement,
+        ignoreHTTPSErrors: Boolean(proxySortant),
       },
     },
   ],

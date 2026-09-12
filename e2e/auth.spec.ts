@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { installerRelaisReseau } from './relais-reseau';
 
 test.describe('Authentification', () => {
+  test.beforeEach(async ({ page }) => {
+    await installerRelaisReseau(page);
+  });
+
   test('un visiteur non connecté est redirigé vers la connexion', async ({ page }) => {
     await page.goto('/tableau-de-bord');
     await expect(page).toHaveURL(/\/connexion/);
@@ -41,6 +46,8 @@ test.describe('Authentification', () => {
 
     const alerte = page.getByRole('alert');
     await expect(alerte).toBeVisible({ timeout: 15_000 });
+    // Le serveur a bien répondu : ce n'est pas une erreur réseau déguisée.
+    await expect(alerte).toContainText('Identifiants incorrects');
     // Le message ne doit pas distinguer « compte inexistant » de « mot de passe faux ».
     await expect(alerte).not.toContainText(/n'existe pas|inconnu|introuvable/i);
   });
