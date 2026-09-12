@@ -1,0 +1,273 @@
+.vehicules {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.vehicules__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vh-space-4);
+  flex-wrap: wrap;
+  padding-top: var(--vh-space-4);
+}
+
+.vehicules__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.vehicules__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+  max-width: 48ch;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.carte__infos {
+  min-width: 0;
+}
+
+.carte__nom {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.carte__detail {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.carte__actions {
+  display: flex;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.etiquette {
+  font-size: var(--vh-text-xs);
+  font-weight: 400;
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: 999px;
+  color: var(--vh-text-muted);
+}
+
+.etiquette--inactive {
+  border-color: var(--vh-warning);
+  color: var(--vh-warning);
+}
+
+.erreur-champ {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}
+
+/* ---------- Modale ---------- */
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  padding: var(--vh-space-3);
+}
+
+.modale__contenu {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: var(--vh-radius-modal);
+}
+
+.modale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  margin-bottom: var(--vh-space-4);
+}
+
+.modale__titre {
+  font-size: var(--vh-text-lg);
+}
+
+.modale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.modale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.modale form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vh-space-3);
+  margin-top: var(--vh-space-2);
+}
+
+@media (min-width: 640px) {
+  .carte {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modale {
+    align-items: center;
+  }
+}
+
+@media (min-width: 900px) {
+  .vehicules {
+    padding: var(--vh-space-6);
+  }
+}
+
+/* ---------- Recherche ---------- */
+
+.recherche__champ {
+  width: 100%;
+  /* Cible confortable : la recherche est le geste le plus fréquent ici. */
+  min-height: var(--vh-touch-primary);
+}
+
+.vehicules__suite {
+  width: 100%;
+}
+
+.aide-champ {
+  margin: 0;
+  font-size: var(--vh-text-xs);
+}
+
+/* ---------- Spécifique aux véhicules ---------- */
+
+/* La plaque est l'information qu'on cherche des yeux : elle se lit comme une
+   plaque, pas comme du texte courant. */
+.plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.champ-plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deux-colonnes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--vh-space-4);
+}
+
+@media (min-width: 480px) {
+  .deux-colonnes {
+    /* `minmax(0, 1fr)` et non `1fr` : une piste de grille ne descend pas sous
+       la largeur intrinsèque de son contenu, et un <input> en a une par défaut
+       (attribut `size`). Avec `1fr`, la seconde colonne débordait de la modale. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* Même raison : un champ dans une grille doit pouvoir rétrécir. */
+.deux-colonnes .vh-field,
+.deux-colonnes .vh-input {
+  min-width: 0;
+}
+
+/* ---------- Sélecteur de propriétaire ---------- */
+
+.proprietaire {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  min-height: var(--vh-touch-min);
+}
+
+.proprietaire__nom {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.suggestions {
+  list-style: none;
+  margin: var(--vh-space-2) 0 0;
+  padding: 0;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  overflow: hidden;
+}
+
+.suggestions__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  width: 100%;
+  min-height: var(--vh-touch-min);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--vh-border);
+  color: var(--vh-text);
+  text-align: left;
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+}
+
+.suggestions li:last-child .suggestions__item {
+  border-bottom: none;
+}
+
+.suggestions__item:hover {
+  background: var(--vh-surface-3);
+}

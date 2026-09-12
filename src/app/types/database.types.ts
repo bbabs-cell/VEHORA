@@ -107,6 +107,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_types: {
+        Row: {
+          code: string;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          label: string;
+          sort_order: number;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          label: string;
+          sort_order: number;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          label?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      vehicles: {
+        Row: {
+          archived_at: string | null;
+          color: string | null;
+          created_at: string;
+          created_by: string | null;
+          customer_id: string | null;
+          id: string;
+          make: string | null;
+          model: string | null;
+          notes: string | null;
+          organization_id: string;
+          plate: string | null;
+          plate_normalized: string | null;
+          updated_at: string;
+          vehicle_type_id: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          color?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string | null;
+          id?: string;
+          make?: string | null;
+          model?: string | null;
+          notes?: string | null;
+          organization_id?: string;
+          plate?: string | null;
+          plate_normalized?: never;
+          updated_at?: string;
+          vehicle_type_id: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          color?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string | null;
+          id?: string;
+          make?: string | null;
+          model?: string | null;
+          notes?: string | null;
+          organization_id?: string;
+          plate?: string | null;
+          plate_normalized?: never;
+          updated_at?: string;
+          vehicle_type_id?: string;
+        };
+        Relationships: [];
+      };
       organization_invitations: {
         Row: {
           accepted_at: string | null;
@@ -415,6 +493,24 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      rechercher_vehicules: {
+        Args: { p_recherche?: string | null; p_limite?: number; p_decalage?: number };
+        Returns: {
+          id: string;
+          organization_id: string;
+          customer_id: string | null;
+          vehicle_type_id: string;
+          plate: string | null;
+          plate_normalized: string | null;
+          make: string | null;
+          model: string | null;
+          color: string | null;
+          notes: string | null;
+          created_at: string;
+          type_label: string;
+          customer_name: string | null;
+        }[];
+      };
       rechercher_clients: {
         Args: { p_recherche?: string | null; p_limite?: number; p_decalage?: number };
         Returns: Database['public']['Tables']['customers']['Row'][];

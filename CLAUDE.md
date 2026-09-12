@@ -138,11 +138,15 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 5 validée.** CRM clients en place. Prochaine étape : véhicules, puis
-inspection et photos.
+**Phase 6 validée.** Clients et véhicules en place. Prochaine étape :
+inspection et photos — premières policies Storage.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 20 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- 22 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+  9 types de véhicules.
+- **Une policy vérifie la ligne, pas ce qu'elle référence.** Toute clé
+  étrangère vers une table multi-tenant demande un trigger de cohérence
+  (`stations`↔`memberships`, `vehicles`↔`customers`).
 - **Les numéros de téléphone sont normalisés par trigger** en forme
   internationale, à partir du pays de l'organisation. Ne jamais écrire
   `phone_digits` depuis le client, ni comparer des numéros bruts.
@@ -158,11 +162,16 @@ inspection et photos.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **81 tests Playwright**,
-  **26 assertions SQL**, et une campagne d'intrusion par l'API réelle.
-- **Leçon récurrente** : trois défauts d'interface (thème par défaut, sélecteur
-  de rôle, affichage des numéros) ont échappé aux tests et se sont vus à
-  l'écran. Sur un écran, une assertion doit décrire ce que l'œil doit voir.
+- Parcours connecté vérifié de bout en bout ; **99 tests Playwright**,
+  **31 assertions SQL**, et une campagne d'intrusion par l'API réelle.
+- **Leçon récurrente** : cinq défauts d'interface (thème par défaut, sélecteur
+  de rôle, affichage des numéros, groupement des chiffres, débordement de
+  modale) ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
+  assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
+  de la validation d'une phase d'interface.**
+- **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).
+  La règle est dans `vehora-frontend` — désactiver l'ouverture tant que la
+  donnée asynchrone manque, défaut par `effect`, message explicite sinon.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),

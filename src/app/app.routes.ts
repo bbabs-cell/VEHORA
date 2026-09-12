@@ -48,6 +48,13 @@ export const routes: Routes = [
           import('./features/customers/customers.component').then((m) => m.CustomersComponent),
       },
       {
+        path: 'vehicules',
+        title: 'Véhicules — VEHORA',
+        canActivate: [permissionGuard('vehicles.read')],
+        loadComponent: () =>
+          import('./features/vehicles/vehicles.component').then((m) => m.VehiclesComponent),
+      },
+      {
         path: 'stations',
         title: 'Stations — VEHORA',
         // Confort d'interface : la RLS refuse de toute façon l'écriture sans

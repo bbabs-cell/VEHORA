@@ -27,7 +27,7 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: false },
   { libelle: 'Prestations', chemin: '/prestations', icone: 'prestation', permission: 'service_orders.read', disponible: false },
   { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
-  { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: false },
+  { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },
   { libelle: 'Stations', chemin: '/stations', icone: 'accueil', permission: 'stations.manage', disponible: true },
   { libelle: 'Services', chemin: '/services', icone: 'service', permission: 'services.manage', disponible: false },
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },

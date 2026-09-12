@@ -1,0 +1,243 @@
+<div class="vehicules">
+  <header class="vehicules__entete">
+    <div>
+      <h1 class="vehicules__titre">Véhicules</h1>
+      <p class="vh-muted vehicules__sous-titre">
+        Recherchez par plaque, marque, modèle ou nom du propriétaire.
+      </p>
+    </div>
+    @if (peutEcrire()) {
+      <button
+        class="vh-button"
+        type="button"
+        (click)="ouvrirCreation()"
+        [disabled]="!pretAEnregistrer()"
+      >
+        Nouveau véhicule
+      </button>
+    }
+  </header>
+
+  <div class="recherche">
+    <label class="vh-sr-only" for="recherche-vehicule">Rechercher un véhicule</label>
+    <input
+      id="recherche-vehicule"
+      class="vh-input recherche__champ"
+      type="search"
+      inputmode="search"
+      autocomplete="off"
+      placeholder="Plaque, marque ou propriétaire…"
+      (input)="surRecherche($event)"
+    />
+  </div>
+
+  @if (vehicules.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (vehicules.chargement() && vehicules.vehicules().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
+      }
+    </div>
+  } @else if (vehicules.vehicules().length === 0) {
+    <div class="vh-card">
+      <vh-empty-state
+        [titre]="vehicules.recherche().length > 0 ? 'Aucun résultat' : 'Aucun véhicule'"
+        texte="Enregistrez les véhicules de vos clients : leur plaque suffit à les
+               retrouver, avec tout leur historique."
+      >
+        @if (peutEcrire()) {
+          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+            Enregistrer un véhicule
+          </button>
+        }
+      </vh-empty-state>
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Liste des véhicules">
+      @for (vehicule of vehicules.vehicules(); track vehicule.id) {
+        <li class="vh-card carte">
+          <div class="carte__infos">
+            <p class="carte__nom">
+              <span class="plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
+              <span class="etiquette">{{ vehicule.type_label }}</span>
+            </p>
+            <p class="vh-muted carte__detail">
+              {{ descriptionVehicule(vehicule) }}
+              @if (vehicule.customer_name) {
+                · {{ vehicule.customer_name }}
+              } @else {
+                · Propriétaire non renseigné
+              }
+            </p>
+          </div>
+
+          @if (peutEcrire()) {
+            <div class="carte__actions">
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="ouvrirEdition(vehicule)"
+                [attr.aria-label]="'Modifier ' + (vehicule.plate || 'ce véhicule')"
+              >
+                Modifier
+              </button>
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="archiver(vehicule)"
+                [attr.aria-label]="'Archiver ' + (vehicule.plate || 'ce véhicule')"
+              >
+                Archiver
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (!vehicules.finDeListe()) {
+      <button
+        class="vh-button vh-button--ghost vehicules__suite"
+        type="button"
+        (click)="vehicules.chargerSuite()"
+        [disabled]="vehicules.chargement()"
+      >
+        {{ vehicules.chargement() ? 'Chargement…' : 'Afficher plus de véhicules' }}
+      </button>
+    }
+  }
+</div>
+
+@if (formulaireOuvert()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-vehicule">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-vehicule" class="modale__titre">
+          {{ enEdition() ? 'Modifier le véhicule' : 'Nouveau véhicule' }}
+        </h2>
+        <button class="modale__fermer" type="button" (click)="fermer()" aria-label="Fermer">
+          <vh-icon nom="fermer" />
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="plaque">Plaque d’immatriculation</label>
+          <input
+            id="plaque"
+            class="vh-input champ-plaque"
+            type="text"
+            formControlName="plate"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="DK-1234-A"
+            [attr.aria-invalid]="form.controls.plate.touched && form.controls.plate.invalid"
+          />
+          @if (form.controls.plate.touched && form.controls.plate.invalid) {
+            <p class="erreur-champ">La plaque est obligatoire.</p>
+          } @else {
+            <p class="vh-muted aide-champ">
+              Espaces et tirets sont ignorés : DK1234A et DK-1234-A sont le même véhicule.
+            </p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="type-vehicule">Type</label>
+          <select id="type-vehicule" class="vh-input" formControlName="vehicle_type_id">
+            @for (type of vehicules.types(); track type.id) {
+              <option [value]="type.id">{{ type.label }}</option>
+            }
+          </select>
+        </div>
+
+        @if (peutVoirClients()) {
+          <div class="vh-field">
+            <label class="vh-label" for="proprietaire">Propriétaire (facultatif)</label>
+            @if (proprietaire(); as choisi) {
+              <div class="proprietaire">
+                <span class="proprietaire__nom">{{ choisi.nom }}</span>
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="retirerProprietaire()"
+                >
+                  Retirer
+                </button>
+              </div>
+            } @else {
+              <input
+                id="proprietaire"
+                class="vh-input"
+                type="search"
+                autocomplete="off"
+                placeholder="Rechercher un client…"
+                (input)="surRechercheClient($event)"
+              />
+              @if (resultatsClients().length > 0) {
+                <ul class="suggestions" aria-label="Clients trouvés">
+                  @for (client of resultatsClients(); track client.id) {
+                    <li>
+                      <button
+                        class="suggestions__item"
+                        type="button"
+                        (click)="choisirProprietaire(client)"
+                      >
+                        <span>{{ client.full_name }}</span>
+                        @if (client.phone) {
+                          <span class="vh-muted">{{ client.phone }}</span>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              } @else if (rechercheClientOuverte()) {
+                <p class="vh-muted aide-champ">
+                  Aucun client trouvé. Le véhicule peut être enregistré sans propriétaire.
+                </p>
+              }
+            }
+          </div>
+        }
+
+        <div class="deux-colonnes">
+          <div class="vh-field">
+            <label class="vh-label" for="marque">Marque</label>
+            <input id="marque" class="vh-input" type="text" formControlName="make" />
+          </div>
+          <div class="vh-field">
+            <label class="vh-label" for="modele">Modèle</label>
+            <input id="modele" class="vh-input" type="text" formControlName="model" />
+          </div>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="couleur">Couleur</label>
+          <input id="couleur" class="vh-input" type="text" formControlName="color" />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="notes-vehicule">Notes</label>
+          <input id="notes-vehicule" class="vh-input" type="text" formControlName="notes" />
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermer()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

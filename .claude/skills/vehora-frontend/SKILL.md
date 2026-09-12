@@ -47,6 +47,17 @@ Configuré dans `angular.json` → un dépassement **casse le build**.
 
 ## Formulaires
 
+**Un formulaire ne doit jamais échouer en silence.** C'est le défaut le plus
+souvent reproduit sur ce projet : un champ obligatoire dépend d'un chargement
+asynchrone (rôles, types, tarifs), il est encore vide quand l'utilisateur
+valide, le formulaire est invalide, et **rien ne s'affiche**. L'utilisateur
+clique et croit à une panne.
+
+Trois règles, à appliquer ensemble :
+1. désactiver l'action qui ouvre le formulaire tant que la donnée n'est pas là ;
+2. renseigner le défaut par un `effect` dès qu'elle arrive ;
+3. afficher un message explicite si la validation bloque sur ce champ.
+
 Reactive forms, jamais `ngModel`. Validation **côté client pour le confort,
 côté serveur pour la vérité** — les deux, jamais l'une à la place de l'autre.
 Un message d'erreur est attaché à son champ, en français, et dit comment

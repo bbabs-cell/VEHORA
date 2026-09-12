@@ -379,6 +379,77 @@ select pg_temp.check('une autre organisation ne voit aucun client',
 
 set local role postgres;
 
+-- ==========================================================================
+-- 9. Véhicules (phase 6).
+-- ==========================================================================
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+insert into public.vehicles (vehicle_type_id, plate, make)
+select id, 'DK-1234-A', 'Toyota' from public.vehicle_types where code = 'SEDAN';
+
+select pg_temp.check('la plaque est normalisée',
+  (select count(*) from public.vehicles where plate_normalized = 'DK1234A'), 1);
+
+-- Quatre écritures de la même plaque doivent toutes être reconnues.
+do $$
+declare v_forme text; v_type uuid;
+begin
+  select id into v_type from public.vehicle_types where code = 'SEDAN';
+  foreach v_forme in array array['dk1234a', 'DK 1234 A', 'dk-1234-a', 'DK.1234.A'] loop
+    begin
+      insert into public.vehicles (vehicle_type_id, plate) values (v_type, v_forme);
+      raise exception 'ÉCHEC — plaque en doublon acceptée : %', v_forme;
+    exception
+      when unique_violation then null;
+    end;
+  end loop;
+  raise notice 'ok — quatre écritures de la même plaque reconnues';
+end;
+$$;
+
+-- Rattacher un client d'une autre organisation doit être refusé : la policy
+-- vérifie le véhicule, pas ce qu'il référence.
+do $$
+declare v_type uuid; v_client_b uuid;
+begin
+  select id into v_type from public.vehicle_types where code = 'SUV';
+
+  -- Un client chez B, créé hors RLS pour les besoins du test.
+  set local role postgres;
+  insert into public.customers (organization_id, full_name)
+  values ('bbbbbbbb-0000-0000-0000-000000000002', 'Client de B')
+  returning id into v_client_b;
+  set local role authenticated;
+
+  insert into public.vehicles (vehicle_type_id, customer_id, plate)
+  values (v_type, v_client_b, 'XX-000-X');
+  raise exception 'ÉCHEC CRITIQUE — véhicule rattaché à un client d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — rattachement à un client d''une autre organisation refusé';
+end;
+$$;
+
+-- Un rôle sans `vehicles.write` lit mais n'écrit pas.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un OPERATOR lit les véhicules',
+  (select count(*) from public.vehicles), 1);
+do $$
+declare v_type uuid;
+begin
+  select id into v_type from public.vehicle_types where code = 'SEDAN';
+  insert into public.vehicles (vehicle_type_id, plate) values (v_type, 'ZZ-111-Z');
+  raise exception 'ÉCHEC — écriture acceptée sans vehicles.write';
+exception
+  when insufficient_privilege then raise notice 'ok — écriture refusée sans vehicles.write';
+end;
+$$;
+
+set local role postgres;
+
 -- Une organisation doit rester supprimable : l'invariant « dernier
 -- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
 do $$
