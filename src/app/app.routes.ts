@@ -50,6 +50,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'operations',
+        title: 'Opérations — VEHORA',
+        canActivate: [permissionGuard('service_orders.read')],
+        loadComponent: () =>
+          import('./features/operations/operations.component').then((m) => m.OperationsComponent),
+      },
+      {
+        path: 'employes',
+        title: 'Employés — VEHORA',
+        canActivate: [permissionGuard('employees.manage')],
+        loadComponent: () =>
+          import('./features/employes/employes.component').then((m) => m.EmployesComponent),
+      },
+      {
         path: 'clients',
         title: 'Clients — VEHORA',
         canActivate: [permissionGuard('customers.read')],

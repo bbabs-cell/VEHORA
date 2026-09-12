@@ -857,6 +857,144 @@ export type Database = {
           },
         ];
       };
+      employees: {
+        Row: {
+          id: string;
+          organization_id: string;
+          profile_id: string | null;
+          station_id: string | null;
+          full_name: string;
+          phone: string | null;
+          phone_digits: string | null;
+          status: Database['public']['Enums']['employee_status'];
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** `phone_digits` est posé par la base : ne jamais l'écrire d'ici. */
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          profile_id?: string | null;
+          station_id?: string | null;
+          full_name: string;
+          phone?: string | null;
+          status?: Database['public']['Enums']['employee_status'];
+          created_by?: string | null;
+        };
+        Update: {
+          profile_id?: string | null;
+          station_id?: string | null;
+          full_name?: string;
+          phone?: string | null;
+          status?: Database['public']['Enums']['employee_status'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      employee_services: {
+        Row: { employee_id: string; service_id: string; organization_id: string };
+        Insert: { employee_id: string; service_id: string; organization_id?: string };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'employee_services_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employee_services_service_id_fkey';
+            columns: ['service_id'];
+            isOneToOne: false;
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_order_operations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          service_order_id: string;
+          item_id: string;
+          service_name: string;
+          employee_id: string | null;
+          status: Database['public']['Enums']['operation_status'];
+          started_at: string | null;
+          completed_at: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Les opérations naissent de la mise en file d'attente, pas de l'API. */
+        Insert: never;
+        /** `started_at` et `completed_at` sont horodatés par la base. */
+        Update: {
+          employee_id?: string | null;
+          status?: Database['public']['Enums']['operation_status'];
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_order_operations_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_order_operations_item_id_fkey';
+            columns: ['item_id'];
+            isOneToOne: true;
+            referencedRelation: 'service_order_items';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_order_operations_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_order_operations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       service_orders: {
         Row: {
           id: string;
@@ -1186,6 +1324,8 @@ export type Database = {
       };
     };
     Enums: {
+      employee_status: 'ACTIVE' | 'INACTIVE';
+      operation_status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
       inspection_condition: 'OK' | 'ANOMALY';
       invitation_status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
       membership_status: 'ACTIVE' | 'SUSPENDED';

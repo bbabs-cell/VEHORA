@@ -138,12 +138,28 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 9 validée.** Clients, véhicules, inspection, photos, catalogue, tarifs
-et Service Order en place. Prochaine étape : les opérations, puis le paiement.
+**Phase 10 validée.** Clients, véhicules, inspection, photos, catalogue, tarifs,
+Service Order, employés et opérations en place. Le cycle va de l'arrivée à
+« prêt ». Prochaine étape : le paiement et la caisse.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 29 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
-  9 types de véhicules, 10 zones d'inspection, 6 transitions de dossier.
+- 31 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+  9 types de véhicules, 10 zones d'inspection, 14 transitions de dossier.
+- **Un employé n'est pas un utilisateur.** `employees.profile_id` est nullable
+  et le reste dans le cas courant. Les opérations référencent `employee_id` :
+  l'historique de travail survit au départ de la personne et à la suppression
+  de son compte. On désactive un employé, on ne le supprime pas.
+- **Assigner n'est pas exécuter** : deux permissions sur deux colonnes de la
+  même ligne. Une policy ne voit pas quelle colonne a changé — c'est un trigger
+  qui tranche. Règle générale pour toute table où deux droits se partagent une
+  ligne.
+- **Un trigger de protection doit se taire quand l'écriture vient d'une
+  cascade.** Deux incidents (dernier propriétaire en phase 1, opérations en
+  phase 10) : à chaque fois l'invariant « une organisation reste supprimable »
+  était menacé. Tester la suppression d'organisation avec des données réelles.
+- **Une action que le serveur refusera ne s'affiche pas comme possible** :
+  bouton inerte et raison visible, jamais un clic qui échoue. Deux occurrences
+  (prestation sans tarif, opération non assignée).
 - **Le statut d'un dossier ne se change que par `transitionner_dossier()`.** Un
   trigger rejette tout autre `UPDATE`, `service_role` compris. Le drapeau de
   transaction porte l'identifiant du dossier : un booléen aurait laissé une
@@ -196,20 +212,25 @@ et Service Order en place. Prochaine étape : les opérations, puis le paiement.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **153 tests Playwright**,
-  **88 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-dossiers.mjs`, 23 assertions ;
-  `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
+- Parcours connecté vérifié de bout en bout ; **169 tests Playwright**,
+  **115 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-operations.mjs`, 17 assertions ;
+  `scripts/intrusion-dossiers.mjs`, 23 ; `scripts/intrusion-catalogue.mjs`, 21 ;
+  14 sur le stockage).
 - **Un test ne doit pas modifier l'état que d'autres tests lisent**, ni épingler
-  un numéro qui avance. Un test qui transite un dossier crée le sien et le
-  referme.
-- **Leçon récurrente** : treize défauts d'interface (thème par défaut, sélecteur
+  un numéro qui avance. `e2e/fixtures.ts` monte un dossier par l'API réelle ;
+  chaque test qui fait avancer quelque chose crée le sien et le referme.
+- **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
+  Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
+  paie des dizaines de lignes plus loin.
+- **Leçon récurrente** : seize défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale, actions sur deux lignes, deux mises en page pour la même liste, date
   au format américain, code ISO au lieu du symbole, erreur affichée nulle part,
   bouton sans effet sur formulaire invalide, station absente de la file,
-  prestation sans tarif proposée quand même) ont échappé aux tests et se sont
-  vus à l'écran. Sur un écran, une
+  prestation sans tarif proposée quand même, « Démarrer » proposé sans employé,
+  dossier resté en attente au démarrage du travail, opération démarrée par
+  erreur sans retour possible) ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
   assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
   de la validation d'une phase d'interface.**
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { creerDossierArrive, type DossierDeTest } from './fixtures';
 import { installerRelaisReseau } from './relais-reseau';
 
 const proprietaire = {
@@ -31,14 +32,22 @@ test.describe('File d’attente — propriétaire', () => {
   // ouvert, et un test qui en épingle un finit par décrire l'historique plutôt
   // que le produit.
   test('la file affiche numéro, plaque, attente et montant', async ({ page }) => {
-    const liste = page.getByRole('list', { name: 'Dossiers — Arrivé' });
-    await expect(liste).toBeVisible({ timeout: 15_000 });
-    await expect(liste).toHaveText(/N° \d+/);
-    await expect(liste).toContainText('DK-1234-A');
-    // L'attente est ce que l'exploitant regarde en premier.
-    await expect(liste).toHaveText(/arrivé il y a \d+ min/);
-    // Le montant est formaté en francs, jamais en chiffres bruts.
-    await expect(liste).toHaveText(/5.000.F.CFA/);
+    let dossier: DossierDeTest | null = null;
+    try {
+      dossier = await creerDossierArrive();
+      await page.reload();
+
+      const liste = page.getByRole('list', { name: 'Dossiers — Arrivé' });
+      await expect(liste).toBeVisible({ timeout: 15_000 });
+      await expect(liste).toContainText(`N° ${dossier.numero}`);
+      await expect(liste).toContainText('DK-1234-A');
+      // L'attente est ce que l'exploitant regarde en premier.
+      await expect(liste).toHaveText(/arrivé il y a \d+ min/);
+      // Le montant est formaté en francs, jamais en chiffres bruts.
+      await expect(liste).toHaveText(/5.000.F.CFA/);
+    } finally {
+      await dossier?.nettoyer();
+    }
   });
 
   test('un dossier sans prestation est signalé, pas laissé à deviner', async ({ page }) => {
@@ -47,26 +56,39 @@ test.describe('File d’attente — propriétaire', () => {
     await expect(liste).toContainText('Aucune prestation');
   });
 
-  test('le contenu d’un dossier montre ses lignes et son total', async ({ page }) => {
-    await page.getByRole('button', { name: /^Prestations du dossier/ }).first().click();
-    const modale = page.getByRole('dialog');
-    await expect(modale).toBeVisible();
-    await expect(modale).toContainText('Lavage complet');
-    await expect(modale).toHaveText(/Total\s*5.000.F.CFA/);
+  test('une prestation sans tarif est proposée mais inerte, avec sa raison', async ({ page }) => {
+    let dossier: DossierDeTest | null = null;
+    try {
+      dossier = await creerDossierArrive();
+      await page.reload();
+
+      await page.getByRole('button', { name: `Prestations du dossier ${dossier.numero}` }).click();
+      const modale = page.getByRole('dialog');
+      const sansTarif = modale.getByRole('button', { name: /Aspiration intérieur/ });
+      await expect(sansTarif).toBeVisible();
+      await expect(sansTarif).toBeDisabled();
+      await expect(sansTarif).toContainText('sans tarif');
+
+      await expect(modale.getByRole('button', { name: /^Lavage extérieur/ })).toBeEnabled();
+    } finally {
+      await dossier?.nettoyer();
+    }
   });
 
-  // Un bouton qui ne peut pas aboutir est un mensonge d'interface : la base
-  // refuse une ligne sans tarif, l'écran doit le dire avant le clic.
-  test('une prestation sans tarif est proposée mais inerte, avec sa raison', async ({ page }) => {
-    await page.getByRole('button', { name: /^Prestations du dossier/ }).first().click();
-    const modale = page.getByRole('dialog');
-    const sansTarif = modale.getByRole('button', { name: /Aspiration intérieur/ });
-    await expect(sansTarif).toBeVisible();
-    await expect(sansTarif).toBeDisabled();
-    await expect(sansTarif).toContainText('sans tarif');
+  test('le contenu d’un dossier montre ses lignes et son total', async ({ page }) => {
+    let dossier: DossierDeTest | null = null;
+    try {
+      dossier = await creerDossierArrive();
+      await page.reload();
 
-    // Celle qui a un tarif reste cliquable.
-    await expect(modale.getByRole('button', { name: /^Lavage extérieur/ })).toBeEnabled();
+      await page.getByRole('button', { name: `Prestations du dossier ${dossier.numero}` }).click();
+      const modale = page.getByRole('dialog');
+      await expect(modale).toBeVisible();
+      await expect(modale).toContainText('Lavage complet');
+      await expect(modale).toHaveText(/Total\s*5.000.F.CFA/);
+    } finally {
+      await dossier?.nettoyer();
+    }
   });
 
   test('ouvrir un dossier exige de choisir un véhicule', async ({ page }) => {

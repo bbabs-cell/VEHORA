@@ -1099,10 +1099,399 @@ select pg_temp.check('l''organisation B ne voit aucun historique',
 select pg_temp.check('l''organisation B ne voit aucun total',
   (select count(*) from public.service_order_totals), 0);
 
+-- ===========================================================================
+-- Phase 10 — employés et opérations
+-- ===========================================================================
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Un employé n'a pas besoin de compte (fondation 2).
+do $$
+declare e public.employees;
+begin
+  insert into public.employees (id, full_name, phone, station_id)
+  values ('e0000000-0000-0000-0000-000000000001', 'Modou Laveur', '77 123 45 67',
+          'a1a1a1a1-0000-0000-0000-000000000001')
+  returning * into e;
+
+  if e.profile_id is not null then
+    raise exception 'ÉCHEC — un employé sans compte a reçu un profile_id';
+  end if;
+  raise notice 'ok — un employé existe sans compte de connexion';
+
+  if e.phone_digits <> '221771234567' then
+    raise exception 'ÉCHEC — téléphone employé non normalisé (%)', e.phone_digits;
+  end if;
+  raise notice 'ok — le téléphone de l''employé est normalisé comme celui d''un client';
+end;
+$$;
+
+-- Rattacher un compte non membre de l'organisation est refusé.
+do $$
+begin
+  insert into public.employees (full_name, profile_id)
+  values ('Intrus', '22222222-2222-2222-2222-222222222222');
+  raise exception 'ÉCHEC — compte étranger rattaché à un employé';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — rattacher un compte non membre est refusé';
+end;
+$$;
+
+-- Un dossier complet : ouverture, inspection, file d'attente, opérations.
+do $$
+declare v_vehicule uuid; v_dossier public.service_orders; n integer;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning * into v_dossier;
+
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier.id, '5e000000-0000-0000-0000-000000000002');
+
+  perform public.transitionner_dossier(v_dossier.id, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier.id);
+  perform public.transitionner_dossier(v_dossier.id, 'WAITING');
+
+  select count(*) into n from public.service_order_operations
+   where service_order_id = v_dossier.id;
+  if n <> 1 then
+    raise exception 'ÉCHEC — % opération(s) créée(s) au lieu d''une', n;
+  end if;
+  raise notice 'ok — une opération par prestation vendue, créée à la mise en file';
+end;
+$$;
+
+-- Démarrer le travail exige au moins une opération assignée.
+do $$
+declare v_dossier uuid;
+begin
+  select id into v_dossier from public.service_orders
+   where status = 'WAITING' order by number desc limit 1;
+  perform public.transitionner_dossier(v_dossier, 'IN_PROGRESS');
+  raise exception 'ÉCHEC — travail démarré sans aucune assignation';
+exception
+  when check_violation then
+    raise notice 'ok — démarrer le travail exige une opération assignée';
+end;
+$$;
+
+-- Une opération ne démarre pas sans employé.
+do $$
+declare v_op uuid;
+begin
+  select o.id into v_op from public.service_order_operations o
+    join public.service_orders d on d.id = o.service_order_id
+   where d.status = 'WAITING' limit 1;
+
+  update public.service_order_operations set status = 'IN_PROGRESS' where id = v_op;
+  raise exception 'ÉCHEC — opération démarrée sans employé';
+exception
+  when check_violation then
+    raise notice 'ok — démarrer une opération exige un employé assigné';
+end;
+$$;
+
+-- Assignation, puis parcours complet des opérations et du dossier.
+do $$
+declare v_op uuid; v_dossier uuid; o public.service_order_operations; d public.service_orders;
+begin
+  select o2.id, o2.service_order_id into v_op, v_dossier
+    from public.service_order_operations o2
+    join public.service_orders s on s.id = o2.service_order_id
+   where s.status = 'WAITING' limit 1;
+
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001' where id = v_op;
+  raise notice 'ok — opération assignée à un employé actif';
+
+  d := public.transitionner_dossier(v_dossier, 'IN_PROGRESS');
+  if d.status <> 'IN_PROGRESS' or d.started_at is null then
+    raise exception 'ÉCHEC — démarrage du dossier incomplet';
+  end if;
+  raise notice 'ok — WAITING → IN_PROGRESS une fois l''opération assignée';
+
+  -- Le contrôle exige que TOUTES les opérations soient terminées.
+  begin
+    perform public.transitionner_dossier(v_dossier, 'CONTROL');
+    raise exception 'ÉCHEC — contrôle demandé avec une opération en attente';
+  exception
+    when check_violation then
+      raise notice 'ok — le contrôle exige toutes les opérations terminées';
+  end;
+
+  update public.service_order_operations set status = 'IN_PROGRESS' where id = v_op;
+  select * into o from public.service_order_operations where id = v_op;
+  if o.started_at is null then
+    raise exception 'ÉCHEC — started_at non horodaté au démarrage';
+  end if;
+  raise notice 'ok — le démarrage d''une opération est horodaté par la base';
+
+  update public.service_order_operations set status = 'DONE' where id = v_op;
+  select * into o from public.service_order_operations where id = v_op;
+  if o.completed_at is null then
+    raise exception 'ÉCHEC — completed_at non horodaté à la fin';
+  end if;
+  raise notice 'ok — la fin d''une opération est horodatée par la base';
+
+  d := public.transitionner_dossier(v_dossier, 'CONTROL');
+  if d.status <> 'CONTROL' then
+    raise exception 'ÉCHEC — passage en contrôle refusé';
+  end if;
+  raise notice 'ok — IN_PROGRESS → CONTROL toutes opérations terminées';
+
+  -- Un contrôle rejeté exige un motif et est audité.
+  begin
+    perform public.transitionner_dossier(v_dossier, 'IN_PROGRESS');
+    raise exception 'ÉCHEC — rejet de contrôle sans motif';
+  exception
+    when check_violation then raise notice 'ok — rejeter un contrôle exige un motif';
+  end;
+
+  d := public.transitionner_dossier(v_dossier, 'READY');
+  if d.status <> 'READY' or d.completed_at is null then
+    raise exception 'ÉCHEC — passage en prêt incomplet';
+  end if;
+  raise notice 'ok — CONTROL → READY, et la fin de travail est horodatée';
+end;
+$$;
+
+-- Une transition d'opération hors séquence est refusée.
+do $$
+declare v_op uuid;
+begin
+  select id into v_op from public.service_order_operations where status = 'DONE' limit 1;
+  update public.service_order_operations set status = 'PENDING' where id = v_op;
+  raise exception 'ÉCHEC — retour DONE → PENDING accepté';
+exception
+  when check_violation then
+    raise notice 'ok — une opération ne revient pas de DONE à PENDING';
+end;
+$$;
+
+-- Le contrôle qualité ne se contourne pas quand l'organisation l'exige.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+  perform public.transitionner_dossier(v_dossier, 'IN_PROGRESS');
+
+  perform public.transitionner_dossier(v_dossier, 'READY');
+  raise exception 'ÉCHEC — contrôle qualité contourné alors qu''il est exigé';
+exception
+  when check_violation then
+    raise notice 'ok — le raccourci vers PRÊT exige que le contrôle soit désactivé';
+end;
+$$;
+
+-- Un employé inactif ne reçoit plus de travail.
+do $$
+declare v_op uuid;
+begin
+  update public.employees set status = 'INACTIVE'
+   where id = 'e0000000-0000-0000-0000-000000000001';
+
+  select o.id into v_op from public.service_order_operations o
+    join public.service_orders d on d.id = o.service_order_id
+   where d.status = 'IN_PROGRESS' and o.employee_id is null limit 1;
+
+  if v_op is null then
+    select o.id into v_op from public.service_order_operations o
+      join public.service_orders d on d.id = o.service_order_id
+     where d.status not in ('DELIVERED', 'CANCELLED') limit 1;
+    update public.service_order_operations set employee_id = null where id = v_op;
+  end if;
+
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001' where id = v_op;
+  raise exception 'ÉCHEC — travail assigné à un employé inactif';
+exception
+  when check_violation then
+    raise notice 'ok — un employé inactif ne reçoit plus de travail';
+end;
+$$;
+
+-- Les compétences déclarées sont opposables.
+-- L'employé est créé HORS du bloc qui attend une exception : une exception
+-- attrapée en PL/pgSQL annule tout ce que son bloc a écrit, y compris les
+-- lignes préparatoires. C'est une source d'échecs à retardement dans les tests.
+update public.employees set status = 'ACTIVE'
+ where id = 'e0000000-0000-0000-0000-000000000001';
+insert into public.employees (id, full_name)
+values ('e0000000-0000-0000-0000-000000000002', 'Awa Spécialiste');
+-- Compétente pour « Lavage complet » seulement.
+insert into public.employee_services (employee_id, service_id)
+values ('e0000000-0000-0000-0000-000000000002', '5e000000-0000-0000-0000-000000000001');
+
+do $$
+declare v_op uuid; v_emp uuid := 'e0000000-0000-0000-0000-000000000002';
+begin
+  select o.id into v_op from public.service_order_operations o
+    join public.service_orders d on d.id = o.service_order_id
+   where d.status not in ('DELIVERED', 'CANCELLED') limit 1;
+
+  update public.service_order_operations set employee_id = v_emp where id = v_op;
+  raise exception 'ÉCHEC — opération assignée hors compétence';
+exception
+  when check_violation then
+    raise notice 'ok — une compétence déclarée est opposable';
+end;
+$$;
+
+-- Assigner et exécuter sont deux permissions distinctes.
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+-- Le caissier LIT les opérations : il a `service_orders.read` et doit pouvoir
+-- répondre au client qui demande où en est sa voiture. Mais il n'assigne rien
+-- et n'exécute rien.
+do $$
+declare v_op uuid; n integer;
+begin
+  select count(*) into n from public.service_order_operations;
+  if n = 0 then
+    raise exception 'ÉCHEC — un caissier ne voit aucune opération de sa station';
+  end if;
+  raise notice 'ok — un caissier lit les opérations de sa station';
+
+  -- La policy UPDATE ne laisse même pas entrer : l'écriture ne lève pas
+  -- d'erreur, elle ne touche aucune ligne. L'assertion porte donc sur le
+  -- résultat, pas sur une exception.
+  select id into v_op from public.service_order_operations where status <> 'DONE' limit 1;
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001' where id = v_op;
+  get diagnostics n = row_count;
+  if n <> 0 then
+    raise exception 'ÉCHEC — un caissier a assigné une opération';
+  end if;
+  raise notice 'ok — un caissier n''assigne aucune opération';
+end;
+$$;
+
+-- Assigner et exécuter sont deux permissions distinctes, portées par deux
+-- colonnes de la même ligne. On prépare un cas net plutôt que de piocher une
+-- opération au hasard : un test qui dépend de l'état laissé par le précédent
+-- finit par mesurer autre chose que ce qu'il annonce.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (id, station_id, vehicle_id)
+  values ('d0551e00-0000-0000-0000-000000000001',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000001');
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+end;
+$$;
+
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+do $$
+declare v_op uuid;
+begin
+  select id into v_op from public.service_order_operations
+   where service_order_id = 'd0551e00-0000-0000-0000-000000000001';
+
+  -- L'OPERATOR a `operations.execute` : la policy le laisse entrer. C'est le
+  -- trigger qui distingue assigner d'exécuter, parce qu'une policy ne voit pas
+  -- quelle colonne a changé.
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000002' where id = v_op;
+  raise exception 'ÉCHEC — un opérateur a réassigné une opération';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — assigner exige operations.assign, pas operations.execute';
+end;
+$$;
+
+-- Le même opérateur peut en revanche la faire avancer : c'est son métier.
+-- Et le dossier suit : démarrer le travail le fait passer en « en cours »,
+-- sans qu'on ait à le dire une seconde fois sur un autre écran.
+do $$
+declare v_op public.service_order_operations; v_statut public.service_order_status;
+begin
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where service_order_id = 'd0551e00-0000-0000-0000-000000000001'
+   returning * into v_op;
+
+  if v_op.status <> 'IN_PROGRESS' or v_op.started_at is null then
+    raise exception 'ÉCHEC — un opérateur ne peut pas démarrer son travail';
+  end if;
+  raise notice 'ok — exécuter exige operations.execute, et l''opérateur l''a';
+
+  select status into v_statut from public.service_orders
+   where id = 'd0551e00-0000-0000-0000-000000000001';
+  if v_statut <> 'IN_PROGRESS' then
+    raise exception 'ÉCHEC — le dossier est resté en % au démarrage du travail', v_statut;
+  end if;
+  raise notice 'ok — le dossier suit ses opérations au démarrage du travail';
+
+  if not exists (select 1 from public.service_order_status_history
+                  where service_order_id = 'd0551e00-0000-0000-0000-000000000001'
+                    and to_status = 'IN_PROGRESS') then
+    raise exception 'ÉCHEC — le passage automatique n''a pas laissé d''historique';
+  end if;
+  raise notice 'ok — le passage automatique passe par la fonction, et laisse sa trace';
+end;
+$$;
+
+-- Une autre organisation ne voit ni employés ni opérations.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucun employé de A',
+  (select count(*) from public.employees), 0);
+select pg_temp.check('l''organisation B ne voit aucune opération de A',
+  (select count(*) from public.service_order_operations), 0);
+
 set local role postgres;
 
+-- Un employé reste supprimable même après avoir travaillé sur un dossier clos :
+-- le `SET NULL` en cascade sur ses opérations ne doit pas être pris pour un
+-- geste d'utilisateur (régression corrigée en phase 10).
+do $$
+declare v_emp uuid := 'e0000000-0000-0000-0000-000000000001';
+begin
+  delete from public.employees where id = v_emp;
+  if exists (select 1 from public.service_order_operations where employee_id = v_emp) then
+    raise exception 'ÉCHEC — opérations encore rattachées à un employé supprimé';
+  end if;
+  raise notice 'ok — un employé reste supprimable, ses opérations sont désassignées';
+exception
+  when others then
+    if sqlerrm like '%VEHORA_DOSSIER_CLOS%' then
+      raise exception 'ÉCHEC — la protection « dossier clos » bloque la cascade';
+    else raise;
+    end if;
+end;
+$$;
+
 -- Une organisation doit rester supprimable : l'invariant « dernier
--- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
+-- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1),
+-- ni le garde-fou des opérations (phase 10).
 do $$
 declare v_org uuid := 'bbbbbbbb-0000-0000-0000-000000000002';
 begin

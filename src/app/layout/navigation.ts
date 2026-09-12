@@ -25,13 +25,13 @@ export interface EntreeNavigation {
 export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Tableau de bord', libelleCourt: 'Accueil', chemin: '/tableau-de-bord', icone: 'accueil', disponible: true },
   { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: true },
-  { libelle: 'Prestations', chemin: '/prestations', icone: 'prestation', permission: 'service_orders.read', disponible: false },
+  { libelle: 'Opérations', libelleCourt: 'Travaux', chemin: '/operations', icone: 'prestation', permission: 'service_orders.read', disponible: true },
   { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
   { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },
   { libelle: 'Stations', chemin: '/stations', icone: 'accueil', permission: 'stations.manage', disponible: true },
   { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'service', disponible: true },
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
-  { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: false },
+  { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true },
   { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'cash.move', disponible: false },
   { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: false },
 ];
@@ -40,6 +40,6 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
 export const NAVIGATION_MOBILE: readonly string[] = [
   '/tableau-de-bord',
   '/file-attente',
-  '/prestations',
+  '/operations',
   '/clients',
 ];

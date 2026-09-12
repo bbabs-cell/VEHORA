@@ -1,0 +1,260 @@
+.operations {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-5);
+}
+
+.operations__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.operations__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.groupe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.groupe__titre {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  font-size: var(--vh-text-base);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vh-text-muted);
+}
+
+.groupe__compte {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+  font-size: var(--vh-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.operation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.operation__ligne1 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.operation__prestation {
+  font-weight: 600;
+}
+
+.operation__ligne2 {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* Une opération sans employé ne peut pas démarrer : ça doit se voir de loin,
+   pas se découvrir au clic. */
+.non-assignee {
+  color: var(--vh-warning);
+}
+
+.operation__actions {
+  display: flex;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.operation__actions .vh-button {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+/* Un bouton que la base refusera ne doit pas s'offrir en action principale. */
+.operation__actions .vh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.operation__reprendre {
+  background: none;
+  border: none;
+  padding: 0 var(--vh-space-2);
+  min-height: var(--vh-touch-min);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.operation__reprendre:hover:not(:disabled) {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.etiquette {
+  font-size: var(--vh-text-xs);
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: 999px;
+  color: var(--vh-text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Choix de l'employé ---------- */
+
+.employes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  overflow: hidden;
+}
+
+/* Cible large : on assigne debout, dehors, d'une main. */
+.employes__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  width: 100%;
+  min-height: var(--vh-touch-primary);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--vh-border);
+  color: var(--vh-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.employes li:last-child .employes__item {
+  border-bottom: none;
+}
+
+.employes__item:hover:not(:disabled) {
+  background: var(--vh-surface-3);
+}
+
+.employes__item--actuel {
+  background: var(--vh-surface-3);
+  font-weight: 600;
+}
+
+/* ---------- Modale ---------- */
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  padding: var(--vh-space-3);
+}
+
+.modale__contenu {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: var(--vh-radius-modal);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+}
+
+.modale__titre {
+  font-size: var(--vh-text-lg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.modale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.modale__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vh-space-3);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .operation {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .operation__identite {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .modale {
+    align-items: center;
+  }
+}
+
+@media (min-width: 900px) {
+  .operations {
+    padding: var(--vh-space-6);
+  }
+}

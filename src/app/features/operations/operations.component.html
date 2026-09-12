@@ -1,0 +1,180 @@
+<div class="operations">
+  <header class="operations__entete">
+    <div>
+      <h1 class="operations__titre">Opérations</h1>
+      <p class="vh-muted operations__sous-titre">
+        Le travail à faire, dossier par dossier. Une opération démarre seulement
+        une fois assignée : sans cela, la trace ne vaudrait rien.
+      </p>
+    </div>
+  </header>
+
+  @if (operations.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (erreur(); as message) {
+    @if (!assignationOuverte()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
+
+  @if (operations.chargement() && vide()) {
+    <div class="groupe">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+      }
+    </div>
+  } @else if (vide()) {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucune opération en cours"
+        texte="Les opérations naissent quand un dossier entre en file d’attente :
+               le travail à faire, c’est exactement ce qui a été vendu."
+      />
+    </div>
+  } @else {
+    @for (groupe of groupes(); track groupe.statut) {
+      <section class="groupe" [attr.aria-label]="groupe.libelle">
+        <h2 class="groupe__titre">
+          {{ groupe.libelle }}
+          <span class="groupe__compte">{{ groupe.operations.length }}</span>
+        </h2>
+
+        <ul class="liste" [attr.aria-label]="'Opérations — ' + groupe.libelle">
+          @for (operation of groupe.operations; track operation.id) {
+            <li class="vh-card operation">
+              <div class="operation__identite">
+                <p class="operation__ligne1">
+                  <span class="operation__prestation">{{ operation.service_name }}</span>
+                  <span class="etiquette">N° {{ operation.numero }}</span>
+                  <span class="plaque">{{ operation.plaque || 'Sans plaque' }}</span>
+                </p>
+                <p class="vh-muted operation__ligne2">
+                  @if (nomEmploye(operation); as employe) {
+                    {{ employe }}
+                  } @else {
+                    <span class="non-assignee">Non assignée</span>
+                  }
+                  @if (duree(operation); as duree) {
+                    · {{ duree }}
+                  }
+                  · dossier {{ libelleStatutDossier(operation) }}
+                </p>
+              </div>
+
+              <div class="operation__actions">
+                @if (peutAssigner() && operation.status !== 'DONE') {
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="ouvrirAssignation(operation)"
+                    [attr.aria-label]="
+                      'Assigner ' + operation.service_name + ' — dossier ' + operation.numero
+                    "
+                  >
+                    {{ operation.employee_id ? 'Réassigner' : 'Assigner' }}
+                  </button>
+                }
+                @if (peutExecuter() && operation.status === 'IN_PROGRESS') {
+                  <button
+                    class="operation__reprendre"
+                    type="button"
+                    (click)="reprendre(operation)"
+                    [disabled]="enregistrement()"
+                    [attr.aria-label]="
+                      'Remettre à faire ' + operation.service_name + ' — dossier ' + operation.numero
+                    "
+                  >
+                    Remettre à faire
+                  </button>
+                }
+                @if (peutExecuter() && actionSuivante(operation); as suite) {
+                  <button
+                    class="vh-button"
+                    type="button"
+                    (click)="avancer(operation)"
+                    [disabled]="enregistrement() || !operation.employee_id"
+                    [attr.title]="
+                      operation.employee_id ? null : 'Assignez un employé avant de démarrer'
+                    "
+                    [attr.aria-label]="
+                      suite.libelle + ' ' + operation.service_name + ' — dossier ' + operation.numero
+                    "
+                  >
+                    {{ suite.libelle }}
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
+
+@if (assignationOuverte(); as operation) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-assignation">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-assignation" class="modale__titre">
+          {{ operation.service_name }} — dossier n° {{ operation.numero }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerAssignation()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      @if (employesAssignables().length === 0) {
+        <p class="vh-muted">
+          Aucun employé actif. Ajoutez-en un dans l’écran Employés : une opération
+          ne démarre pas sans savoir qui la fait.
+        </p>
+      } @else {
+        <ul class="employes" aria-label="Employés disponibles">
+          @for (employe of employesAssignables(); track employe.id) {
+            <li>
+              <button
+                class="employes__item"
+                type="button"
+                (click)="assigner(employe.id)"
+                [disabled]="enregistrement()"
+                [class.employes__item--actuel]="employe.id === operation.employee_id"
+              >
+                <span>{{ employe.full_name }}</span>
+                @if (employe.id === operation.employee_id) {
+                  <span class="vh-muted">assigné</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (erreur(); as message) {
+        <p class="vh-alert" role="alert">{{ message }}</p>
+      }
+
+      <div class="modale__actions">
+        @if (operation.employee_id) {
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="assigner(null)"
+            [disabled]="enregistrement()"
+          >
+            Retirer l’assignation
+          </button>
+        }
+        <button class="vh-button vh-button--ghost" type="button" (click)="fermerAssignation()">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+}

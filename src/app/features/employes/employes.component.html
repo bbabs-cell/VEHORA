@@ -1,0 +1,188 @@
+<div class="employes">
+  <header class="employes__entete">
+    <div>
+      <h1 class="employes__titre">Employés</h1>
+      <p class="vh-muted employes__sous-titre">
+        Les personnes qui travaillent. Un employé n’a pas besoin d’un compte pour
+        que son travail soit tracé.
+      </p>
+    </div>
+    @if (peutGerer()) {
+      <button class="vh-button" type="button" (click)="ouvrirCreation()">Nouvel employé</button>
+    }
+  </header>
+
+  @if (employes.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (erreurFormulaire(); as message) {
+    @if (!formulaireOuvert()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
+
+  @if (employes.chargement() && employes.employes().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
+      }
+    </div>
+  } @else if (employes.employes().length === 0) {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucun employé"
+        texte="Ajoutez les personnes qui exécutent les prestations. Leur nom suffit :
+               le compte de connexion est facultatif."
+      >
+        @if (peutGerer()) {
+          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+            Ajouter un employé
+          </button>
+        }
+      </vh-empty-state>
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Employés actifs">
+      @for (employe of actifs(); track employe.id) {
+        <li class="vh-card employe">
+          <div class="employe__identite">
+            <p class="employe__nom">{{ employe.full_name }}</p>
+            <p class="vh-muted employe__detail">
+              {{ nomStation(employe) }}
+              @if (employe.phone) {
+                · {{ employe.phone }}
+              }
+              @if (employe.profile_id) {
+                · <span class="etiquette">Avec compte</span>
+              }
+            </p>
+          </div>
+          @if (peutGerer()) {
+            <div class="employe__actions">
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="ouvrirEdition(employe)"
+                [attr.aria-label]="'Modifier ' + employe.full_name"
+              >
+                Modifier
+              </button>
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="basculer(employe)"
+                [attr.aria-label]="'Désactiver ' + employe.full_name"
+              >
+                Désactiver
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (inactifs().length > 0) {
+      <section class="inactifs">
+        <h2 class="inactifs__titre">Inactifs</h2>
+        <ul class="liste" aria-label="Employés inactifs">
+          @for (employe of inactifs(); track employe.id) {
+            <li class="vh-card employe employe--inactif">
+              <div class="employe__identite">
+                <p class="employe__nom">{{ employe.full_name }}</p>
+                <p class="vh-muted employe__detail">
+                  Ne reçoit plus de travail — son historique est conservé.
+                </p>
+              </div>
+              @if (peutGerer()) {
+                <div class="employe__actions">
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="basculer(employe)"
+                    [attr.aria-label]="'Réactiver ' + employe.full_name"
+                  >
+                    Réactiver
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
+
+@if (formulaireOuvert()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-employe">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-employe" class="modale__titre">
+          {{ enEdition() ? 'Modifier l’employé' : 'Nouvel employé' }}
+        </h2>
+        <button class="modale__fermer" type="button" (click)="fermer()" aria-label="Fermer">
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="nom-employe">Nom</label>
+          <input
+            id="nom-employe"
+            class="vh-input"
+            type="text"
+            formControlName="full_name"
+            autocomplete="off"
+            placeholder="Modou Ndiaye"
+            [attr.aria-invalid]="form.controls.full_name.touched && form.controls.full_name.invalid"
+          />
+          @if (form.controls.full_name.touched && form.controls.full_name.invalid) {
+            <p class="erreur-champ">Le nom est obligatoire (2 caractères minimum).</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="telephone-employe">Téléphone (facultatif)</label>
+          <input
+            id="telephone-employe"
+            class="vh-input"
+            type="tel"
+            inputmode="tel"
+            formControlName="phone"
+            autocomplete="off"
+            placeholder="77 123 45 67"
+          />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="station-employe">Station de rattachement</label>
+          <select id="station-employe" class="vh-input" formControlName="station_id">
+            <option value="">Toutes stations</option>
+            @for (station of stations(); track station.id) {
+              <option
+                [value]="station.id"
+                [selected]="form.controls.station_id.value === station.id"
+              >
+                {{ station.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermer()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
