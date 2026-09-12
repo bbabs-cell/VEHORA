@@ -254,6 +254,41 @@ exception
 end;
 $$;
 
+-- ==========================================================================
+-- 6. `organization_id` déduit du JWT (phase 3).
+-- ==========================================================================
+-- La section précédente a révoqué la session d'Awa : on la rétablit, sinon
+-- `can_write` refuse à juste titre et le test mesurerait autre chose.
+set local role postgres;
+delete from public.session_revocations
+ where profile_id = '11111111-1111-1111-1111-111111111111';
+
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- (a) omis par le client : la base le remplit correctement.
+insert into public.stations (name) values ('Station sans org_id explicite');
+select pg_temp.check('organization_id rempli depuis le jeton',
+  (select count(*) from public.stations
+    where name = 'Station sans org_id explicite'
+      and organization_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 1);
+
+-- (b) falsifié par le client : toujours refusé. Le défaut ne remplace pas la
+--     policy, il la complète.
+do $$
+begin
+  insert into public.stations (organization_id, name)
+  values ('bbbbbbbb-0000-0000-0000-000000000002', 'Station forcée chez B');
+  raise exception 'ÉCHEC CRITIQUE — organization_id falsifié accepté malgré le défaut';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — organization_id falsifié toujours refusé';
+end;
+$$;
+
+set local role postgres;
+
 -- Une organisation doit rester supprimable : l'invariant « dernier
 -- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
 do $$

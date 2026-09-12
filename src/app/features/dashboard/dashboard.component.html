@@ -1,19 +1,66 @@
 <div class="tdb">
   <header class="tdb__entete">
     <h1 class="tdb__titre">Tableau de bord</h1>
-    <p class="vh-muted tdb__sous-titre">
-      @if (organisations.organisation(); as org) {
-        {{ org.name }} — {{ org.city }}
-      }
-    </p>
+    @if (organisations.organisation(); as org) {
+      <p class="vh-muted tdb__sous-titre">{{ org.name }} — {{ org.city }}</p>
+    }
   </header>
 
+  <!-- ---------- Actions rapides : ce qu'on fait le plus souvent ---------- -->
+  <section aria-labelledby="titre-actions">
+    <h2 id="titre-actions" class="tdb__section">Actions rapides</h2>
+    <div class="actions">
+      @if (peutGererStations()) {
+        <a class="action" routerLink="/stations">
+          <vh-icon nom="accueil" [taille]="22" />
+          <span>Gérer les stations</span>
+        </a>
+      }
+      <span class="action action--bientot" aria-disabled="true">
+        <vh-icon nom="prestation" [taille]="22" />
+        <span>Nouvelle prestation</span>
+        <span class="action__bientot">Bientôt</span>
+      </span>
+      <span class="action action--bientot" aria-disabled="true">
+        <vh-icon nom="client" [taille]="22" />
+        <span>Nouveau client</span>
+        <span class="action__bientot">Bientôt</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- ---------- Indicateurs réellement calculables ---------- -->
+  <section aria-labelledby="titre-chiffres">
+    <h2 id="titre-chiffres" class="tdb__section">Votre entreprise</h2>
+    <div class="tuiles">
+      <vh-stat-tile
+        libelle="Stations actives"
+        [valeur]="stationsActives()"
+        [chargement]="stations.chargement()"
+        [precision]="
+          stations.stations().length > stationsActives()
+            ? stations.stations().length - stationsActives() + ' inactive(s)'
+            : null
+        "
+        [accent]="true"
+      />
+      @if (peutGererUtilisateurs() && organisations.nombreMembres() !== null) {
+        <vh-stat-tile
+          libelle="Membres actifs"
+          [valeur]="organisations.nombreMembres() ?? 0"
+          precision="Comptes pouvant se connecter"
+        />
+      }
+    </div>
+  </section>
+
+  <!-- ---------- Activité opérationnelle ---------- -->
   <section class="vh-card" aria-labelledby="titre-activite">
     <h2 id="titre-activite" class="tdb__section">Activité du jour</h2>
     <vh-empty-state
       titre="Aucune prestation pour l’instant"
-      texte="Les véhicules en attente, en cours et prêts s’afficheront ici dès que
-             vous ouvrirez votre première prestation."
+      texte="Les véhicules en attente, en cours et prêts s’afficheront ici, avec le
+             chiffre du jour, dès que la gestion des prestations sera disponible."
     />
   </section>
 
@@ -22,13 +69,10 @@
     <dl class="tdb__liste">
       <dt class="vh-label">Compte</dt>
       <dd>{{ session()?.user?.email }}</dd>
-
       <dt class="vh-label">Rôle</dt>
       <dd>{{ claims().role ?? '—' }}</dd>
-
       <dt class="vh-label">Portée</dt>
       <dd>{{ claims().roleScope ?? '—' }}</dd>
-
       <dt class="vh-label">Permissions</dt>
       <dd>{{ claims().permissions.size }}</dd>
     </dl>

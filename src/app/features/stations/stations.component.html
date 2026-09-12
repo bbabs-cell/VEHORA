@@ -1,0 +1,167 @@
+<div class="stations">
+  <header class="stations__entete">
+    <div>
+      <h1 class="stations__titre">Stations</h1>
+      <p class="vh-muted stations__sous-titre">
+        Les sites où vous recevez des véhicules, y compris vos équipes mobiles.
+      </p>
+    </div>
+    @if (peutGerer()) {
+      <button class="vh-button" type="button" (click)="ouvrirCreation()">
+        Ajouter une station
+      </button>
+    }
+  </header>
+
+  @if (stations.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (stations.chargement() && stations.stations().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
+      }
+    </div>
+  } @else if (stations.stations().length === 0) {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucune station"
+        texte="Créez votre première station : c’est le site où les véhicules arrivent.
+               Une équipe qui se déplace chez le client est aussi une station, de type mobile."
+      >
+        @if (peutGerer()) {
+          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+            Créer une station
+          </button>
+        }
+      </vh-empty-state>
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Liste des stations">
+      @for (station of stations.stations(); track station.id) {
+        <li class="vh-card carte">
+          <div class="carte__infos">
+            <p class="carte__nom">
+              {{ station.name }}
+              @if (station.kind === 'MOBILE') {
+                <span class="etiquette">Mobile</span>
+              }
+              @if (station.status === 'INACTIVE') {
+                <span class="etiquette etiquette--inactive">Inactive</span>
+              }
+            </p>
+            <p class="vh-muted carte__detail">
+              {{ station.city || 'Ville non renseignée' }}
+              @if (station.phone) {
+                · {{ station.phone }}
+              }
+            </p>
+          </div>
+
+          @if (peutGerer()) {
+            <div class="carte__actions">
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="ouvrirEdition(station)"
+                [attr.aria-label]="'Modifier ' + station.name"
+              >
+                Modifier
+              </button>
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="basculerStatut(station)"
+                [attr.aria-label]="
+                  (station.status === 'ACTIVE' ? 'Désactiver ' : 'Réactiver ') + station.name
+                "
+              >
+                {{ station.status === 'ACTIVE' ? 'Désactiver' : 'Réactiver' }}
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (formulaireOuvert()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-modale">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-modale" class="modale__titre">
+          {{ enEdition() ? 'Modifier la station' : 'Nouvelle station' }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermer()"
+          aria-label="Fermer"
+        >
+          <vh-icon nom="fermer" />
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="nom">Nom de la station</label>
+          <input
+            id="nom"
+            class="vh-input"
+            type="text"
+            formControlName="name"
+            autocomplete="off"
+            [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
+          />
+          @if (form.controls.name.touched && form.controls.name.invalid) {
+            <p class="erreur-champ">Le nom est obligatoire (80 caractères maximum).</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="ville">Ville</label>
+          <input id="ville" class="vh-input" type="text" formControlName="city" />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="adresse">Adresse</label>
+          <input id="adresse" class="vh-input" type="text" formControlName="address" />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="telephone">Téléphone</label>
+          <input
+            id="telephone"
+            class="vh-input"
+            type="tel"
+            inputmode="tel"
+            formControlName="phone"
+          />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="type">Type</label>
+          <select id="type" class="vh-input" formControlName="kind">
+            <option value="FIXED">Site fixe</option>
+            <option value="MOBILE">Équipe mobile</option>
+          </select>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermer()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -1,5 +1,5 @@
 import type { Routes } from '@angular/router';
-import { authGuard, organizationGuard } from './core/auth/auth.guard';
+import { authGuard, organizationGuard, permissionGuard } from './core/auth/auth.guard';
 
 /**
  * Les écrans authentifiés vivent dans la coquille applicative ; la connexion et
@@ -31,6 +31,15 @@ export const routes: Routes = [
       import('./layout/app-shell/app-shell.component').then((m) => m.AppShellComponent),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
+      {
+        path: 'stations',
+        title: 'Stations — VEHORA',
+        // Confort d'interface : la RLS refuse de toute façon l'écriture sans
+        // `stations.manage`. La garde évite simplement un écran inutile.
+        canActivate: [permissionGuard('stations.manage')],
+        loadComponent: () =>
+          import('./features/stations/stations.component').then((m) => m.StationsComponent),
+      },
       {
         path: 'tableau-de-bord',
         title: 'Tableau de bord — VEHORA',

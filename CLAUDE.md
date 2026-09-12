@@ -138,20 +138,25 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 2 validée.** Prochaine étape : phase 3 (tableau de bord orienté action)
-puis approvisionnement d'organisation.
+**Phase 3 validée.** Prochaine étape : approvisionnement d'organisation et
+gestion des utilisateurs, ou CRM clients.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 11 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- 14 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- **`organization_id` est rempli par la base depuis le JWT** sur les tables qui
+  le permettent : le client ne l'envoie pas, donc ne peut pas le falsifier.
+  Appliquer le même principe à chaque nouvelle table métier.
 - Custom access token hook **activé** sur `vehora.custom_access_token_hook`.
 - Application Angular 22 : connexion, gardes, coquille applicative
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **27 tests Playwright**,
-  17 assertions SQL, 12 tentatives d'intrusion bloquées par l'API réelle.
-- Compte de démonstration : `awa@vehora.test` (à supprimer avant production).
-- Tests connectés : exporter `VEHORA_TEST_EMAIL` et `VEHORA_TEST_PASSWORD`,
+- Parcours connecté vérifié de bout en bout ; **39 tests Playwright**,
+  **19 assertions SQL**, 12 tentatives d'intrusion bloquées par l'API réelle.
+- Comptes de démonstration : `awa@vehora.test` (OWNER) et `ousmane@vehora.test`
+  (CASHIER, portée station) — à supprimer avant production.
+- Tests connectés : exporter `VEHORA_TEST_EMAIL` / `VEHORA_TEST_PASSWORD` et
+  `VEHORA_TEST_EMAIL_CAISSIER` / `VEHORA_TEST_PASSWORD_CAISSIER`,
   sinon la suite est ignorée. En cloud, `e2e/relais-reseau.ts` rejoue les appels
   Supabase depuis Node — le proxy coupe le tunnel du navigateur.
 - **Le rôle métier est porté par le claim `vehora_role`**, jamais `role` —
