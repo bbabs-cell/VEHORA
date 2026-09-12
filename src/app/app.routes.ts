@@ -64,6 +64,14 @@ export const routes: Routes = [
           import('./features/vehicles/vehicles.component').then((m) => m.VehiclesComponent),
       },
       {
+        path: 'catalogue',
+        title: 'Catalogue et tarifs — VEHORA',
+        // Tout membre consulte le catalogue (l'accueil et la caisse en ont
+        // besoin) ; la RLS seule décide qui peut le modifier.
+        loadComponent: () =>
+          import('./features/catalogue/catalogue.component').then((m) => m.CatalogueComponent),
+      },
+      {
         path: 'stations',
         title: 'Stations — VEHORA',
         // Confort d'interface : la RLS refuse de toute façon l'écriture sans

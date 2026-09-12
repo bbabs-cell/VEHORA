@@ -1,0 +1,368 @@
+<div class="catalogue">
+  <header class="catalogue__entete">
+    <div>
+      <h1 class="catalogue__titre">Catalogue et tarifs</h1>
+      <p class="vh-muted catalogue__sous-titre">
+        Le prix est déterminé par le serveur, du plus précis au plus général :
+        type de véhicule et station d’abord, tarif général ensuite.
+      </p>
+    </div>
+    @if (peutGererCatalogue()) {
+      <button class="vh-button" type="button" (click)="ouvrirCreationPrestation()">
+        Nouvelle prestation
+      </button>
+    }
+  </header>
+
+  @if (catalogue.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (catalogue.chargement() && lignes().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+      }
+    </div>
+  } @else if (lignes().length === 0) {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucune prestation"
+        texte="Commencez par les prestations que vous vendez le plus : lavage extérieur,
+               lavage complet, aspiration. Vous leur donnerez un tarif ensuite."
+      >
+        @if (peutGererCatalogue()) {
+          <button class="vh-button" type="button" (click)="ouvrirCreationPrestation()">
+            Créer une prestation
+          </button>
+        }
+      </vh-empty-state>
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Prestations du catalogue">
+      @for (ligne of lignes(); track ligne.prestation.id) {
+        <li class="vh-card prestation">
+          <div class="prestation__entete">
+            <div class="prestation__identite">
+              <p class="prestation__nom">
+                {{ ligne.prestation.name }}
+                @if (!ligne.prestation.is_active) {
+                  <span class="etiquette etiquette--inactive">Désactivée</span>
+                }
+              </p>
+              <p class="vh-muted prestation__detail">
+                @if (ligne.categorie) {
+                  {{ ligne.categorie }} ·
+                }
+                @if (ligne.prestation.duration_minutes) {
+                  {{ ligne.prestation.duration_minutes }} min
+                } @else {
+                  Durée non renseignée
+                }
+              </p>
+            </div>
+
+            <div class="prestation__actions">
+              @if (peutGererTarifs()) {
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="ouvrirTarif(ligne.prestation)"
+                  [attr.aria-label]="'Ajouter un tarif à ' + ligne.prestation.name"
+                >
+                  Ajouter un tarif
+                </button>
+              }
+              @if (peutGererCatalogue()) {
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="ouvrirEditionPrestation(ligne.prestation)"
+                  [attr.aria-label]="'Modifier ' + ligne.prestation.name"
+                >
+                  Modifier
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (ligne.tarifs.length === 0) {
+            <p class="prestation__sans-tarif" role="status">
+              Aucun tarif défini — cette prestation ne peut pas être facturée.
+            </p>
+          } @else {
+            <ul class="tarifs" [attr.aria-label]="'Tarifs de ' + ligne.prestation.name">
+              @for (t of ligne.tarifs; track t.tarif.id) {
+                <li class="tarif">
+                  <span class="tarif__montant">{{ t.montant }}</span>
+                  <span class="vh-muted tarif__portee">{{ t.libelle }}</span>
+                  @if (t.aVenir) {
+                    <span class="etiquette">À partir du {{ t.tarif.valid_from }}</span>
+                  }
+                  @if (peutGererTarifs()) {
+                    <span class="tarif__actions">
+                      <button
+                        class="tarif__action"
+                        type="button"
+                        (click)="ouvrirRemplacement(t.tarif)"
+                        [attr.aria-label]="'Changer le tarif ' + t.montant + ' — ' + t.libelle"
+                      >
+                        Changer le prix
+                      </button>
+                      <button
+                        class="tarif__action tarif__action--retirer"
+                        type="button"
+                        (click)="retirerTarif(t.tarif)"
+                        [attr.aria-label]="'Retirer le tarif ' + t.montant + ' — ' + t.libelle"
+                      >
+                        Retirer
+                      </button>
+                    </span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (prestationOuverte()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-prestation">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-prestation" class="modale__titre">
+          {{ prestationEnEdition() ? 'Modifier la prestation' : 'Nouvelle prestation' }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerPrestation()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formPrestation" (ngSubmit)="enregistrerPrestation()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="nom-prestation">Nom</label>
+          <input
+            id="nom-prestation"
+            class="vh-input"
+            type="text"
+            formControlName="name"
+            autocomplete="off"
+            placeholder="Lavage complet"
+            [attr.aria-invalid]="
+              formPrestation.controls.name.touched && formPrestation.controls.name.invalid
+            "
+          />
+          @if (formPrestation.controls.name.touched && formPrestation.controls.name.invalid) {
+            <p class="erreur-champ">Le nom est obligatoire (2 caractères minimum).</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="categorie-prestation">Catégorie (facultatif)</label>
+          <select id="categorie-prestation" class="vh-input" formControlName="category_id">
+            <option value="">Sans catégorie</option>
+            @for (categorie of catalogue.categories(); track categorie.id) {
+              <option [value]="categorie.id" [selected]="formPrestation.controls.category_id.value === categorie.id">
+                {{ categorie.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="duree-prestation">Durée indicative (minutes)</label>
+          <input
+            id="duree-prestation"
+            class="vh-input"
+            type="text"
+            inputmode="numeric"
+            formControlName="duration_minutes"
+            placeholder="45"
+          />
+          <p class="vh-muted aide-champ">
+            Sert à annoncer une attente au client. Laissez vide si elle varie trop.
+          </p>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="description-prestation">Description (facultatif)</label>
+          <textarea
+            id="description-prestation"
+            class="vh-input"
+            rows="2"
+            formControlName="description"
+          ></textarea>
+        </div>
+
+        <label class="bascule">
+          <input type="checkbox" formControlName="is_active" />
+          <span>Proposée à la vente</span>
+        </label>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="fermerPrestation()"
+          >
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (tarifOuvert(); as prestation) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-tarif">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-tarif" class="modale__titre">Tarif — {{ prestation.name }}</h2>
+        <button class="modale__fermer" type="button" (click)="fermerTarif()" aria-label="Fermer">
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formTarif" (ngSubmit)="enregistrerTarif()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="montant-tarif">Montant ({{ symbole() }})</label>
+          <input
+            id="montant-tarif"
+            class="vh-input champ-montant"
+            type="text"
+            inputmode="numeric"
+            formControlName="montant"
+            autocomplete="off"
+            placeholder="9500"
+          />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="type-tarif">Type de véhicule</label>
+          <select id="type-tarif" class="vh-input" formControlName="vehicle_type_id">
+            <option value="">Tous les véhicules</option>
+            @for (type of typesVehicule(); track type.id) {
+              <option [value]="type.id">{{ type.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="station-tarif">Station</label>
+          <select id="station-tarif" class="vh-input" formControlName="station_id">
+            <option value="">Toutes les stations</option>
+            @for (station of stations(); track station.id) {
+              <option [value]="station.id">{{ station.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="debut-tarif">En vigueur à partir du</label>
+          <input id="debut-tarif" class="vh-input" type="date" formControlName="valid_from" />
+          <p class="vh-muted aide-champ">
+            En vigueur à partir du
+            <strong>{{ formaterDate(formTarif.controls.valid_from.value) }}</strong>. Un tarif
+            plus précis l’emporte toujours sur un tarif plus général.
+          </p>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerTarif()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer le tarif' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (tarifRemplace(); as tarif) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-remplacement">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-remplacement" class="modale__titre">Changer le prix</h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerRemplacement()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formRemplacement" (ngSubmit)="enregistrerRemplacement()" novalidate>
+        <p class="vh-muted remplacement__rappel">
+          Prix actuel : {{ formaterMontantTarif(tarif) }}. L’ancien prix reste consultable :
+          les dossiers déjà ouverts continuent d’y faire référence.
+        </p>
+
+        <div class="vh-field">
+          <label class="vh-label" for="montant-remplacement">
+            Nouveau montant ({{ symbole() }})
+          </label>
+          <input
+            id="montant-remplacement"
+            class="vh-input champ-montant"
+            type="text"
+            inputmode="numeric"
+            formControlName="montant"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="debut-remplacement">Applicable à partir du</label>
+          <input
+            id="debut-remplacement"
+            class="vh-input"
+            type="date"
+            formControlName="valid_from"
+          />
+          <p class="vh-muted aide-champ">
+            Nouveau prix appliqué à partir du
+            <strong>{{ formaterDate(formRemplacement.controls.valid_from.value) }}</strong>.
+            Par défaut demain : la journée en cours a déjà des dossiers ouverts au prix affiché
+            ce matin.
+          </p>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerRemplacement()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Appliquer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

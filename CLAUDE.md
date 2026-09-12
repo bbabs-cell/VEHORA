@@ -138,12 +138,26 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 7 validée.** Clients, véhicules, inspection et photos en place.
-Prochaine étape : services et tarifs, puis le Service Order.
+**Phase 8 validée.** Clients, véhicules, inspection, photos, catalogue et
+tarifs en place. Prochaine étape : le Service Order.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 25 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+- 27 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
   9 types de véhicules, 10 zones d'inspection.
+- **Le prix est déterminé par le serveur** (`resoudre_prix`), du plus spécifique
+  au plus général. Aucun tarif trouvé = aucune ligne, jamais un zéro implicite.
+  Le client n'envoie jamais un montant ni une devise : un trigger impose celle
+  de l'organisation.
+- **Montants en entiers** (`amount_minor bigint`), jamais de `float`. Le nombre
+  de décimales vient d'`Intl`, pas d'une constante : XOF n'en a pas, EUR en a
+  deux. À l'écran, le symbole (« F CFA »), jamais le code ISO.
+- **Un tarif ne s'écrase pas.** On ferme l'ancien la veille et on ouvre le
+  nouveau, en une transaction (`remplacer_tarif`) : deux écritures depuis le
+  navigateur peuvent être coupées au milieu, et la prestation se retrouverait
+  sans tarif, donc invendable.
+- **Un champ `<input type="date">` s'affiche dans la locale de l'appareil**, pas
+  dans celle de la page : `09/13/2026` sur un Android en anglais. Toute date qui
+  engage quelque chose est aussi écrite en toutes lettres à côté du champ.
 - **Storage** : bucket `inspections` privé, chemin imposé
   `{organization_id}/{inspection_id}/{fichier}` — les policies ne comparent que
   le premier segment. Types limités à JPEG/PNG/WebP : **le SVG est exclu**, c'est
@@ -168,12 +182,14 @@ Prochaine étape : services et tarifs, puis le Service Order.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **117 tests Playwright**,
-  **36 assertions SQL**, et des campagnes d'intrusion par l'API réelle,
-  dont 14 assertions sur la sécurité du stockage.
-- **Leçon récurrente** : cinq défauts d'interface (thème par défaut, sélecteur
+- Parcours connecté vérifié de bout en bout ; **133 tests Playwright**,
+  **58 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-catalogue.mjs`, 21 assertions ; 14 sur le stockage).
+- **Leçon récurrente** : neuf défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
-  modale) ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
+  modale, actions sur deux lignes, deux mises en page pour la même liste, date
+  au format américain, code ISO au lieu du symbole) ont échappé aux tests et se
+  sont vus à l'écran. Sur un écran, une
   assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
   de la validation d'une phase d'interface.**
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).

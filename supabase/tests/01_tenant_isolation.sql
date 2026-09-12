@@ -530,6 +530,246 @@ exception
 end;
 $$;
 
+-- ===========================================================================
+-- Phase 8 — catalogue de services et tarification
+-- ===========================================================================
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+insert into public.service_categories (id, name, sort_order) values
+  ('cca00000-0000-0000-0000-000000000001', 'Lavage', 10);
+
+insert into public.services (id, category_id, name, duration_minutes) values
+  ('5e000000-0000-0000-0000-000000000001',
+   'cca00000-0000-0000-0000-000000000001', 'Lavage complet', 45);
+
+-- Trois tarifs de spécificité croissante pour le même service.
+insert into public.service_prices (service_id, amount_minor)
+  values ('5e000000-0000-0000-0000-000000000001', 5000);
+insert into public.service_prices (service_id, vehicle_type_id, amount_minor)
+  select '5e000000-0000-0000-0000-000000000001', id, 8000
+    from public.vehicle_types where code = 'SUV';
+insert into public.service_prices (service_id, vehicle_type_id, station_id, amount_minor)
+  select '5e000000-0000-0000-0000-000000000001', id,
+         'a1a1a1a1-0000-0000-0000-000000000001', 9500
+    from public.vehicle_types where code = 'SUV';
+
+do $$
+declare v_suv uuid; v_moto uuid; r record; n integer;
+begin
+  select id into v_suv  from public.vehicle_types where code = 'SUV';
+  select id into v_moto from public.vehicle_types where code = 'MOTORCYCLE';
+
+  -- 1. Le plus spécifique gagne : type + station.
+  select * into r from public.resoudre_prix(
+    '5e000000-0000-0000-0000-000000000001', v_suv,
+    'a1a1a1a1-0000-0000-0000-000000000001');
+  if r.amount_minor <> 9500 or r.specificite <> 'SERVICE_TYPE_STATION' then
+    raise exception 'ÉCHEC — tarif station+type non retenu (%, %)', r.amount_minor, r.specificite;
+  end if;
+  raise notice 'ok — le tarif station + type de véhicule prime';
+
+  -- 2. Autre station : on retombe sur le tarif « SUV, toutes stations ».
+  select * into r from public.resoudre_prix(
+    '5e000000-0000-0000-0000-000000000001', v_suv,
+    'a2a2a2a2-0000-0000-0000-000000000002');
+  if r.amount_minor <> 8000 then
+    raise exception 'ÉCHEC — repli sur le tarif par type de véhicule (%)', r.amount_minor;
+  end if;
+  raise notice 'ok — repli sur le tarif par type de véhicule';
+
+  -- 3. Type sans tarif dédié : tarif général du service.
+  select * into r from public.resoudre_prix(
+    '5e000000-0000-0000-0000-000000000001', v_moto,
+    'a1a1a1a1-0000-0000-0000-000000000001');
+  if r.amount_minor <> 5000 or r.specificite <> 'SERVICE' then
+    raise exception 'ÉCHEC — repli sur le tarif général (%, %)', r.amount_minor, r.specificite;
+  end if;
+  raise notice 'ok — repli sur le tarif général du service';
+
+  -- 4. La devise vient de l'organisation, pas de l'appelant.
+  if r.currency <> 'XOF' then
+    raise exception 'ÉCHEC — devise inattendue : %', r.currency;
+  end if;
+  raise notice 'ok — la devise est celle de l''organisation';
+
+  -- 5. Aucun tarif → aucune ligne. Jamais un zéro implicite.
+  insert into public.services (id, name)
+    values ('5e000000-0000-0000-0000-000000000002', 'Polish carrosserie');
+  select count(*) into n from public.resoudre_prix('5e000000-0000-0000-0000-000000000002');
+  if n <> 0 then
+    raise exception 'ÉCHEC — un service sans tarif a renvoyé un prix';
+  end if;
+  raise notice 'ok — un service sans tarif ne renvoie aucun prix';
+end;
+$$;
+
+-- La devise envoyée par le client est ignorée.
+do $$
+declare v_devise text;
+begin
+  insert into public.service_prices (service_id, currency, amount_minor, valid_from)
+    values ('5e000000-0000-0000-0000-000000000002', 'EUR', 12000, current_date)
+    returning currency into v_devise;
+  if v_devise <> 'XOF' then
+    raise exception 'ÉCHEC — devise falsifiable depuis le client : %', v_devise;
+  end if;
+  raise notice 'ok — la devise envoyée par le client est écrasée';
+end;
+$$;
+
+-- Deux tarifs de même spécificité valables le même jour : indéterminé, refusé.
+do $$
+begin
+  insert into public.service_prices (service_id, amount_minor)
+    values ('5e000000-0000-0000-0000-000000000001', 7777);
+  raise exception 'ÉCHEC — deux tarifs concurrents acceptés';
+exception
+  when exclusion_violation then
+    raise notice 'ok — chevauchement de tarifs refusé';
+end;
+$$;
+
+-- Un montant négatif n'est pas une remise.
+do $$
+begin
+  insert into public.service_prices (service_id, amount_minor, valid_from)
+    values ('5e000000-0000-0000-0000-000000000002', -1, current_date + 400);
+  raise exception 'ÉCHEC — montant négatif accepté';
+exception
+  when check_violation then raise notice 'ok — montant négatif refusé';
+end;
+$$;
+
+-- Cloisonnement : une station d'une autre organisation ne peut pas porter un tarif.
+do $$
+begin
+  insert into public.service_prices (service_id, station_id, amount_minor)
+    values ('5e000000-0000-0000-0000-000000000001',
+            'b1b1b1b1-0000-0000-0000-000000000003', 100);
+  raise exception 'ÉCHEC — tarif rattaché à la station d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — tarif sur une station étrangère refusé';
+end;
+$$;
+
+-- Cloisonnement : l'organisation B ne voit ni le catalogue ni les tarifs de A.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucun service de A',
+  (select count(*) from public.services), 0);
+select pg_temp.check('l''organisation B ne voit aucun tarif de A',
+  (select count(*) from public.service_prices), 0);
+select pg_temp.check('resoudre_prix ne traverse pas les organisations',
+  (select count(*) from public.resoudre_prix('5e000000-0000-0000-0000-000000000001')), 0);
+
+-- B ne peut pas non plus tarifer un service de A, même en connaissant son id.
+do $$
+begin
+  insert into public.service_prices (service_id, amount_minor)
+    values ('5e000000-0000-0000-0000-000000000001', 1);
+  raise exception 'ÉCHEC — tarif posé sur le service d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — tarifer le service d''une autre organisation est refusé';
+end;
+$$;
+
+-- Remplacer un tarif : l'ancien se ferme la veille, le nouveau s'ouvre.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+declare v_ancien uuid; v_nouveau uuid; r record;
+begin
+  select id into v_ancien from public.service_prices
+   where service_id = '5e000000-0000-0000-0000-000000000001'
+     and vehicle_type_id is null and station_id is null;
+
+  v_nouveau := public.remplacer_tarif(v_ancien, 6000, current_date + 1);
+
+  if (select valid_to from public.service_prices where id = v_ancien) <> current_date then
+    raise exception 'ÉCHEC — l''ancien tarif n''a pas été fermé la veille';
+  end if;
+  raise notice 'ok — l''ancien tarif est fermé, pas supprimé';
+
+  select * into r from public.resoudre_prix(
+    '5e000000-0000-0000-0000-000000000001', null, null, current_date);
+  if r.amount_minor <> 5000 then
+    raise exception 'ÉCHEC — le prix d''aujourd''hui a changé (%)', r.amount_minor;
+  end if;
+  raise notice 'ok — le prix du jour est inchangé';
+
+  select * into r from public.resoudre_prix(
+    '5e000000-0000-0000-0000-000000000001', null, null, current_date + 1);
+  if r.amount_minor <> 6000 then
+    raise exception 'ÉCHEC — le nouveau tarif ne prend pas effet demain (%)', r.amount_minor;
+  end if;
+  raise notice 'ok — le nouveau tarif prend effet demain';
+end;
+$$;
+
+-- Un tarif ne peut pas être remplacé rétroactivement : un dossier d'hier a été
+-- facturé au prix d'hier.
+do $$
+declare v_ancien uuid;
+begin
+  select id into v_ancien from public.service_prices
+   where service_id = '5e000000-0000-0000-0000-000000000001'
+     and vehicle_type_id is null and station_id is null and valid_to is not null;
+  perform public.remplacer_tarif(v_ancien, 1, current_date - 10);
+  raise exception 'ÉCHEC — remplacement rétroactif accepté';
+exception
+  when check_violation then raise notice 'ok — remplacement rétroactif refusé';
+end;
+$$;
+
+-- Un rôle sans `services.manage` lit le catalogue mais ne le modifie pas.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un OPERATOR lit le catalogue',
+  (select count(*) from public.services), 2);
+do $$
+begin
+  insert into public.services (name) values ('Service pirate');
+  raise exception 'ÉCHEC — service créé sans services.manage';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — gérer le catalogue exige services.manage';
+end;
+$$;
+
+-- Un caissier lit les prix (il encaisse) mais ne les fixe pas.
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+select pg_temp.check('un CASHIER lit les tarifs',
+  (select count(*) from public.service_prices), 5);
+do $$
+declare v_tarif uuid;
+begin
+  select id into v_tarif from public.service_prices where valid_to is null limit 1;
+  perform public.remplacer_tarif(v_tarif, 1, current_date + 30);
+  raise exception 'ÉCHEC — un caissier a remplacé un tarif';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — remplacer un tarif exige prices.manage';
+end;
+$$;
+
+-- Une policy UPDATE ne lève pas d'erreur : elle rend la ligne invisible à
+-- l'écriture. L'assertion doit donc porter sur le montant, pas sur l'exception.
+do $$
+declare n integer;
+begin
+  update public.service_prices set amount_minor = 1 where amount_minor = 9500;
+  get diagnostics n = row_count;
+  if n <> 0 or not exists (select 1 from public.service_prices where amount_minor = 9500) then
+    raise exception 'ÉCHEC — un caissier a modifié un tarif';
+  end if;
+  raise notice 'ok — modifier un tarif exige prices.manage';
+end;
+$$;
+
 set local role postgres;
 
 -- Une organisation doit rester supprimable : l'invariant « dernier

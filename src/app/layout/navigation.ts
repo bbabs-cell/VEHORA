@@ -29,7 +29,7 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
   { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },
   { libelle: 'Stations', chemin: '/stations', icone: 'accueil', permission: 'stations.manage', disponible: true },
-  { libelle: 'Services', chemin: '/services', icone: 'service', permission: 'services.manage', disponible: false },
+  { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'service', disponible: true },
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
   { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: false },
   { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'cash.move', disponible: false },

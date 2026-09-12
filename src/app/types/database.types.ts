@@ -573,6 +573,172 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          name: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_categories_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      services: {
+        Row: {
+          id: string;
+          organization_id: string;
+          category_id: string | null;
+          name: string;
+          description: string | null;
+          duration_minutes: number | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          category_id?: string | null;
+          name: string;
+          description?: string | null;
+          duration_minutes?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          category_id?: string | null;
+          name?: string;
+          description?: string | null;
+          duration_minutes?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'services_category_id_fkey';
+            columns: ['category_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_categories';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'services_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_prices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          service_id: string;
+          vehicle_type_id: string | null;
+          station_id: string | null;
+          amount_minor: number;
+          currency: string;
+          valid_from: string;
+          valid_to: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          service_id: string;
+          vehicle_type_id?: string | null;
+          station_id?: string | null;
+          amount_minor: number;
+          currency?: string;
+          valid_from?: string;
+          valid_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          service_id?: string;
+          vehicle_type_id?: string | null;
+          station_id?: string | null;
+          amount_minor?: number;
+          currency?: string;
+          valid_from?: string;
+          valid_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_prices_service_id_fkey';
+            columns: ['service_id'];
+            isOneToOne: false;
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_prices_vehicle_type_id_fkey';
+            columns: ['vehicle_type_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicle_types';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_prices_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_prices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       session_revocations: {
         Row: { profile_id: string; reason: string | null; revoked_at: string };
         Insert: { profile_id: string; reason?: string | null; revoked_at?: string };
@@ -630,6 +796,24 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      remplacer_tarif: {
+        Args: { p_price_id: string; p_amount_minor: number; p_valid_from?: string | null };
+        Returns: string;
+      };
+      resoudre_prix: {
+        Args: {
+          p_service_id: string;
+          p_vehicle_type_id?: string | null;
+          p_station_id?: string | null;
+          p_date?: string | null;
+        };
+        Returns: {
+          price_id: string;
+          amount_minor: number;
+          currency: string;
+          specificite: 'SERVICE_TYPE_STATION' | 'SERVICE_TYPE' | 'SERVICE_STATION' | 'SERVICE';
+        }[];
+      };
       rechercher_vehicules: {
         Args: { p_recherche?: string | null; p_limite?: number; p_decalage?: number };
         Returns: {
