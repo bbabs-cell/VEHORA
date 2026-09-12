@@ -74,8 +74,17 @@
             </p>
           </div>
 
-          @if (peutEcrire()) {
-            <div class="carte__actions">
+          <div class="carte__actions">
+            @if (peutInspecter()) {
+              <a
+                class="vh-button vh-button--ghost"
+                [routerLink]="['/vehicules', vehicule.id, 'inspection']"
+                [attr.aria-label]="'Inspecter ' + (vehicule.plate || 'ce véhicule')"
+              >
+                Inspecter
+              </a>
+            }
+            @if (peutEcrire()) {
               <button
                 class="vh-button vh-button--ghost"
                 type="button"
@@ -92,8 +101,8 @@
               >
                 Archiver
               </button>
-            </div>
-          }
+            }
+          </div>
         </li>
       }
     </ul>

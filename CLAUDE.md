@@ -138,12 +138,18 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 6 validée.** Clients et véhicules en place. Prochaine étape :
-inspection et photos — premières policies Storage.
+**Phase 7 validée.** Clients, véhicules, inspection et photos en place.
+Prochaine étape : services et tarifs, puis le Service Order.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 22 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
-  9 types de véhicules.
+- 25 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+  9 types de véhicules, 10 zones d'inspection.
+- **Storage** : bucket `inspections` privé, chemin imposé
+  `{organization_id}/{inspection_id}/{fichier}` — les policies ne comparent que
+  le premier segment. Types limités à JPEG/PNG/WebP : **le SVG est exclu**, c'est
+  du XML exécutable. Accès par URL signée courte, jamais publique.
+- Une inspection est un **constat daté** : aucune policy UPDATE ni DELETE.
+  Une erreur se corrige par une nouvelle inspection.
 - **Une policy vérifie la ligne, pas ce qu'elle référence.** Toute clé
   étrangère vers une table multi-tenant demande un trigger de cohérence
   (`stations`↔`memberships`, `vehicles`↔`customers`).
@@ -162,8 +168,9 @@ inspection et photos — premières policies Storage.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **99 tests Playwright**,
-  **31 assertions SQL**, et une campagne d'intrusion par l'API réelle.
+- Parcours connecté vérifié de bout en bout ; **117 tests Playwright**,
+  **36 assertions SQL**, et des campagnes d'intrusion par l'API réelle,
+  dont 14 assertions sur la sécurité du stockage.
 - **Leçon récurrente** : cinq défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale) ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
@@ -172,6 +179,13 @@ inspection et photos — premières policies Storage.
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).
   La règle est dans `vehora-frontend` — désactiver l'ouverture tant que la
   donnée asynchrone manque, défaut par `effect`, message explicite sinon.
+- **Pas de nombre magique partagé entre composants.** La hauteur de la barre
+  basse était recopiée à deux endroits avec deux valeurs différentes : token
+  `--vh-nav-basse`. Toute mesure utilisée par plus d'un composant devient un
+  token.
+- **`database.types.ts` : les blocs `Relationships` ne sont pas décoratifs.**
+  Ils typent les jointures PostgREST ; leur absence produit un message
+  trompeur. Trois incidents — régénérer plutôt que compléter à la main.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),

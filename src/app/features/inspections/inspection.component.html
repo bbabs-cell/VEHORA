@@ -1,0 +1,155 @@
+<div class="inspection">
+  <header class="inspection__entete">
+    <div>
+      <h1 class="inspection__titre">Inspection</h1>
+      @if (vehicule(); as v) {
+        <p class="vh-muted inspection__sous-titre">
+          <span class="plaque">{{ v.plate }}</span>
+          · {{ v.type_label }}
+          @if (v.customer_name) {
+            · {{ v.customer_name }}
+          }
+        </p>
+      } @else {
+        <vh-skeleton largeur="180px" hauteur="1rem" />
+      }
+    </div>
+  </header>
+
+  <p class="vh-muted inspection__aide">
+    Faites le tour du véhicule et marquez chaque zone. Ce constat protège votre
+    station comme votre client : il fixe l’état d’arrivée.
+  </p>
+
+  <!-- Compteur : le responsable voit l'avancement d'un coup d'œil. -->
+  <div class="compteur" role="status" aria-live="polite">
+    <span><strong>{{ renseignees() }}</strong> / {{ inspections.zones().length }} zones</span>
+    @if (anomalies() > 0) {
+      <span class="compteur__anomalies">{{ anomalies() }} anomalie(s)</span>
+    }
+    @if (photosPrises() > 0) {
+      <span>{{ photosPrises() }} photo(s)</span>
+    }
+  </div>
+
+  @if (inspections.zones().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+      }
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Zones à contrôler">
+      @for (zone of inspections.zones(); track zone.id) {
+        <li class="vh-card zone" [class.zone--anomalie]="etat(zone.id).condition === 'ANOMALY'">
+          <p class="zone__nom">{{ zone.label }}</p>
+
+          <div class="zone__choix" role="group" [attr.aria-label]="'État de : ' + zone.label">
+            <button
+              type="button"
+              class="choix choix--ok"
+              [class.choix--actif]="etat(zone.id).condition === 'OK'"
+              [attr.aria-pressed]="etat(zone.id).condition === 'OK'"
+              (click)="marquer(zone.id, 'OK')"
+            >
+              RAS
+            </button>
+            <button
+              type="button"
+              class="choix choix--anomalie"
+              [class.choix--actif]="etat(zone.id).condition === 'ANOMALY'"
+              [attr.aria-pressed]="etat(zone.id).condition === 'ANOMALY'"
+              (click)="marquer(zone.id, 'ANOMALY')"
+            >
+              Anomalie
+            </button>
+          </div>
+
+          @if (etat(zone.id).condition === 'ANOMALY') {
+            <div class="zone__detail">
+              <label class="vh-sr-only" [attr.for]="'com-' + zone.id">
+                Description de l’anomalie sur {{ zone.label }}
+              </label>
+              <input
+                class="vh-input"
+                [id]="'com-' + zone.id"
+                type="text"
+                placeholder="Rayure, choc, manque…"
+                [value]="etat(zone.id).commentaire"
+                (input)="surCommentaire(zone.id, $event)"
+              />
+
+              <label class="photo-bouton" [attr.for]="'photo-' + zone.id">
+                <vh-icon nom="vehicule" [taille]="18" />
+                <span>Ajouter une photo</span>
+              </label>
+              <!-- `capture` ouvre directement l'appareil photo sur mobile. -->
+              <input
+                class="vh-sr-only"
+                [id]="'photo-' + zone.id"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                multiple
+                (change)="surPhotos(zone.id, $event)"
+              />
+
+              @if (etat(zone.id).photos.length > 0) {
+                <ul class="vignettes" [attr.aria-label]="'Photos de ' + zone.label">
+                  @for (photo of etat(zone.id).photos; track $index) {
+                    <li class="vignette">
+                      <span class="vignette__nom">{{ photo.name || 'Photo' }}</span>
+                      <button
+                        type="button"
+                        class="vignette__retirer"
+                        (click)="retirerPhoto(zone.id, $index)"
+                        [attr.aria-label]="'Retirer la photo ' + ($index + 1)"
+                      >
+                        <vh-icon nom="fermer" [taille]="16" />
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="vh-field inspection__notes">
+    <label class="vh-label" for="notes-inspection">Remarques générales</label>
+    <textarea
+      id="notes-inspection"
+      class="vh-input inspection__zone-texte"
+      rows="3"
+      [value]="notes()"
+      (input)="surNotes($event)"
+    ></textarea>
+  </div>
+
+  @if (erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (avertissement(); as message) {
+    <p class="vh-alert vh-alert--attention" role="alert">{{ message }}</p>
+  }
+  @if (inspections.progression(); as etape) {
+    <p class="vh-muted progression" role="status" aria-live="polite">{{ etape }}</p>
+  }
+
+  <div class="inspection__actions">
+    <button class="vh-button vh-button--ghost" type="button" (click)="annuler()">
+      Annuler
+    </button>
+    <button
+      class="vh-button"
+      type="button"
+      (click)="enregistrer()"
+      [disabled]="inspections.chargement() || !peutInspecter()"
+    >
+      {{ inspections.chargement() ? 'Enregistrement…' : 'Enregistrer le constat' }}
+    </button>
+  </div>
+</div>

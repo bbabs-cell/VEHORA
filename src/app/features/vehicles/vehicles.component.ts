@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { CustomerService, type Client } from '../../core/customers/customer.service';
 import { VehicleService, type VehiculeListe } from '../../core/vehicles/vehicle.service';
@@ -19,7 +20,13 @@ const DELAI_RECHERCHE = 300;
 @Component({
   selector: 'vh-vehicles',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, IconComponent, SkeletonComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    EmptyStateComponent,
+    IconComponent,
+    SkeletonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicles.component.html',
   styleUrl: './vehicles.component.css',
@@ -49,6 +56,7 @@ export class VehiclesComponent {
    */
   readonly pretAEnregistrer = computed(() => this.vehicules.types().length > 0);
   readonly peutVoirClients = computed(() => this.auth.hasPermission('customers.read'));
+  readonly peutInspecter = computed(() => this.auth.hasPermission('inspections.write'));
 
   private minuteurListe: ReturnType<typeof setTimeout> | null = null;
   private minuteurClient: ReturnType<typeof setTimeout> | null = null;

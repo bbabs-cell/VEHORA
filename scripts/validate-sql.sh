@@ -25,6 +25,23 @@ create table if not exists auth.users (
   email text,
   raw_user_meta_data jsonb default '{}'::jsonb
 );
+-- Schéma `storage` : Supabase le fournit, on en reproduit le minimum pour que
+-- les policies de fichiers soient validées comme le reste.
+create schema if not exists storage;
+create table if not exists storage.buckets (
+  id text primary key, name text, public boolean,
+  file_size_limit bigint, allowed_mime_types text[]
+);
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text, name text, owner uuid
+);
+alter table storage.objects enable row level security;
+create or replace function storage.foldername(p_name text)
+returns text[] language sql immutable as $f$
+  select (string_to_array(p_name, '/'))[1:array_length(string_to_array(p_name,'/'),1)-1];
+$f$;
+
 do $$ begin create role anon;                exception when duplicate_object then null; end $$;
 do $$ begin create role authenticated;       exception when duplicate_object then null; end $$;
 do $$ begin create role service_role;        exception when duplicate_object then null; end $$;

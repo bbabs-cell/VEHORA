@@ -10,7 +10,8 @@ set local role postgres;
 insert into auth.users (id) values
   ('11111111-1111-1111-1111-111111111111'),  -- Awa, OWNER organisation A
   ('22222222-2222-2222-2222-222222222222'),  -- Moussa, OWNER organisation B
-  ('33333333-3333-3333-3333-333333333333');  -- Fatou, OPERATOR station A1
+  ('33333333-3333-3333-3333-333333333333'),  -- Fatou, OPERATOR station A1
+  ('44444444-4444-4444-4444-444444444444');  -- Ousmane, CASHIER station A1
 
 -- Les profils sont créés automatiquement par le trigger on_auth_user_created.
 update public.profiles set full_name = 'Awa'    where id = '11111111-1111-1111-1111-111111111111';
@@ -445,6 +446,87 @@ begin
   raise exception 'ÉCHEC — écriture acceptée sans vehicles.write';
 exception
   when insufficient_privilege then raise notice 'ok — écriture refusée sans vehicles.write';
+end;
+$$;
+
+set local role postgres;
+
+-- ==========================================================================
+-- 10. Inspections et photos (phase 7).
+-- ==========================================================================
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+do $$
+declare v_vehicule uuid; v_inspection uuid; v_zone uuid;
+begin
+  select id into v_vehicule from public.vehicles
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001' limit 1;
+  select id into v_zone from public.inspection_zones where code = 'FRONT';
+
+  insert into public.vehicle_inspections (vehicle_id, notes)
+  values (v_vehicule, 'Constat de test') returning id into v_inspection;
+
+  insert into public.inspection_items (inspection_id, zone_id, condition, comment)
+  values (v_inspection, v_zone, 'ANOMALY', 'Rayure');
+
+  raise notice 'ok — inspection et constat de zone enregistrés';
+end;
+$$;
+
+-- Une inspection est un CONSTAT DATÉ : la modifier après coup lui retirerait
+-- toute valeur de preuve. Aucune policy UPDATE ni DELETE n'existe.
+do $$
+declare v_touchees integer;
+begin
+  update public.vehicle_inspections set notes = 'Réécrit après coup';
+  get diagnostics v_touchees = row_count;
+  if v_touchees <> 0 then
+    raise exception 'ÉCHEC CRITIQUE — % inspection(s) modifiée(s) après coup', v_touchees;
+  end if;
+  raise notice 'ok — une inspection ne peut pas être modifiée après coup';
+end;
+$$;
+
+do $$
+declare v_touchees integer;
+begin
+  delete from public.vehicle_inspections;
+  get diagnostics v_touchees = row_count;
+  if v_touchees <> 0 then
+    raise exception 'ÉCHEC CRITIQUE — % inspection(s) supprimée(s)', v_touchees;
+  end if;
+  raise notice 'ok — une inspection ne peut pas être supprimée';
+end;
+$$;
+
+-- Une zone n'est constatée qu'une fois par inspection.
+do $$
+declare v_inspection uuid; v_zone uuid;
+begin
+  select id into v_inspection from public.vehicle_inspections limit 1;
+  select id into v_zone from public.inspection_zones where code = 'FRONT';
+  insert into public.inspection_items (inspection_id, zone_id, condition)
+  values (v_inspection, v_zone, 'OK');
+  raise exception 'ÉCHEC — une zone a pu être constatée deux fois';
+exception
+  when unique_violation then raise notice 'ok — une zone n''est constatée qu''une fois';
+end;
+$$;
+
+-- Un rôle sans `inspections.write` ne peut pas inspecter, même s'il lit.
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+do $$
+declare v_vehicule uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.vehicle_inspections (vehicle_id) values (v_vehicule);
+  raise exception 'ÉCHEC — inspection acceptée sans inspections.write';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — inspecter exige inspections.write';
 end;
 $$;
 

@@ -1,0 +1,268 @@
+.inspection {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  /* Place pour la barre d'actions fixe : sans cela, le dernier bloc reste
+     inaccessible sous elle. */
+  padding-bottom: calc(var(--vh-space-4) + var(--vh-nav-basse) + var(--vh-touch-primary));
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.inspection__entete {
+  padding-top: var(--vh-space-4);
+}
+
+.inspection__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.inspection__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--vh-text);
+}
+
+.inspection__aide {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  max-width: 60ch;
+}
+
+/* ---------- Compteur d'avancement ---------- */
+
+.compteur {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-4);
+  padding: var(--vh-space-3) var(--vh-space-4);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  font-size: var(--vh-text-sm);
+  position: sticky;
+  top: 56px;
+  z-index: 5;
+}
+
+.compteur__anomalies {
+  color: var(--vh-warning);
+  font-weight: 600;
+}
+
+/* ---------- Zones ---------- */
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.zone--anomalie {
+  border-color: var(--vh-warning);
+}
+
+.zone__nom {
+  margin: 0;
+  font-weight: 600;
+}
+
+.zone__choix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--vh-space-3);
+}
+
+/* Cibles larges : le geste se fait debout, une main occupée, parfois avec des
+   gants mouillés. 56px est un minimum ici, pas un confort. */
+.choix {
+  min-height: var(--vh-touch-primary);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-2);
+  color: var(--vh-text-muted);
+  font-weight: 600;
+  font-size: var(--vh-text-base);
+  cursor: pointer;
+  transition:
+    background var(--vh-duration-fast) var(--vh-ease),
+    color var(--vh-duration-fast) var(--vh-ease),
+    border-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.choix:hover {
+  border-color: var(--vh-text-muted);
+  color: var(--vh-text);
+}
+
+.choix--ok.choix--actif {
+  background: color-mix(in srgb, var(--vh-success) 18%, transparent);
+  border-color: var(--vh-success);
+  color: var(--vh-success);
+}
+
+.choix--anomalie.choix--actif {
+  background: color-mix(in srgb, var(--vh-warning) 18%, transparent);
+  border-color: var(--vh-warning);
+  color: var(--vh-warning);
+}
+
+.zone__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+/* ---------- Photos ---------- */
+
+.photo-bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vh-space-2);
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-4);
+  border: 1px dashed var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+}
+
+.photo-bouton:hover {
+  border-color: var(--vh-primary);
+  color: var(--vh-text);
+}
+
+.vignettes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.vignette {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-2);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  font-size: var(--vh-text-sm);
+  min-height: var(--vh-touch-min);
+}
+
+.vignette__nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vignette__retirer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.vignette__retirer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-error);
+}
+
+/* ---------- Bas de page ---------- */
+
+.inspection__zone-texte {
+  min-height: 90px;
+  padding: var(--vh-space-3);
+  resize: vertical;
+  font-family: inherit;
+}
+
+.vh-alert--attention {
+  border-color: var(--vh-warning);
+  background: color-mix(in srgb, var(--vh-warning) 12%, transparent);
+}
+
+.progression {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.inspection__actions {
+  display: flex;
+  gap: var(--vh-space-3);
+
+  /* L'action principale reste atteignable au pouce, en bas de l'écran.
+     Barre FIXE et adossée à la navigation basse, pas `sticky` : en sticky, une
+     bande de contenu continuait de défiler entre la barre et la navigation, ce
+     qui donnait l'impression d'un défaut d'affichage.
+     Fond opaque : un dégradé laissait le contenu transparaître. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--vh-nav-basse) + env(safe-area-inset-bottom));
+  z-index: 12;
+  padding: var(--vh-space-3) var(--vh-space-4);
+  background: var(--vh-surface-1);
+  border-top: 1px solid var(--vh-border);
+}
+
+/* Sur mobile les deux boutons partagent la largeur plutôt que de se replier
+   l'un au-dessus de l'autre : deux lignes mangent l'écran et éloignent
+   l'action principale du pouce. */
+.inspection__actions .vh-button {
+  flex: 1;
+}
+
+@media (min-width: 900px) {
+  .inspection {
+    padding: var(--vh-space-6);
+  }
+
+  .inspection {
+    padding-bottom: calc(var(--vh-space-6) + var(--vh-touch-primary) + var(--vh-space-6));
+  }
+
+  .inspection__actions {
+    /* La barre latérale occupe 264 px : la barre d'actions commence après. */
+    left: 264px;
+    bottom: 0;
+    justify-content: flex-end;
+    padding: var(--vh-space-3) var(--vh-space-6);
+  }
+
+  .inspection__actions .vh-button {
+    flex: 0 0 auto;
+  }
+
+  .compteur {
+    top: 64px;
+  }
+}

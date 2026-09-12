@@ -1,6 +1,11 @@
 // GÉNÉRÉ depuis le projet Supabase VEHORA — ne pas modifier à la main.
 // À régénérer après chaque migration :
 //   MCP Supabase `generate_typescript_types`, ou la CLI Supabase.
+//
+// ATTENTION — les blocs `Relationships` ne sont PAS décoratifs : ce sont eux
+// qui permettent à PostgREST de typer les jointures (`select('a, b(c)')`).
+// Les omettre fait échouer la compilation avec un message trompeur
+// (« could not find the relation between … »). Trois incidents sur ce projet.
 // Toute divergence avec la base se voit immédiatement : la compilation stricte
 // et les tests de parcours échouent.
 export type Json =
@@ -106,6 +111,138 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      inspection_zones: {
+        Row: { code: string; id: string; is_active: boolean; label: string; sort_order: number };
+        Insert: { code: string; id?: string; is_active?: boolean; label: string; sort_order: number };
+        Update: { code?: string; id?: string; is_active?: boolean; label?: string; sort_order?: number };
+        Relationships: [];
+      };
+      vehicle_inspections: {
+        Row: {
+          created_at: string;
+          id: string;
+          notes: string | null;
+          organization_id: string;
+          performed_at: string;
+          performed_by: string | null;
+          service_order_id: string | null;
+          station_id: string | null;
+          vehicle_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          organization_id?: string;
+          performed_at?: string;
+          performed_by?: string | null;
+          service_order_id?: string | null;
+          station_id?: string | null;
+          vehicle_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          organization_id?: string;
+          performed_at?: string;
+          performed_by?: string | null;
+          service_order_id?: string | null;
+          station_id?: string | null;
+          vehicle_id?: string;
+        };
+        Relationships: [];
+      };
+      inspection_items: {
+        Row: {
+          comment: string | null;
+          condition: Database['public']['Enums']['inspection_condition'];
+          created_at: string;
+          id: string;
+          inspection_id: string;
+          organization_id: string;
+          zone_id: string;
+        };
+        Insert: {
+          comment?: string | null;
+          condition: Database['public']['Enums']['inspection_condition'];
+          created_at?: string;
+          id?: string;
+          inspection_id: string;
+          organization_id?: string;
+          zone_id: string;
+        };
+        Update: {
+          comment?: string | null;
+          condition?: Database['public']['Enums']['inspection_condition'];
+          created_at?: string;
+          id?: string;
+          inspection_id?: string;
+          organization_id?: string;
+          zone_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'inspection_items_inspection_id_fkey';
+            columns: ['inspection_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicle_inspections';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'inspection_items_zone_id_fkey';
+            columns: ['zone_id'];
+            isOneToOne: false;
+            referencedRelation: 'inspection_zones';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      inspection_photos: {
+        Row: {
+          created_by: string | null;
+          id: string;
+          inspection_id: string;
+          item_id: string | null;
+          organization_id: string;
+          storage_path: string;
+          taken_at: string;
+        };
+        Insert: {
+          created_by?: string | null;
+          id?: string;
+          inspection_id: string;
+          item_id?: string | null;
+          organization_id?: string;
+          storage_path: string;
+          taken_at?: string;
+        };
+        Update: {
+          created_by?: string | null;
+          id?: string;
+          inspection_id?: string;
+          item_id?: string | null;
+          organization_id?: string;
+          storage_path?: string;
+          taken_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'inspection_photos_inspection_id_fkey';
+            columns: ['inspection_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicle_inspections';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'inspection_photos_item_id_fkey';
+            columns: ['item_id'];
+            isOneToOne: false;
+            referencedRelation: 'inspection_items';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       vehicle_types: {
         Row: {
@@ -530,6 +667,7 @@ export type Database = {
       };
     };
     Enums: {
+      inspection_condition: 'OK' | 'ANOMALY';
       invitation_status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
       membership_status: 'ACTIVE' | 'SUSPENDED';
       organization_status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'DEACTIVATED';

@@ -48,6 +48,15 @@ export const routes: Routes = [
           import('./features/customers/customers.component').then((m) => m.CustomersComponent),
       },
       {
+        path: 'vehicules/:id/inspection',
+        title: 'Inspection — VEHORA',
+        canActivate: [permissionGuard('inspections.write')],
+        loadComponent: () =>
+          import('./features/inspections/inspection.component').then(
+            (m) => m.InspectionComponent,
+          ),
+      },
+      {
         path: 'vehicules',
         title: 'Véhicules — VEHORA',
         canActivate: [permissionGuard('vehicles.read')],

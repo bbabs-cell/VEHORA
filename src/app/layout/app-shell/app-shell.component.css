@@ -240,7 +240,7 @@
 .contenu {
   flex: 1;
   /* Espace pour la barre basse, encoches d'écran comprises. */
-  padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--vh-nav-basse) + env(safe-area-inset-bottom));
 }
 
 /* ---------- Barre d'actions basse (mobile) ---------- */
@@ -262,7 +262,8 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: 64px;
+  /* La bordure supérieure de la barre complète le token `--vh-nav-basse`. */
+  min-height: calc(var(--vh-nav-basse) - 1px);
   padding: var(--vh-space-2) 4px;
   color: var(--vh-text-muted);
   text-decoration: none;

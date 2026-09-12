@@ -66,6 +66,12 @@
   /* Cibles tactiles — minimum absolu et action opérationnelle primaire */
   --vh-touch-min: 44px;
   --vh-touch-primary: 56px;
+
+  /* Hauteur de la barre de navigation basse (mobile), bordure comprise.
+     Partagée : toute barre fixe qui doit s'y adosser part de cette valeur,
+     plutôt que d'un nombre recopié — c'est ainsi qu'apparaissent les décalages
+     de quelques pixels impossibles à retrouver. */
+  --vh-nav-basse: 65px;
 }
 
 /* Mode clair — exigence terrain : écrans opérationnels utilisés en plein soleil.
