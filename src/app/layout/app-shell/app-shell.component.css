@@ -1,0 +1,308 @@
+/* Coquille applicative — mobile d'abord, la barre latérale n'apparaît qu'en
+   grand écran. */
+
+.coque {
+  min-height: 100dvh;
+  background: var(--vh-bg);
+}
+
+/* Lien d'évitement : invisible jusqu'au focus clavier. */
+.evitement {
+  position: absolute;
+  left: var(--vh-space-3);
+  top: -100px;
+  z-index: 40;
+  padding: var(--vh-space-2) var(--vh-space-4);
+  background: var(--vh-primary);
+  color: #fff;
+  border-radius: var(--vh-radius-control);
+  text-decoration: none;
+  transition: top var(--vh-duration-fast) var(--vh-ease);
+}
+
+.evitement:focus-visible {
+  top: var(--vh-space-3);
+}
+
+/* ---------- Barre latérale ---------- */
+
+.laterale {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: 264px;
+  display: flex;
+  flex-direction: column;
+  background: var(--vh-surface-1);
+  border-right: 1px solid var(--vh-border);
+  transform: translateX(-100%);
+  transition: transform var(--vh-duration-base) var(--vh-ease);
+}
+
+.laterale--ouverte {
+  transform: translateX(0);
+}
+
+.laterale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vh-space-4);
+  border-bottom: 1px solid var(--vh-border);
+}
+
+.marque {
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--vh-accent);
+}
+
+.laterale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  cursor: pointer;
+  border-radius: var(--vh-radius-control);
+}
+
+.laterale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+/* ---------- Navigation ---------- */
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--vh-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-1);
+}
+
+.nav__lien {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  text-decoration: none;
+  font-size: var(--vh-text-sm);
+  transition:
+    background var(--vh-duration-fast) var(--vh-ease),
+    color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.nav__lien:hover {
+  background: var(--vh-surface-2);
+  color: var(--vh-text);
+}
+
+.nav__lien--actif {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--vh-primary);
+}
+
+.nav__lien--bientot {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.nav__lien--bientot:hover {
+  background: none;
+  color: var(--vh-text-muted);
+}
+
+.nav__bientot {
+  margin-left: auto;
+  font-size: var(--vh-text-xs);
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: 999px;
+}
+
+/* ---------- Pied de barre latérale ---------- */
+
+.laterale__pied {
+  padding: var(--vh-space-4);
+  border-top: 1px solid var(--vh-border);
+}
+
+.pied__nom {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.pied__role {
+  margin: 0 0 var(--vh-space-3);
+  font-size: var(--vh-text-xs);
+  letter-spacing: 0.06em;
+}
+
+.pied__sortie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vh-space-2);
+  width: 100%;
+}
+
+/* ---------- Voile (mobile) ---------- */
+
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: none;
+  background: rgb(0 0 0 / 0.55);
+  cursor: pointer;
+}
+
+/* ---------- Zone principale ---------- */
+
+.principal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  min-height: 56px;
+  padding: 0 var(--vh-space-3);
+  background: var(--vh-surface-1);
+  border-bottom: 1px solid var(--vh-border);
+}
+
+.entete__menu,
+.entete__theme {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.entete__menu:hover,
+.entete__theme:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.entete__theme {
+  margin-left: auto;
+}
+
+.entete__org {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.entete__nom {
+  font-weight: 600;
+  font-size: var(--vh-text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entete__ville {
+  font-size: var(--vh-text-xs);
+}
+
+.entete__erreur {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}
+
+.contenu {
+  flex: 1;
+  /* Espace pour la barre basse, encoches d'écran comprises. */
+  padding-bottom: calc(68px + env(safe-area-inset-bottom));
+}
+
+/* ---------- Barre d'actions basse (mobile) ---------- */
+
+.barre-basse {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 15;
+  display: flex;
+  background: var(--vh-surface-1);
+  border-top: 1px solid var(--vh-border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.barre-basse__lien {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: var(--vh-space-2) 4px;
+  color: var(--vh-text-muted);
+  text-decoration: none;
+  font-size: 11px;
+  text-align: center;
+}
+
+.barre-basse__lien--actif {
+  color: var(--vh-primary);
+  font-weight: 600;
+}
+
+.barre-basse__lien--bientot {
+  opacity: 0.4;
+}
+
+/* ---------- Desktop ---------- */
+
+@media (min-width: 900px) {
+  .laterale {
+    transform: none;
+  }
+
+  .laterale__fermer,
+  .entete__menu,
+  .voile,
+  .barre-basse {
+    display: none;
+  }
+
+  .principal {
+    margin-left: 264px;
+  }
+
+  .entete {
+    padding: 0 var(--vh-space-6);
+    min-height: 64px;
+  }
+
+  .contenu {
+    padding-bottom: var(--vh-space-8);
+  }
+}

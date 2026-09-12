@@ -32,9 +32,17 @@ test.describe('Session connectée', () => {
     await expect(page).toHaveURL(/\/tableau-de-bord/, { timeout: 20_000 });
 
     // Les claims produits par le hook sont bien lus par l'application.
-    await expect(page.getByText('OWNER')).toBeVisible();
-    await expect(page.getByText('ORGANIZATION')).toBeVisible();
-    await expect(page.getByText('30', { exact: true })).toBeVisible();
+    const acces = page.getByRole('region', { name: 'Votre accès' });
+    await expect(acces.getByText('OWNER')).toBeVisible();
+    await expect(acces.getByText('ORGANIZATION')).toBeVisible();
+    await expect(acces.getByText('30', { exact: true })).toBeVisible();
+
+    // Sur mobile, la déconnexion vit dans le tiroir de navigation : il faut
+    // l'ouvrir. Sur desktop, la barre latérale est déjà visible.
+    const ouvrirMenu = page.getByRole('button', { name: 'Ouvrir le menu' });
+    if (await ouvrirMenu.isVisible()) {
+      await ouvrirMenu.click();
+    }
 
     // La déconnexion ramène à la connexion et ferme l'accès.
     await page.getByRole('button', { name: 'Se déconnecter' }).click();
@@ -53,6 +61,8 @@ test.describe('Session connectée', () => {
 
     await page.reload();
     await expect(page).toHaveURL(/\/tableau-de-bord/);
-    await expect(page.getByText('OWNER')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Votre accès' }).getByText('OWNER'),
+    ).toBeVisible();
   });
 });

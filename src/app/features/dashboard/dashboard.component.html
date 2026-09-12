@@ -1,16 +1,24 @@
-<main class="tdb">
+<div class="tdb">
   <header class="tdb__entete">
-    <div>
-      <p class="tdb__marque">VEHORA</p>
-      <h1 class="tdb__titre">Tableau de bord</h1>
-    </div>
-    <button class="vh-button vh-button--ghost" type="button" (click)="deconnecter()">
-      Se déconnecter
-    </button>
+    <h1 class="tdb__titre">Tableau de bord</h1>
+    <p class="vh-muted tdb__sous-titre">
+      @if (organisations.organisation(); as org) {
+        {{ org.name }} — {{ org.city }}
+      }
+    </p>
   </header>
 
+  <section class="vh-card" aria-labelledby="titre-activite">
+    <h2 id="titre-activite" class="tdb__section">Activité du jour</h2>
+    <vh-empty-state
+      titre="Aucune prestation pour l’instant"
+      texte="Les véhicules en attente, en cours et prêts s’afficheront ici dès que
+             vous ouvrirez votre première prestation."
+    />
+  </section>
+
   <section class="vh-card" aria-labelledby="titre-session">
-    <h2 id="titre-session" class="tdb__section">Session</h2>
+    <h2 id="titre-session" class="tdb__section">Votre accès</h2>
     <dl class="tdb__liste">
       <dt class="vh-label">Compte</dt>
       <dd>{{ session()?.user?.email }}</dd>
@@ -21,16 +29,12 @@
       <dt class="vh-label">Portée</dt>
       <dd>{{ claims().roleScope ?? '—' }}</dd>
 
-      <dt class="vh-label">Organisation</dt>
-      <dd class="tdb__mono">{{ claims().orgId ?? '—' }}</dd>
-
       <dt class="vh-label">Permissions</dt>
       <dd>{{ claims().permissions.size }}</dd>
     </dl>
-
     <p class="vh-muted tdb__note">
-      Ces informations viennent du jeton de session. Elles servent à adapter
-      l’interface : les accès réels sont contrôlés par la base de données.
+      Ces informations viennent de votre jeton de session. Elles adaptent
+      l’interface ; les accès réels sont contrôlés par la base de données.
     </p>
   </section>
-</main>
+</div>

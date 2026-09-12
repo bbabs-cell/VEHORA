@@ -87,8 +87,11 @@ Angular mesure la taille **brute**, pas la taille transférée. Les seuils
 d'`angular.json` sont donc exprimés en brut, calibrés sur le rapport observé
 (~4:1) : 460 kB d'avertissement, 560 kB d'erreur pour l'initial.
 
-**Mesure de référence (phase 1) : 445 kB bruts → 109 kB transférés**, soit
-moins de la moitié de la cible. Marge confortable pour les phases suivantes ;
+**Mesure de référence (phase 2) : 476 kB bruts → 117 kB transférés**, soit
+moins de la moitié de la cible. Seuils bruts : 500 kB d'avertissement,
+600 kB d'erreur. Le budget par feuille de style de composant est à 6 kB : la
+coquille applicative (barre latérale, en-tête, barre basse, deux thèmes) en
+porte légitimement plus qu'un composant métier. Marge confortable pour les phases suivantes ;
 si le rapport de compression change, recalibrer les seuils bruts plutôt que de
 relâcher la cible.
 

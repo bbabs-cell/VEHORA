@@ -1,0 +1,125 @@
+<div class="coque">
+  <a class="evitement" href="#contenu">Aller au contenu</a>
+
+  <!-- ---------- Barre latérale (desktop) et tiroir (mobile) ---------- -->
+  <aside
+    class="laterale"
+    [class.laterale--ouverte]="menuOuvert()"
+    id="navigation-principale"
+    [attr.aria-hidden]="null"
+  >
+    <div class="laterale__entete">
+      <span class="marque">VEHORA</span>
+      <button
+        class="laterale__fermer"
+        type="button"
+        (click)="fermerMenu()"
+        aria-label="Fermer le menu"
+      >
+        <vh-icon nom="fermer" />
+      </button>
+    </div>
+
+    <nav class="nav" aria-label="Navigation principale">
+      @for (entree of entrees(); track entree.chemin) {
+        @if (entree.disponible) {
+          <a
+            class="nav__lien"
+            [routerLink]="entree.chemin"
+            routerLinkActive="nav__lien--actif"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="fermerMenu()"
+          >
+            <vh-icon [nom]="entree.icone" />
+            <span>{{ entree.libelle }}</span>
+          </a>
+        } @else {
+          <span class="nav__lien nav__lien--bientot" aria-disabled="true">
+            <vh-icon [nom]="entree.icone" />
+            <span>{{ entree.libelle }}</span>
+            <span class="nav__bientot">Bientôt</span>
+          </span>
+        }
+      }
+    </nav>
+
+    <div class="laterale__pied">
+      <p class="pied__nom">{{ session()?.user?.email }}</p>
+      <p class="pied__role vh-muted">{{ claims().role }}</p>
+      <button class="vh-button vh-button--ghost pied__sortie" type="button" (click)="deconnecter()">
+        <vh-icon nom="sortie" />
+        <span>Se déconnecter</span>
+      </button>
+    </div>
+  </aside>
+
+  @if (menuOuvert()) {
+    <button class="voile" type="button" (click)="fermerMenu()" aria-label="Fermer le menu"></button>
+  }
+
+  <!-- ---------- Contenu ---------- -->
+  <div class="principal">
+    <header class="entete">
+      <button
+        class="entete__menu"
+        type="button"
+        (click)="basculerMenu()"
+        aria-label="Ouvrir le menu"
+        aria-controls="navigation-principale"
+        [attr.aria-expanded]="menuOuvert()"
+      >
+        <vh-icon nom="menu" />
+      </button>
+
+      <div class="entete__org">
+        @if (organisations.chargement()) {
+          <vh-skeleton largeur="140px" hauteur="1.1rem" />
+        } @else if (organisations.organisation(); as org) {
+          <span class="entete__nom">{{ org.name }}</span>
+          @if (org.city) {
+            <span class="entete__ville vh-muted">{{ org.city }}</span>
+          }
+        } @else if (organisations.erreur(); as message) {
+          <span class="entete__erreur">{{ message }}</span>
+        }
+      </div>
+
+      <button
+        class="entete__theme"
+        type="button"
+        (click)="theme.basculer()"
+        [attr.aria-label]="
+          theme.themeApplique() === 'clair' ? 'Passer en thème sombre' : 'Passer en thème clair'
+        "
+      >
+        <vh-icon [nom]="theme.themeApplique() === 'clair' ? 'lune' : 'soleil'" />
+      </button>
+    </header>
+
+    <main class="contenu" id="contenu">
+      <router-outlet />
+    </main>
+
+    <!-- ---------- Barre d'actions (mobile) ---------- -->
+    <nav class="barre-basse" aria-label="Navigation rapide">
+      @for (entree of entreesMobile(); track entree.chemin) {
+        @if (entree.disponible) {
+          <a
+            class="barre-basse__lien"
+            [routerLink]="entree.chemin"
+            routerLinkActive="barre-basse__lien--actif"
+            [routerLinkActiveOptions]="{ exact: true }"
+          >
+            <vh-icon [nom]="entree.icone" [taille]="22" />
+            <span>{{ entree.libelleCourt ?? entree.libelle }}</span>
+          </a>
+        } @else {
+          <span class="barre-basse__lien barre-basse__lien--bientot" aria-disabled="true">
+            <vh-icon [nom]="entree.icone" [taille]="22" />
+            <span>{{ entree.libelleCourt ?? entree.libelle }}</span>
+          </span>
+        }
+      }
+    </nav>
+  </div>
+</div>

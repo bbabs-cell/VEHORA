@@ -138,15 +138,18 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 1 validée.** Prochaine étape : phase 2 (design system, layout,
-navigation, mode clair).
+**Phase 2 validée.** Prochaine étape : phase 3 (tableau de bord orienté action)
+puis approvisionnement d'organisation.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
 - 11 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
 - Custom access token hook **activé** sur `vehora.custom_access_token_hook`.
-- Application Angular 22 : connexion, gardes, tableau de bord minimal.
-- Parcours connecté vérifié de bout en bout ; 16 tests Playwright, 17 assertions
-  SQL, 12 tentatives d'intrusion bloquées par l'API réelle.
+- Application Angular 22 : connexion, gardes, coquille applicative
+  (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
+- **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
+  sont en clair et l'application démarrerait à contre-identité.
+- Parcours connecté vérifié de bout en bout ; **27 tests Playwright**,
+  17 assertions SQL, 12 tentatives d'intrusion bloquées par l'API réelle.
 - Compte de démonstration : `awa@vehora.test` (à supprimer avant production).
 - Tests connectés : exporter `VEHORA_TEST_EMAIL` et `VEHORA_TEST_PASSWORD`,
   sinon la suite est ignorée. En cloud, `e2e/relais-reseau.ts` rejoue les appels

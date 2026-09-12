@@ -2,13 +2,13 @@ import type { Routes } from '@angular/router';
 import { authGuard, organizationGuard } from './core/auth/auth.guard';
 
 /**
- * Une feature = une route lazy-loadée. L'espace Super Admin aura son propre
- * arbre (`/plateforme`), avec son layout et son garde — ce n'est pas un onglet
- * de l'application cliente.
+ * Les écrans authentifiés vivent dans la coquille applicative ; la connexion et
+ * les écrans de rattrapage restent en dehors (aucune navigation à afficher).
+ *
+ * L'espace Super Admin aura son propre arbre (`/plateforme`), avec sa coquille
+ * et son garde — ce n'est pas un onglet de l'application cliente.
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
-
   {
     path: 'connexion',
     title: 'Connexion — VEHORA',
@@ -25,12 +25,20 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'tableau-de-bord',
-    title: 'Tableau de bord — VEHORA',
+    path: '',
     canActivate: [authGuard, organizationGuard],
     loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      import('./layout/app-shell/app-shell.component').then((m) => m.AppShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
+      {
+        path: 'tableau-de-bord',
+        title: 'Tableau de bord — VEHORA',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
+    ],
   },
 
-  { path: '**', redirectTo: 'tableau-de-bord' },
+  { path: '**', redirectTo: '' },
 ];
