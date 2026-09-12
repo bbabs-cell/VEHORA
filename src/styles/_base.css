@@ -1,0 +1,141 @@
+/* VEHORA — base. Les valeurs viennent toujours des tokens. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--vh-bg);
+  color: var(--vh-text);
+  font-family: var(--vh-font);
+  font-size: var(--vh-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+/* Focus visible : exigence d'accessibilité, jamais supprimé. */
+:focus-visible {
+  outline: 2px solid var(--vh-accent);
+  outline-offset: 2px;
+  border-radius: var(--vh-radius-control);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- Contrôles ---------------------------------------------------------- */
+
+.vh-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.vh-label {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-text-muted);
+}
+
+.vh-input {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  transition: border-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.vh-input:focus {
+  border-color: var(--vh-primary);
+}
+
+.vh-input[aria-invalid='true'] {
+  border-color: var(--vh-error);
+}
+
+.vh-button {
+  min-height: var(--vh-touch-primary);
+  padding: 0 var(--vh-space-6);
+  background: var(--vh-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--vh-radius-control);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--vh-duration-fast) var(--vh-ease);
+}
+
+.vh-button:hover:not(:disabled) {
+  background: var(--vh-primary-hover);
+}
+
+.vh-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vh-button--ghost {
+  background: transparent;
+  color: var(--vh-text-muted);
+  border: 1px solid var(--vh-border);
+  min-height: var(--vh-touch-min);
+}
+
+.vh-button--ghost:hover:not(:disabled) {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.vh-card {
+  background: var(--vh-surface-1);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-6);
+}
+
+.vh-alert {
+  padding: var(--vh-space-3) var(--vh-space-4);
+  border-radius: var(--vh-radius-control);
+  border: 1px solid var(--vh-error);
+  background: color-mix(in srgb, var(--vh-error) 12%, transparent);
+  font-size: var(--vh-text-sm);
+}
+
+.vh-muted {
+  color: var(--vh-text-muted);
+}
+
+/* Lecteur d'écran uniquement. */
+.vh-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

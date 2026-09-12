@@ -1,0 +1,36 @@
+<main class="tdb">
+  <header class="tdb__entete">
+    <div>
+      <p class="tdb__marque">VEHORA</p>
+      <h1 class="tdb__titre">Tableau de bord</h1>
+    </div>
+    <button class="vh-button vh-button--ghost" type="button" (click)="deconnecter()">
+      Se déconnecter
+    </button>
+  </header>
+
+  <section class="vh-card" aria-labelledby="titre-session">
+    <h2 id="titre-session" class="tdb__section">Session</h2>
+    <dl class="tdb__liste">
+      <dt class="vh-label">Compte</dt>
+      <dd>{{ session()?.user?.email }}</dd>
+
+      <dt class="vh-label">Rôle</dt>
+      <dd>{{ claims().role ?? '—' }}</dd>
+
+      <dt class="vh-label">Portée</dt>
+      <dd>{{ claims().roleScope ?? '—' }}</dd>
+
+      <dt class="vh-label">Organisation</dt>
+      <dd class="tdb__mono">{{ claims().orgId ?? '—' }}</dd>
+
+      <dt class="vh-label">Permissions</dt>
+      <dd>{{ claims().permissions.size }}</dd>
+    </dl>
+
+    <p class="vh-muted tdb__note">
+      Ces informations viennent du jeton de session. Elles servent à adapter
+      l’interface : les accès réels sont contrôlés par la base de données.
+    </p>
+  </section>
+</main>

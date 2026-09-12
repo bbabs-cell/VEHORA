@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>VEHORA</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="VEHORA — système de gestion opérationnelle des centres de lavage et services automobiles."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b1120" />
+    <link rel="icon" href="favicon.ico" />
+    <style>
+      .vh-demarrage {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        min-height: 100dvh;
+        background: #0b1120;
+        color: #94a3b8;
+        font-family: system-ui, sans-serif;
+      }
+      .vh-demarrage__marque {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        color: #06b6d4;
+      }
+      .vh-demarrage__texte {
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <vh-root>
+      <!-- Affiché pendant le démarrage de l'application, puis remplacé.
+           Sur un appareil modeste, l'écran ne doit jamais rester vide. -->
+      <div class="vh-demarrage" role="status" aria-live="polite">
+        <span class="vh-demarrage__marque">VEHORA</span>
+        <span class="vh-demarrage__texte">Chargement…</span>
+      </div>
+    </vh-root>
+  </body>
+</html>

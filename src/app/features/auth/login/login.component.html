@@ -1,0 +1,70 @@
+<main class="connexion">
+  <section class="connexion__carte vh-card" aria-labelledby="titre-connexion">
+    <header class="connexion__entete">
+      <p class="connexion__marque">VEHORA</p>
+      <h1 id="titre-connexion" class="connexion__titre">Connexion</h1>
+      <p class="vh-muted connexion__sous-titre">
+        Pilotez votre station depuis un seul endroit.
+      </p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
+      <div class="vh-field">
+        <label class="vh-label" for="email">Adresse e-mail</label>
+        <input
+          id="email"
+          class="vh-input"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          inputmode="email"
+          autocapitalize="off"
+          spellcheck="false"
+          [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          [attr.aria-describedby]="
+            form.controls.email.touched && form.controls.email.invalid ? 'erreur-email' : null
+          "
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <p id="erreur-email" class="connexion__erreur-champ">
+            Saisissez une adresse e-mail valide.
+          </p>
+        }
+      </div>
+
+      <div class="vh-field">
+        <label class="vh-label" for="password">Mot de passe</label>
+        <input
+          id="password"
+          class="vh-input"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+          [attr.aria-describedby]="
+            form.controls.password.touched && form.controls.password.invalid
+              ? 'erreur-password'
+              : null
+          "
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <p id="erreur-password" class="connexion__erreur-champ">
+            Le mot de passe comporte au moins 8 caractères.
+          </p>
+        }
+      </div>
+
+      @if (erreur(); as message) {
+        <p class="vh-alert" role="alert">{{ message }}</p>
+      }
+
+      <button class="vh-button connexion__valider" type="submit" [disabled]="enCours()">
+        {{ enCours() ? 'Connexion…' : 'Se connecter' }}
+      </button>
+
+      <p class="vh-sr-only" role="status" aria-live="polite">
+        {{ enCours() ? 'Connexion en cours' : '' }}
+      </p>
+    </form>
+  </section>
+</main>

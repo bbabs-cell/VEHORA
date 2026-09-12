@@ -10,13 +10,20 @@ cd "$PROJECT_DIR"
 manquants=()
 
 # --- Node ---------------------------------------------------------------
+# Angular 22 exige Node >= 22.22.3 (ou 24.x). Une version antérieure fait
+# échouer la CLI avec un message peu explicite.
+if [ -x /opt/node24/bin/node ] && [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+  export PATH="/opt/node24/bin:$PATH"
+  echo 'export PATH="/opt/node24/bin:$PATH"' >> "${CLAUDE_ENV_FILE:-/dev/null}" 2>/dev/null || true
+fi
+
 if command -v node >/dev/null 2>&1; then
-  node_major="$(node -v | sed 's/^v\([0-9]*\).*/\1/')"
-  if [ "$node_major" -lt 20 ]; then
-    manquants+=("Node 20+ requis (trouvé $(node -v))")
+  node_version="$(node -v | sed 's/^v//')"
+  if [ "$(printf '%s\n22.22.3\n' "$node_version" | sort -V | head -1)" != "22.22.3" ]; then
+    manquants+=("Node >= 22.22.3 requis par Angular 22 (trouvé v$node_version)")
   fi
 else
-  manquants+=("Node 20+ absent — https://nodejs.org")
+  manquants+=("Node >= 22.22.3 absent — https://nodejs.org")
 fi
 
 # --- PostgreSQL 16 : requis par scripts/validate-sql.sh -----------------

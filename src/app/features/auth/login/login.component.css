@@ -1,0 +1,49 @@
+.connexion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--vh-space-4);
+}
+
+.connexion__carte {
+  width: 100%;
+  max-width: 420px;
+}
+
+.connexion__entete {
+  margin-bottom: var(--vh-space-8);
+}
+
+.connexion__marque {
+  margin: 0 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--vh-accent);
+}
+
+.connexion__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.connexion__sous-titre {
+  margin: var(--vh-space-2) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.connexion__erreur-champ {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}
+
+.connexion__valider {
+  margin-top: var(--vh-space-2);
+}

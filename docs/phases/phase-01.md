@@ -107,7 +107,111 @@ accès**. La fonction est en place et testée ; seul le branchement manque.
 
 Aucune vulnérabilité CRITICAL ou HIGH non corrigée sur le périmètre base.
 
-## Suite de la phase 1
+---
 
-Projet Angular, client Supabase, parcours de connexion, garde de route,
-sélection d'organisation, et premier écran authentifié.
+# Phase 1 — seconde partie : application Angular et authentification
+
+## Périmètre
+
+Projet Angular 22, client Supabase, parcours de connexion, gardes de route,
+écran authentifié minimal, tests de parcours Playwright.
+
+## Ce qui a été construit
+
+| Élément | Emplacement |
+|---|---|
+| Client Supabase unique | `src/app/core/supabase/` |
+| Lecture des claims JWT | `src/app/core/auth/session-claims.ts` |
+| Service d'authentification (signals) | `src/app/core/auth/auth.service.ts` |
+| Gardes : session, organisation, permission | `src/app/core/auth/auth.guard.ts` |
+| Écran de connexion | `src/app/features/auth/login/` |
+| Écran « aucune organisation » | `src/app/features/auth/no-organization/` |
+| Tableau de bord minimal | `src/app/features/dashboard/` |
+| Types générés | `src/app/types/database.types.ts` |
+| Tests de parcours | `e2e/auth.spec.ts` |
+
+Angular 22 exige **Node ≥ 22.22.3** ; l'environnement disposait de 22.22.2.
+Node 24 a été installé plutôt que de rétrograder Angular, et le hook
+`SessionStart` bascule dessus automatiquement en cloud.
+
+## Vulnérabilités et défauts trouvés
+
+### CRITICAL — collision sur le claim JWT `role`
+
+**Constat.** Supabase place dans chaque JWT un claim `role` valant
+`authenticated`. **PostgREST s'en sert pour choisir le rôle PostgreSQL de la
+session.** Notre hook l'écrasait avec le code de rôle métier (`OWNER`,
+`CASHIER`…).
+
+**Impact.** PostgREST aurait exécuté `set role OWNER` — un rôle inexistant en
+base. **Toutes les requêtes API auraient échoué**, ou se seraient exécutées
+avec un rôle inattendu. L'application entière aurait été inutilisable dès la
+première connexion réelle.
+
+**Pourquoi le test de la première partie ne l'a pas vu.** L'événement simulé ne
+contenait que `sub` — pas le claim `role` que Supabase fournit réellement. Une
+leçon de méthode : un test doit reproduire l'entrée réelle, pas une version
+simplifiée.
+
+**Correction.** `20260912090000_fix_jwt_role_claim_collision.sql` — le rôle
+métier passe désormais par `vehora_role` ; le claim `role` n'est plus jamais
+touché. Vérifié avec un événement réaliste : `role` reste `authenticated`,
+`vehora_role` vaut `CASHIER`, 10 permissions.
+
+**Règle retenue** (inscrite dans `CLAUDE.md`) : ne jamais réutiliser un nom de
+claim réservé — `role`, `sub`, `aud`, `exp`, `iat`, `iss`, `email`, `phone`,
+`session_id`, `aal`, `amr`, `is_anonymous`.
+
+### MEDIUM — blocage définitif de l'application si la session ne se restaure pas
+
+**Constat.** `getSession()` n'était pas protégé. En cas d'échec (réseau coupé au
+démarrage, stockage local inaccessible), la promesse était rejetée, l'état
+restait à « chargement », et les gardes attendaient **indéfiniment**.
+
+**Impact.** Application figée sur l'écran de chargement, sans issue ni message.
+Sur un réseau instable — précisément notre marché — ce n'est pas théorique.
+
+**Correction.** `try/catch` dans `restoreSession()` (l'utilisateur est
+considéré déconnecté), et attente **bornée à 5 secondes** dans les gardes. Deux
+filets indépendants.
+
+### LOW — écran blanc pendant le démarrage
+
+Entre le chargement de la page et le démarrage d'Angular, l'écran restait vide.
+Corrigé par un indicateur inline dans `index.html`, remplacé au démarrage.
+Coût : quelques octets, aucun script.
+
+## Tests
+
+| Suite | Résultat |
+|---|---|
+| Types (`tsc --noEmit`, strict complet) | ✅ |
+| Build de production, budgets appliqués | ✅ 445 kB bruts → **109 kB transférés** |
+| Sécurité SQL (`validate-sql.sh`) | ✅ 17 assertions |
+| Parcours Playwright (mobile + desktop) | ✅ 12 tests |
+
+Les tests de parcours couvrent : redirection d'un visiteur non connecté,
+conservation de la cible de redirection, validation avant tout appel réseau,
+message d'erreur ne révélant pas l'existence d'un compte, cibles tactiles
+≥ 44 px, et **absence de `service_role` ou de secret dans le bundle servi**.
+
+Vérification visuelle : écran de connexion capturé en 360 px et 1280 px, en
+thème sombre et clair. Les deux sont lisibles et conformes au design system.
+
+## Risques résiduels
+
+| Risque | Gravité | Traitement |
+|---|---|---|
+| Hook non encore activé dans le tableau de bord Supabase | HIGH tant que non fait | action propriétaire — la connexion ne donnera aucun droit sans lui |
+| Jeton de session en `localStorage` : une faille XSS le volerait | MEDIUM | inhérent à Supabase ; Angular échappe par défaut, aucun `innerHTML` dans le code |
+| Durée de vie des JWT encore à 3600 s | LOW | réglage tableau de bord (ADR-001 prévoit 900 s) |
+| Aucun parcours connecté testé de bout en bout | MEDIUM | dépend de l'activation du hook ; à faire en priorité en phase 2 |
+| Policies Storage non écrites | MEDIUM | phase 5 |
+
+Aucune vulnérabilité CRITICAL ou HIGH non corrigée.
+
+## Suite — phase 2
+
+Design system appliqué, layout, navigation, responsive, et mode clair
+fonctionnel. Puis création d'une organisation et d'un premier compte réel, pour
+tester le parcours connecté de bout en bout.

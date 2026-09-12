@@ -77,11 +77,19 @@ dans la moitié basse de l'écran, atteignables au pouce.
 immédiat sur toute action (< 100 ms), même si la requête réseau est lente.
 `prefers-reduced-motion: reduce` supprime toutes les animations non essentielles.
 
-## Budget de performance (vérifié en CI)
+## Budget de performance (vérifié à chaque build)
 
-- bundle initial ≤ **250 Ko** compressé ;
-- chaque feature lazy-loadée ≤ 100 Ko ;
-- premier rendu utile < 2,5 s en 3G lente sur un appareil de milieu de gamme.
+Cible réelle, côté utilisateur : **bundle initial ≤ 250 kB transférés**
+(c'est-à-dire compressés — ce qui est réellement téléchargé), chaque feature
+lazy-loadée ≤ 30 kB transférés, premier rendu utile < 2,5 s en 3G lente.
 
-Configuré dans `angular.json` (`budgets`) : un dépassement casse le build. C'est
-la seule manière de tenir l'exigence §43 face à Angular.
+Angular mesure la taille **brute**, pas la taille transférée. Les seuils
+d'`angular.json` sont donc exprimés en brut, calibrés sur le rapport observé
+(~4:1) : 460 kB d'avertissement, 560 kB d'erreur pour l'initial.
+
+**Mesure de référence (phase 1) : 445 kB bruts → 109 kB transférés**, soit
+moins de la moitié de la cible. Marge confortable pour les phases suivantes ;
+si le rapport de compression change, recalibrer les seuils bruts plutôt que de
+relâcher la cible.
+
+Un dépassement casse le build.

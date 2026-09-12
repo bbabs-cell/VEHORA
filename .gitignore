@@ -1,11 +1,49 @@
-node_modules/
-dist/
+
+!.env.example
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/mcp.json
+!.vscode/settings.json
+!.vscode/tasks.json
+# Compiled output
+# IDEs and editors
+# Miscellaneous
+# Node
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# System files
+# Visual Studio Code
+*.launch
+*.log
+*.sublime-workspace
+.DS_Store
 .angular/
+.c9/
+.classpath
 .env
 .env.*
-!.env.example
-*.log
-.DS_Store
+.history/*
+.idea/
+.project
+.sass-cache/
+.settings/
+.vscode/*
+/.angular/cache
+/bazel-out
+/connect.lock
+/coverage
+/dist
+/libpeerconnection.log
+/node_modules
+/out-tsc
+/playwright-report/
 /supabase/.temp/
 /test-results/
-/playwright-report/
+/tmp
+/typings
+Thumbs.db
+__screenshots__/
+dist/
+node_modules/
+npm-debug.log
+testem.log
+yarn-error.log

@@ -120,8 +120,29 @@ Chaque fonctionnalité est testée sous trois angles :
 - **Commits** : `type(scope): description` — ex. `feat(service-orders): création depuis la file d'attente`.
 - **Français** dans l'UI et la documentation. Anglais dans le code (identifiants, tables, colonnes).
 
+## Commandes
+
+| But | Commande |
+|---|---|
+| Serveur de développement | `npm start` |
+| Build de production (budgets appliqués) | `npm run build` |
+| Migrations + tests de sécurité SQL | `npm run validate:sql` |
+| Tests de parcours | `npm run e2e` |
+| Vérification des types | `npm run types:check` |
+
+**Node ≥ 22.22.3 requis** par Angular 22. En environnement cloud, le hook
+`SessionStart` bascule automatiquement sur `/opt/node24`.
+Pour Playwright en cloud, exporter
+`VEHORA_CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (le
+Chromium préinstallé) ; en local, laisser la variable vide.
+
 ## État du projet
 
-Phase en cours : **Phase 0 — Analyse, architecture, fondations.**
-Aucun projet Supabase n'est encore rattaché : les migrations sont écrites mais
-non appliquées.
+Phase en cours : **Phase 1 — Auth, organisation, rôles, RLS.**
+
+- Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
+- 9 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- Application Angular 22 démarrée : connexion, gardes, tableau de bord minimal.
+- **Le rôle métier est porté par le claim `vehora_role`**, jamais `role` —
+  ce dernier appartient à Supabase et détermine le rôle PostgreSQL de la
+  session. Ne jamais réutiliser un nom de claim réservé.

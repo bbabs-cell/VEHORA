@@ -13,11 +13,14 @@ toutes les policies.
 Un *custom access token hook* Supabase (fonction PL/pgSQL appelée à l'émission
 du token) enrichit le JWT :
 
+Le claim `role` appartient à Supabase (il détermine le rôle PostgreSQL de la
+session) : le rôle métier est donc publié sous `vehora_role`.
+
 ```json
 {
   "sub": "<auth user id>",
   "org_id": "<organisation active>",
-  "role": "STATION_MANAGER",
+  "vehora_role": "STATION_MANAGER",
   "role_scope": "STATION",
   "station_ids": ["…"],
   "permissions": ["service_orders.read", "payments.record", "…"],
