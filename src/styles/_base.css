@@ -108,6 +108,17 @@ textarea {
   color: var(--vh-text);
 }
 
+/* Action destructive et irréversible (annuler un dossier, supprimer). Elle ne
+   se distingue pas seulement par la couleur : le libellé dit ce qui se passe,
+   et une confirmation la précède. */
+.vh-button--danger {
+  background: var(--vh-error);
+}
+
+.vh-button--danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
 .vh-card {
   background: var(--vh-surface-1);
   border: 1px solid var(--vh-border);

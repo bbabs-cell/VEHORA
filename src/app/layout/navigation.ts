@@ -24,7 +24,7 @@ export interface EntreeNavigation {
 
 export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Tableau de bord', libelleCourt: 'Accueil', chemin: '/tableau-de-bord', icone: 'accueil', disponible: true },
-  { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: false },
+  { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: true },
   { libelle: 'Prestations', chemin: '/prestations', icone: 'prestation', permission: 'service_orders.read', disponible: false },
   { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
   { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },

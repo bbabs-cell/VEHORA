@@ -1,0 +1,411 @@
+.file {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-5);
+}
+
+.file__entete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.file__entete > .vh-button {
+  white-space: nowrap;
+}
+
+.file__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.file__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* ---------- Groupes par statut ---------- */
+
+.groupe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.groupe__titre {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  font-size: var(--vh-text-base);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vh-text-muted);
+}
+
+.groupe__compte {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+  font-size: var(--vh-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+/* ---------- Dossier ---------- */
+
+.dossier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.dossier__ligne1 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.dossier__numero {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--vh-text-muted);
+}
+
+.dossier__ligne2 {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.dossier__montant {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vh-space-2);
+}
+
+.dossier__total {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dossier__lignes {
+  font-size: var(--vh-text-sm);
+}
+
+/* Un dossier sans prestation n'a pas de prix à annoncer au client : il faut
+   que ça se voie de loin, pas qu'on le découvre à la caisse. */
+.sans-prestation {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-warning);
+}
+
+.dossier__actions {
+  display: flex;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.dossier__actions .vh-button {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+.dossier__annuler {
+  background: none;
+  border: none;
+  padding: 0 var(--vh-space-2);
+  min-height: var(--vh-touch-min);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dossier__annuler:hover {
+  color: var(--vh-error);
+  background: var(--vh-surface-3);
+}
+
+/* ---------- Contenu du dossier ---------- */
+
+.lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-3);
+}
+
+.ligne__nom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ligne__montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ligne__retirer {
+  background: none;
+  border: none;
+  padding: var(--vh-space-1) var(--vh-space-2);
+  min-height: var(--vh-touch-min);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ligne__retirer:hover {
+  color: var(--vh-error);
+  background: var(--vh-surface-2);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--vh-space-3);
+  margin: 0;
+  padding-top: var(--vh-space-2);
+  border-top: 1px solid var(--vh-border);
+}
+
+.total__montant {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--vh-text-lg);
+}
+
+.catalogue-rapide {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+}
+
+/* Cibles larges : on ajoute une prestation debout, à côté du véhicule. */
+.catalogue-rapide__item {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  background: var(--vh-surface-3);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text);
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+}
+
+.catalogue-rapide__item:hover:not(:disabled) {
+  border-color: var(--vh-primary);
+}
+
+.catalogue-rapide__item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dire pourquoi le bouton est inerte, pas seulement qu'il l'est. */
+.catalogue-rapide__sans-tarif {
+  margin-left: var(--vh-space-2);
+  font-size: var(--vh-text-xs);
+  color: var(--vh-warning);
+}
+
+/* ---------- Choix du véhicule ---------- */
+
+.choix {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+}
+
+.choix__valeur {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.suggestions {
+  list-style: none;
+  margin: var(--vh-space-2) 0 0;
+  padding: 0;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  overflow: hidden;
+}
+
+.suggestions__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  width: 100%;
+  min-height: var(--vh-touch-min);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--vh-border);
+  color: var(--vh-text);
+  text-align: left;
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+}
+
+.suggestions li:last-child .suggestions__item {
+  border-bottom: none;
+}
+
+.suggestions__item:hover {
+  background: var(--vh-surface-3);
+}
+
+/* La plaque se lit comme une plaque, pas comme du texte courant. */
+.plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.etiquette {
+  font-size: var(--vh-text-xs);
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: 999px;
+  color: var(--vh-text-muted);
+  white-space: nowrap;
+}
+
+.erreur-champ {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}
+
+/* ---------- Modale ---------- */
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  padding: var(--vh-space-3);
+}
+
+.modale__contenu {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: var(--vh-radius-modal);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+}
+
+.modale__titre {
+  font-size: var(--vh-text-lg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.modale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.modale form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vh-space-3);
+}
+
+@media (min-width: 640px) {
+  .file__entete,
+  .dossier {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dossier__identite {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .modale {
+    align-items: center;
+  }
+}
+
+@media (min-width: 900px) {
+  .file {
+    padding: var(--vh-space-6);
+  }
+}

@@ -1,0 +1,387 @@
+<div class="file">
+  <header class="file__entete">
+    <div>
+      <h1 class="file__titre">File d’attente</h1>
+      <p class="vh-muted file__sous-titre">
+        Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué
+        ou annulé sort de cet écran.
+      </p>
+    </div>
+    @if (peutOuvrir()) {
+      <button
+        class="vh-button"
+        type="button"
+        (click)="ouvrirFormulaire()"
+        [disabled]="!pretAOuvrir()"
+      >
+        Nouveau dossier
+      </button>
+    }
+  </header>
+
+  @if (dossiers.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  <!-- Les refus de transition arrivaient dans un signal que seule une modale
+       affichait : l'action échouait sans un mot à l'écran. Une action lancée
+       depuis la liste doit répondre dans la liste. -->
+  @if (erreurFormulaire(); as message) {
+    @if (!ouvertureOuverte() && !dossierOuvert() && !annulation()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
+
+  @if (dossiers.chargement() && fileVide()) {
+    <div class="groupe">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+      }
+    </div>
+  } @else if (fileVide()) {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucun véhicule en cours"
+        texte="Ouvrez un dossier à l’arrivée du véhicule : c’est lui qui portera
+               l’inspection, les prestations et le paiement."
+      >
+        @if (peutOuvrir()) {
+          <button
+            class="vh-button"
+            type="button"
+            (click)="ouvrirFormulaire()"
+            [disabled]="!pretAOuvrir()"
+          >
+            Ouvrir un dossier
+          </button>
+        }
+      </vh-empty-state>
+    </div>
+  } @else {
+    @for (groupe of groupes(); track groupe.statut) {
+      <section class="groupe" [attr.aria-label]="groupe.libelle">
+        <h2 class="groupe__titre">
+          {{ groupe.libelle }}
+          <span class="groupe__compte">{{ groupe.dossiers.length }}</span>
+        </h2>
+
+        <ul class="liste" [attr.aria-label]="'Dossiers — ' + groupe.libelle">
+          @for (dossier of groupe.dossiers; track dossier.id) {
+            <li class="vh-card dossier">
+              <div class="dossier__identite">
+                <p class="dossier__ligne1">
+                  <span class="dossier__numero">N° {{ dossier.number }}</span>
+                  <span class="plaque">{{ dossier.plaque || 'Sans plaque' }}</span>
+                  <span class="etiquette">{{ dossier.type_vehicule }}</span>
+                </p>
+                <p class="vh-muted dossier__ligne2">
+                  {{ dossier.client || 'Client non renseigné' }} · arrivé il y a
+                  {{ attente(dossier) }}
+                  @if (afficherStation()) {
+                    · {{ nomStation(dossier) }}
+                  }
+                </p>
+              </div>
+
+              <div class="dossier__montant">
+                @if (dossier.lignes === 0) {
+                  <span class="sans-prestation">Aucune prestation</span>
+                } @else {
+                  <span class="dossier__total">{{ total(dossier) }}</span>
+                  <span class="vh-muted dossier__lignes">
+                    {{ dossier.lignes }} prestation{{ dossier.lignes > 1 ? 's' : '' }}
+                  </span>
+                }
+              </div>
+
+              <div class="dossier__actions">
+                @if (peutOuvrir()) {
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="ouvrirPrestations(dossier)"
+                    [attr.aria-label]="'Prestations du dossier ' + dossier.number"
+                  >
+                    Prestations
+                  </button>
+                }
+                @if (dossier.status === 'INSPECTION' && peutInspecter()) {
+                  <a
+                    class="vh-button vh-button--ghost"
+                    [routerLink]="['/vehicules', dossier.vehicle_id, 'inspection']"
+                    [attr.aria-label]="'Inspecter le véhicule du dossier ' + dossier.number"
+                  >
+                    Faire l’inspection
+                  </a>
+                }
+                @if (actionSuivante(dossier); as suite) {
+                  <button
+                    class="vh-button"
+                    type="button"
+                    (click)="avancer(dossier)"
+                    [disabled]="enregistrement()"
+                    [attr.aria-label]="suite.libelle + ' — dossier ' + dossier.number"
+                  >
+                    {{ suite.libelle }}
+                  </button>
+                }
+                @if (peutAnnuler()) {
+                  <button
+                    class="dossier__annuler"
+                    type="button"
+                    (click)="ouvrirAnnulation(dossier)"
+                    [attr.aria-label]="'Annuler le dossier ' + dossier.number"
+                  >
+                    Annuler
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
+
+@if (ouvertureOuverte()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-ouverture">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-ouverture" class="modale__titre">Nouveau dossier</h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerFormulaire()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formOuverture" (ngSubmit)="ouvrirDossier()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="vehicule-dossier">Véhicule</label>
+          @if (vehiculeChoisi(); as choisi) {
+            <div class="choix">
+              <span class="choix__valeur">
+                <span class="plaque">{{ choisi.plate || 'Sans plaque' }}</span>
+                <span class="vh-muted">
+                  {{ choisi.type_label }}
+                  @if (choisi.customer_name) {
+                    · {{ choisi.customer_name }}
+                  }
+                </span>
+              </span>
+              <button class="vh-button vh-button--ghost" type="button" (click)="retirerVehicule()">
+                Changer
+              </button>
+            </div>
+          } @else {
+            <input
+              id="vehicule-dossier"
+              class="vh-input"
+              type="search"
+              autocomplete="off"
+              placeholder="Plaque, marque ou propriétaire…"
+              (input)="surRechercheVehicule($event)"
+            />
+            @if (resultatsVehicules().length > 0) {
+              <ul class="suggestions" aria-label="Véhicules trouvés">
+                @for (vehicule of resultatsVehicules(); track vehicule.id) {
+                  <li>
+                    <button
+                      class="suggestions__item"
+                      type="button"
+                      (click)="choisirVehicule(vehicule)"
+                    >
+                      <span class="plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
+                      <span class="vh-muted">
+                        {{ vehicule.type_label }}
+                        @if (vehicule.customer_name) {
+                          · {{ vehicule.customer_name }}
+                        }
+                      </span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="station-dossier">Station</label>
+          <select id="station-dossier" class="vh-input" formControlName="station_id">
+            @for (station of stations(); track station.id) {
+              <option
+                [value]="station.id"
+                [selected]="formOuverture.controls.station_id.value === station.id"
+              >
+                {{ station.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="notes-dossier">Remarque (facultatif)</label>
+          <textarea id="notes-dossier" class="vh-input" rows="2" formControlName="notes"></textarea>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerFormulaire()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Ouverture…' : 'Ouvrir le dossier' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (dossierOuvert(); as dossier) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-prestations">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-prestations" class="modale__titre">
+          Dossier n° {{ dossier.number }} — {{ dossier.plaque || 'sans plaque' }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerPrestations()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      @if (dossiers.lignes().length === 0) {
+        <p class="vh-muted">
+          Aucune prestation. Ajoutez ce qui a été convenu avec le client : le montant
+          annoncé vient de là.
+        </p>
+      } @else {
+        <ul class="lignes" aria-label="Prestations du dossier">
+          @for (ligne of dossiers.lignes(); track ligne.id) {
+            <li class="ligne">
+              <span class="ligne__nom">{{ ligne.service_name }}</span>
+              <span class="ligne__montant">
+                {{ formaterMontantLigne(ligne.line_total_minor, ligne.currency) }}
+              </span>
+              <button
+                class="ligne__retirer"
+                type="button"
+                (click)="retirer(ligne.id)"
+                [attr.aria-label]="'Retirer ' + ligne.service_name"
+              >
+                Retirer
+              </button>
+            </li>
+          }
+        </ul>
+
+        <p class="total">
+          <span>Total</span>
+          <strong class="total__montant">
+            {{ formaterMontantLigne(totalDossier(), dossiers.lignes()[0].currency) }}
+          </strong>
+        </p>
+      }
+
+      @if (prestationsDisponibles().length > 0) {
+        <div class="vh-field">
+          <label class="vh-label" for="ajout-prestation">Ajouter une prestation</label>
+          <ul class="catalogue-rapide" aria-label="Prestations disponibles">
+            @for (entree of prestationsDisponibles(); track entree.prestation.id) {
+              <li>
+                <button
+                  class="catalogue-rapide__item"
+                  type="button"
+                  (click)="ajouter(entree.prestation.id)"
+                  [disabled]="enregistrement() || !entree.tarifee"
+                  [attr.title]="entree.tarifee ? null : 'Aucun tarif défini pour cette prestation'"
+                >
+                  {{ entree.prestation.name }}
+                  @if (!entree.tarifee) {
+                    <span class="catalogue-rapide__sans-tarif">sans tarif</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (erreurFormulaire(); as message) {
+        <p class="vh-alert" role="alert">{{ message }}</p>
+      }
+
+      <div class="modale__actions">
+        <button class="vh-button" type="button" (click)="fermerPrestations()">Terminé</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (annulation(); as dossier) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-annulation">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-annulation" class="modale__titre">Annuler le dossier n° {{ dossier.number }}</h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerAnnulation()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formAnnulation" (ngSubmit)="annuler()" novalidate>
+        <p class="vh-muted">
+          L’annulation est définitive et tracée : le dossier ne pourra plus être rouvert.
+        </p>
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-annulation">Motif</label>
+          <input
+            id="motif-annulation"
+            class="vh-input"
+            type="text"
+            formControlName="motif"
+            autocomplete="off"
+            placeholder="Client reparti sans faire la prestation"
+            [attr.aria-invalid]="
+              formAnnulation.controls.motif.touched && formAnnulation.controls.motif.invalid
+            "
+          />
+          @if (formAnnulation.controls.motif.touched && formAnnulation.controls.motif.invalid) {
+            <p class="erreur-champ">Le motif est obligatoire.</p>
+          }
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerAnnulation()">
+            Revenir
+          </button>
+          <button class="vh-button vh-button--danger" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Annulation…' : 'Annuler le dossier' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

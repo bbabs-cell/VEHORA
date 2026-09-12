@@ -138,12 +138,26 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 8 validée.** Clients, véhicules, inspection, photos, catalogue et
-tarifs en place. Prochaine étape : le Service Order.
+**Phase 9 validée.** Clients, véhicules, inspection, photos, catalogue, tarifs
+et Service Order en place. Prochaine étape : les opérations, puis le paiement.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 27 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
-  9 types de véhicules, 10 zones d'inspection.
+- 29 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+  9 types de véhicules, 10 zones d'inspection, 6 transitions de dossier.
+- **Le statut d'un dossier ne se change que par `transitionner_dossier()`.** Un
+  trigger rejette tout autre `UPDATE`, `service_role` compris. Le drapeau de
+  transaction porte l'identifiant du dossier : un booléen aurait laissé une
+  transition légitime en couvrir une autre dans la même transaction.
+- **La matrice des transitions est une table** (`service_order_transitions`),
+  pas un `case`. Ouvrir une transition = insérer une ligne.
+- **Le prix est copié dans la ligne de dossier**, à la date d'ouverture du
+  dossier — pas à celle du jour. Modifier un tarif ne modifie aucun dossier
+  existant. Le client n'envoie ni montant, ni devise, ni nom de prestation.
+- **`EXECUTE` est accordé à `PUBLIC` par défaut sur toute fonction PostgreSQL.**
+  Un `grant … to authenticated` n'enlève rien. Toute fonction exposée dans
+  `public` doit être **révoquée de `public` et `anon`** explicitement.
+- **PostgREST ne joint pas une vue agrégée** : sans clé étrangère déductible,
+  pas de jointure. Lire la vue par une requête séparée.
 - **Le prix est déterminé par le serveur** (`resoudre_prix`), du plus spécifique
   au plus général. Aucun tarif trouvé = aucune ligne, jamais un zéro implicite.
   Le client n'envoie jamais un montant ni une devise : un trigger impose celle
@@ -182,14 +196,20 @@ tarifs en place. Prochaine étape : le Service Order.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **133 tests Playwright**,
-  **58 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-catalogue.mjs`, 21 assertions ; 14 sur le stockage).
-- **Leçon récurrente** : neuf défauts d'interface (thème par défaut, sélecteur
+- Parcours connecté vérifié de bout en bout ; **153 tests Playwright**,
+  **88 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-dossiers.mjs`, 23 assertions ;
+  `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
+- **Un test ne doit pas modifier l'état que d'autres tests lisent**, ni épingler
+  un numéro qui avance. Un test qui transite un dossier crée le sien et le
+  referme.
+- **Leçon récurrente** : treize défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale, actions sur deux lignes, deux mises en page pour la même liste, date
-  au format américain, code ISO au lieu du symbole) ont échappé aux tests et se
-  sont vus à l'écran. Sur un écran, une
+  au format américain, code ISO au lieu du symbole, erreur affichée nulle part,
+  bouton sans effet sur formulaire invalide, station absente de la file,
+  prestation sans tarif proposée quand même) ont échappé aux tests et se sont
+  vus à l'écran. Sur un écran, une
   assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
   de la validation d'une phase d'interface.**
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).
@@ -201,7 +221,8 @@ tarifs en place. Prochaine étape : le Service Order.
   token.
 - **`database.types.ts` : les blocs `Relationships` ne sont pas décoratifs.**
   Ils typent les jointures PostgREST ; leur absence produit un message
-  trompeur. Trois incidents — régénérer plutôt que compléter à la main.
+  trompeur. Quatre incidents — régénérer plutôt que compléter à la main ; en
+  phase 9 les neuf tables concernées ont été comblées d'un coup.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),

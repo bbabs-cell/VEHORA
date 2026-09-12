@@ -770,6 +770,335 @@ begin
 end;
 $$;
 
+-- ===========================================================================
+-- Phase 9 — Service Order
+-- ===========================================================================
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+do $$
+declare v_vehicule uuid; v_dossier public.service_orders;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning * into v_dossier;
+
+  if v_dossier.number <> 1 or v_dossier.status <> 'ARRIVED' then
+    raise exception 'ÉCHEC — dossier mal initialisé (n° %, statut %)',
+      v_dossier.number, v_dossier.status;
+  end if;
+  raise notice 'ok — dossier ouvert, numéroté 1, en ARRIVED';
+
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning number into v_dossier.number;
+  if v_dossier.number <> 2 then
+    raise exception 'ÉCHEC — numérotation non séquentielle (%)', v_dossier.number;
+  end if;
+  raise notice 'ok — la numérotation est séquentielle par organisation';
+end;
+$$;
+
+-- Le prix de la ligne vient du serveur, jamais de l'appelant.
+do $$
+declare v_dossier uuid; v_ligne public.service_order_items;
+begin
+  select id into v_dossier from public.service_orders order by number limit 1;
+
+  insert into public.service_order_items (service_order_id, service_id,
+                                          service_name, unit_amount_minor, currency)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002',
+          'Prix cassé', 1, 'EUR')
+  returning * into v_ligne;
+
+  if v_ligne.unit_amount_minor <> 12000 then
+    raise exception 'ÉCHEC — montant imposé par le client (%)', v_ligne.unit_amount_minor;
+  end if;
+  raise notice 'ok — le montant envoyé par le client est écrasé par le tarif';
+
+  if v_ligne.currency <> 'XOF' then
+    raise exception 'ÉCHEC — devise imposée par le client (%)', v_ligne.currency;
+  end if;
+  raise notice 'ok — la devise vient du tarif, pas du client';
+
+  if v_ligne.service_name <> 'Polish carrosserie' then
+    raise exception 'ÉCHEC — nom de prestation non copié (%)', v_ligne.service_name;
+  end if;
+  raise notice 'ok — le nom de la prestation est copié dans la ligne';
+
+  if v_ligne.line_total_minor <> 12000 then
+    raise exception 'ÉCHEC — total de ligne incohérent (%)', v_ligne.line_total_minor;
+  end if;
+  raise notice 'ok — le total de ligne est calculé par la base';
+end;
+$$;
+
+-- Une prestation sans tarif ne peut pas être vendue.
+do $$
+declare v_dossier uuid; v_service uuid;
+begin
+  select id into v_dossier from public.service_orders order by number limit 1;
+  insert into public.services (id, name) values
+    ('5e000000-0000-0000-0000-000000000003', 'Prestation sans tarif');
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000003');
+  raise exception 'ÉCHEC — prestation sans tarif ajoutée au dossier';
+exception
+  when check_violation then raise notice 'ok — une prestation sans tarif est refusée';
+end;
+$$;
+
+-- Le prix historisé ne bouge pas quand le tarif change.
+do $$
+declare v_ligne uuid; v_prix uuid; v_avant bigint; v_apres bigint;
+begin
+  select id, unit_amount_minor into v_ligne, v_avant
+    from public.service_order_items limit 1;
+
+  select id into v_prix from public.service_prices
+   where service_id = '5e000000-0000-0000-0000-000000000002' and valid_to is null;
+  perform public.remplacer_tarif(v_prix, 99000, current_date + 1);
+
+  select unit_amount_minor into v_apres
+    from public.service_order_items where id = v_ligne;
+
+  if v_apres <> v_avant then
+    raise exception 'ÉCHEC — le prix du dossier a suivi le tarif (% → %)', v_avant, v_apres;
+  end if;
+  raise notice 'ok — modifier un tarif ne modifie pas un dossier existant';
+end;
+$$;
+
+-- Le statut ne se change pas par UPDATE direct.
+do $$
+declare v_dossier uuid;
+begin
+  select id into v_dossier from public.service_orders order by number limit 1;
+  update public.service_orders set status = 'DELIVERED' where id = v_dossier;
+  raise exception 'ÉCHEC — statut modifié par UPDATE direct';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le statut ne se change pas par UPDATE';
+end;
+$$;
+
+-- Une transition hors matrice est refusée.
+do $$
+declare v_dossier uuid;
+begin
+  select id into v_dossier from public.service_orders order by number limit 1;
+  perform public.transitionner_dossier(v_dossier, 'DELIVERED');
+  raise exception 'ÉCHEC — transition ARRIVED → DELIVERED acceptée';
+exception
+  when check_violation then raise notice 'ok — transition hors matrice refusée';
+end;
+$$;
+
+-- Le parcours prévu fonctionne, et l'historique est écrit.
+do $$
+declare v_dossier uuid; v_vehicule uuid; d public.service_orders; n integer;
+begin
+  select id, vehicle_id into v_dossier, v_vehicule
+    from public.service_orders order by number limit 1;
+
+  d := public.transitionner_dossier(v_dossier, 'INSPECTION');
+  if d.status <> 'INSPECTION' then
+    raise exception 'ÉCHEC — passage en INSPECTION refusé';
+  end if;
+  raise notice 'ok — ARRIVED → INSPECTION';
+
+  -- Sans inspection enregistrée, la file d'attente est refusée.
+  begin
+    perform public.transitionner_dossier(v_dossier, 'WAITING');
+    raise exception 'ÉCHEC — mise en file sans inspection';
+  exception
+    when check_violation then raise notice 'ok — la file d''attente exige l''inspection';
+  end;
+
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+
+  d := public.transitionner_dossier(v_dossier, 'WAITING');
+  if d.status <> 'WAITING' then
+    raise exception 'ÉCHEC — passage en WAITING refusé';
+  end if;
+  raise notice 'ok — INSPECTION → WAITING une fois l''inspection enregistrée';
+
+  select count(*) into n from public.service_order_status_history
+   where service_order_id = v_dossier;
+  if n <> 2 then
+    raise exception 'ÉCHEC — historique incomplet (% lignes)', n;
+  end if;
+  raise notice 'ok — chaque transition laisse une ligne d''historique';
+end;
+$$;
+
+-- L'annulation exige un motif, et fige le dossier.
+do $$
+declare v_dossier uuid; d public.service_orders;
+begin
+  select id into v_dossier from public.service_orders order by number limit 1;
+
+  begin
+    perform public.transitionner_dossier(v_dossier, 'CANCELLED');
+    raise exception 'ÉCHEC — annulation sans motif acceptée';
+  exception
+    when check_violation then raise notice 'ok — annuler exige un motif';
+  end;
+
+  d := public.transitionner_dossier(v_dossier, 'CANCELLED', 'Client reparti');
+  if d.cancellation_reason <> 'Client reparti' or d.cancelled_at is null then
+    raise exception 'ÉCHEC — motif ou horodatage d''annulation absent';
+  end if;
+  raise notice 'ok — annulation enregistrée avec son motif';
+
+  if not exists (select 1 from public.audit_logs
+                  where action = 'service_order.transition'
+                    and resource_id = v_dossier::text) then
+    raise exception 'ÉCHEC — annulation non auditée';
+  end if;
+  raise notice 'ok — l''annulation est auditée';
+
+  begin
+    update public.service_orders set notes = 'rouvert' where id = v_dossier;
+    raise exception 'ÉCHEC — dossier annulé encore modifiable';
+  exception
+    when insufficient_privilege then
+      raise notice 'ok — un dossier annulé est immuable';
+  end;
+end;
+$$;
+
+-- Une ligne ne s'ajoute plus une fois le travail engagé.
+do $$
+declare v_dossier uuid;
+begin
+  select id into v_dossier from public.service_orders
+   where status = 'CANCELLED' limit 1;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+  raise exception 'ÉCHEC — ligne ajoutée à un dossier clos';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — aucune ligne ajoutée après le démarrage du travail';
+end;
+$$;
+
+-- Une remise au-delà du plafond exige `payments.refund`.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'RECEPTIONIST');
+do $$
+declare v_dossier uuid; v_vehicule uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+
+  -- 12 000 × 10 % = 1 200 au maximum pour un réceptionniste.
+  insert into public.service_order_items (service_order_id, service_id, discount_amount_minor)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002', 400);
+  raise notice 'ok — une remise dans le plafond est acceptée';
+
+  begin
+    insert into public.service_order_items (service_order_id, service_id, discount_amount_minor)
+    values (v_dossier, '5e000000-0000-0000-0000-000000000001', 3000);
+    raise exception 'ÉCHEC — remise excessive acceptée sans payments.refund';
+  exception
+    when insufficient_privilege then
+      raise notice 'ok — une remise au-delà du plafond exige payments.refund';
+  end;
+end;
+$$;
+
+-- Un opérateur lit les dossiers de sa station mais n'en ouvre pas.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un OPERATOR lit les dossiers de sa station',
+  (select count(*) from public.service_orders
+    where station_id = 'a1a1a1a1-0000-0000-0000-000000000001'), 3);
+do $$
+declare v_vehicule uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule);
+  raise exception 'ÉCHEC — dossier ouvert sans service_orders.write';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — ouvrir un dossier exige service_orders.write';
+end;
+$$;
+
+-- Un rôle de portée STATION ne voit pas les dossiers d'une autre station.
+set local role postgres;
+insert into public.service_orders (organization_id, station_id, vehicle_id, created_by)
+select 'aaaaaaaa-0000-0000-0000-000000000001',
+       'a2a2a2a2-0000-0000-0000-000000000002', id,
+       '11111111-1111-1111-1111-111111111111'
+  from public.vehicles limit 1;
+set local role authenticated;
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un rôle de station ne voit pas l''autre station',
+  (select count(*) from public.service_orders
+    where station_id = 'a2a2a2a2-0000-0000-0000-000000000002'), 0);
+
+-- Il ne le voit pas — mais un identifiant se devine. La fonction de transition
+-- contourne la RLS : elle doit refaire le cloisonnement par station elle-même.
+do $$
+declare v_dossier uuid;
+begin
+  set local role postgres;
+  select id into v_dossier from public.service_orders
+   where station_id = 'a2a2a2a2-0000-0000-0000-000000000002' limit 1;
+  set local role authenticated;
+  perform pg_temp.login('33333333-3333-3333-3333-333333333333',
+                        'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  raise exception 'ÉCHEC — transition sur le dossier d''une autre station';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — transitionner hors de sa station est refusé';
+end;
+$$;
+
+-- Et un identifiant d'une autre organisation ne passe pas davantage.
+do $$
+declare v_dossier uuid;
+begin
+  set local role postgres;
+  select id into v_dossier from public.service_orders limit 1;
+  set local role authenticated;
+  perform pg_temp.login('22222222-2222-2222-2222-222222222222',
+                        'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  raise exception 'ÉCHEC — transition sur le dossier d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — transitionner hors de son organisation est refusé';
+end;
+$$;
+
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+
+-- Une autre organisation ne voit rien et ne transitionne rien.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucun dossier de A',
+  (select count(*) from public.service_orders), 0);
+select pg_temp.check('l''organisation B ne voit aucune ligne de dossier',
+  (select count(*) from public.service_order_items), 0);
+select pg_temp.check('l''organisation B ne voit aucun historique',
+  (select count(*) from public.service_order_status_history), 0);
+select pg_temp.check('l''organisation B ne voit aucun total',
+  (select count(*) from public.service_order_totals), 0);
+
 set local role postgres;
 
 -- Une organisation doit rester supprimable : l'invariant « dernier

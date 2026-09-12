@@ -41,6 +41,15 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
       {
+        path: 'file-attente',
+        title: 'File d’attente — VEHORA',
+        canActivate: [permissionGuard('service_orders.read')],
+        loadComponent: () =>
+          import('./features/file-attente/file-attente.component').then(
+            (m) => m.FileAttenteComponent,
+          ),
+      },
+      {
         path: 'clients',
         title: 'Clients — VEHORA',
         canActivate: [permissionGuard('customers.read')],

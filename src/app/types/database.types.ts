@@ -68,7 +68,29 @@ export type Database = {
           resource_type?: string;
           station_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'audit_logs_actor_profile_id_fkey';
+            columns: ['actor_profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       customers: {
         Row: {
@@ -110,7 +132,22 @@ export type Database = {
           phone_digits?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'customers_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'customers_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       inspection_zones: {
         Row: { code: string; id: string; is_active: boolean; label: string; sort_order: number };
@@ -152,7 +189,36 @@ export type Database = {
           station_id?: string | null;
           vehicle_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'vehicle_inspections_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_performed_by_fkey';
+            columns: ['performed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_vehicle_id_fkey';
+            columns: ['vehicle_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       inspection_items: {
         Row: {
@@ -320,7 +386,36 @@ export type Database = {
           updated_at?: string;
           vehicle_type_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'vehicles_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicles_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicles_vehicle_type_id_fkey';
+            columns: ['vehicle_type_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicle_types';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       organization_invitations: {
         Row: {
@@ -445,7 +540,15 @@ export type Database = {
           require_quality_control?: boolean;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'organization_settings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: true;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       organizations: {
         Row: {
@@ -541,7 +644,22 @@ export type Database = {
         Row: { permission_key: string; role_id: string };
         Insert: { permission_key: string; role_id: string };
         Update: { permission_key?: string; role_id?: string };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'role_permissions_role_id_fkey';
+            columns: ['role_id'];
+            isOneToOne: false;
+            referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'role_permissions_permission_key_fkey';
+            columns: ['permission_key'];
+            isOneToOne: false;
+            referencedRelation: 'permissions';
+            referencedColumns: ['key'];
+          },
+        ];
       };
       roles: {
         Row: {
@@ -739,17 +857,208 @@ export type Database = {
           },
         ];
       };
+      service_orders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          station_id: string;
+          number: number;
+          customer_id: string | null;
+          vehicle_id: string;
+          status: Database['public']['Enums']['service_order_status'];
+          notes: string | null;
+          arrived_at: string;
+          started_at: string | null;
+          completed_at: string | null;
+          delivered_at: string | null;
+          cancelled_at: string | null;
+          cancellation_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          station_id: string;
+          number?: number;
+          customer_id?: string | null;
+          vehicle_id: string;
+          status?: Database['public']['Enums']['service_order_status'];
+          notes?: string | null;
+          arrived_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          customer_id?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_orders_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_orders_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_orders_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_orders_vehicle_id_fkey';
+            columns: ['vehicle_id'];
+            isOneToOne: false;
+            referencedRelation: 'vehicles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_orders_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_order_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          service_order_id: string;
+          service_id: string;
+          service_name: string;
+          price_id: string | null;
+          unit_amount_minor: number;
+          currency: string;
+          quantity: number;
+          discount_amount_minor: number;
+          line_total_minor: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        /** `service_name`, `unit_amount_minor` et `currency` sont posés par la
+         *  base : les envoyer est inutile, les croire serait une faille. */
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          service_order_id: string;
+          service_id: string;
+          service_name?: string;
+          unit_amount_minor?: number;
+          currency?: string;
+          quantity?: number;
+          discount_amount_minor?: number;
+          created_by?: string | null;
+        };
+        Update: {
+          quantity?: number;
+          discount_amount_minor?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'service_order_items_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_order_items_service_id_fkey';
+            columns: ['service_id'];
+            isOneToOne: false;
+            referencedRelation: 'services';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'service_order_items_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_order_status_history: {
+        Row: {
+          id: number;
+          organization_id: string;
+          service_order_id: string;
+          from_status: Database['public']['Enums']['service_order_status'] | null;
+          to_status: Database['public']['Enums']['service_order_status'];
+          changed_by: string | null;
+          changed_at: string;
+          reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'service_order_status_history_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      service_order_transitions: {
+        Row: {
+          from_status: Database['public']['Enums']['service_order_status'];
+          to_status: Database['public']['Enums']['service_order_status'];
+          required_permission: string;
+          condition_code: string | null;
+          requires_reason: boolean;
+          must_audit: boolean;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       session_revocations: {
         Row: { profile_id: string; reason: string | null; revoked_at: string };
         Insert: { profile_id: string; reason?: string | null; revoked_at?: string };
         Update: { profile_id?: string; reason?: string | null; revoked_at?: string };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'session_revocations_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       station_users: {
         Row: { created_at: string; id: string; membership_id: string; station_id: string };
         Insert: { created_at?: string; id?: string; membership_id: string; station_id: string };
         Update: { created_at?: string; id?: string; membership_id?: string; station_id?: string };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'station_users_membership_id_fkey';
+            columns: ['membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'station_users_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       stations: {
         Row: {
@@ -791,14 +1100,40 @@ export type Database = {
           timezone?: string | null;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'stations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+    };
+    Views: {
+      service_order_totals: {
+        Row: {
+          service_order_id: string;
+          organization_id: string;
+          lignes: number;
+          total_amount_minor: number;
+          discount_amount_minor: number;
+          currency: string | null;
+        };
+        /** Une vue agrégée n'a pas de clé étrangère : PostgREST ne peut pas
+         *  l'embarquer dans une jointure. Elle se lit séparément. */
         Relationships: [];
       };
     };
-    Views: Record<never, never>;
     Functions: {
       remplacer_tarif: {
         Args: { p_price_id: string; p_amount_minor: number; p_valid_from?: string | null };
         Returns: string;
+      };
+      transitionner_dossier: {
+        Args: { p_service_order_id: string; p_to_status: string; p_reason?: string | null };
+        Returns: Database['public']['Tables']['service_orders']['Row'];
       };
       resoudre_prix: {
         Args: {
