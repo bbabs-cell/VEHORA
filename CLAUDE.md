@@ -138,11 +138,15 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 3 validée.** Prochaine étape : approvisionnement d'organisation et
-gestion des utilisateurs, ou CRM clients.
+**Phase 4 validée.** Une entreprise peut être créée et son équipe invitée
+depuis l'application, sans SQL. Prochaine étape : CRM clients.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 14 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- 18 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- Deux points d'entrée privilégiés volontairement exposés :
+  `provisionner_organisation()` et `accepter_invitation()`. Ils vérifient
+  eux-mêmes leurs conditions et auditent. **Ne pas révoquer leur EXECUTE** :
+  l'advisor Supabase les signale, c'est un choix documenté en base.
 - **`organization_id` est rempli par la base depuis le JWT** sur les tables qui
   le permettent : le client ne l'envoie pas, donc ne peut pas le falsifier.
   Appliquer le même principe à chaque nouvelle table métier.
@@ -151,10 +155,13 @@ gestion des utilisateurs, ou CRM clients.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **39 tests Playwright**,
-  **19 assertions SQL**, 12 tentatives d'intrusion bloquées par l'API réelle.
-- Comptes de démonstration : `awa@vehora.test` (OWNER) et `ousmane@vehora.test`
-  (CASHIER, portée station) — à supprimer avant production.
+- Parcours connecté vérifié de bout en bout ; **61 tests Playwright**,
+  **21 assertions SQL**, et une campagne d'intrusion par l'API réelle.
+- Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
+  (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
+  `fatou@vehora.test` (OWNER d'une seconde organisation),
+  `sansorg@vehora.test` (volontairement sans organisation — ne jamais le
+  rattacher, des tests en dépendent).
 - Tests connectés : exporter `VEHORA_TEST_EMAIL` / `VEHORA_TEST_PASSWORD` et
   `VEHORA_TEST_EMAIL_CAISSIER` / `VEHORA_TEST_PASSWORD_CAISSIER`,
   sinon la suite est ignorée. En cloud, `e2e/relais-reseau.ts` rejoue les appels

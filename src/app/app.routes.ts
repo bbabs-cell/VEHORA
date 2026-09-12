@@ -16,6 +16,15 @@ export const routes: Routes = [
       import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'creer-organisation',
+    title: 'Créer votre entreprise — VEHORA',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/organization/create-organization.component').then(
+        (m) => m.CreateOrganizationComponent,
+      ),
+  },
+  {
     path: 'sans-organisation',
     title: 'Aucune organisation — VEHORA',
     canActivate: [authGuard],
@@ -39,6 +48,13 @@ export const routes: Routes = [
         canActivate: [permissionGuard('stations.manage')],
         loadComponent: () =>
           import('./features/stations/stations.component').then((m) => m.StationsComponent),
+      },
+      {
+        path: 'utilisateurs',
+        title: 'Utilisateurs — VEHORA',
+        canActivate: [permissionGuard('users.manage')],
+        loadComponent: () =>
+          import('./features/users/users.component').then((m) => m.UsersComponent),
       },
       {
         path: 'tableau-de-bord',

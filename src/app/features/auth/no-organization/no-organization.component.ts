@@ -1,66 +1,57 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProvisioningService } from '../../../core/organization/provisioning.service';
 
 /**
- * Un compte valide peut n'être rattaché à aucune organisation active :
- * invitation non finalisée, adhésion suspendue, ou organisation désactivée.
- * Sans cet écran, l'utilisateur tournerait en boucle sur des redirections.
+ * Deux chemins possibles pour un compte sans organisation :
+ * créer son entreprise, ou rejoindre celle de quelqu'un avec un code
+ * d'invitation. Sans cet écran, l'utilisateur tournerait en boucle sur des
+ * redirections.
  */
 @Component({
   selector: 'vh-no-organization',
   standalone: true,
+  imports: [ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main class="sans-org">
-      <section class="vh-card sans-org__carte">
-        <h1 class="sans-org__titre">Aucune organisation active</h1>
-        <p class="vh-muted">
-          Votre compte n’est rattaché à aucune organisation, ou votre accès a été
-          suspendu. Contactez le responsable de votre entreprise pour être invité.
-        </p>
-        <div class="sans-org__actions">
-          <button class="vh-button vh-button--ghost" type="button" (click)="reessayer()">
-            Réessayer
-          </button>
-          <button class="vh-button" type="button" (click)="deconnecter()">
-            Se déconnecter
-          </button>
-        </div>
-      </section>
-    </main>
-  `,
-  styles: [
-    `
-      .sans-org {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100dvh;
-        padding: var(--vh-space-4);
-      }
-      .sans-org__carte {
-        width: 100%;
-        max-width: 460px;
-      }
-      .sans-org__titre {
-        margin-bottom: var(--vh-space-4);
-        font-size: var(--vh-text-lg);
-      }
-      .sans-org__actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--vh-space-3);
-        margin-top: var(--vh-space-6);
-      }
-    `,
-  ],
+  templateUrl: './no-organization.component.html',
+  styleUrl: './no-organization.component.css',
 })
 export class NoOrganizationComponent {
+  private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly provisioning = inject(ProvisioningService);
   private readonly router = inject(Router);
 
-  /** L'invitation vient peut-être d'être acceptée : les claims se rafraîchissent. */
+  readonly enCours = signal(false);
+  readonly erreur = signal<string | null>(null);
+
+  readonly form = this.fb.nonNullable.group({
+    code: ['', [Validators.required, Validators.minLength(16)]],
+  });
+
+  async rejoindre(): Promise<void> {
+    if (this.form.invalid || this.enCours()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.enCours.set(true);
+    this.erreur.set(null);
+
+    const erreur = await this.provisioning.accepterInvitation(this.form.getRawValue().code);
+
+    this.enCours.set(false);
+
+    if (erreur) {
+      this.erreur.set(erreur);
+      return;
+    }
+    await this.router.navigateByUrl('/tableau-de-bord');
+  }
+
+  /** L'invitation vient peut-être d'être acceptée ailleurs. */
   async reessayer(): Promise<void> {
     await this.auth.refreshClaims();
     if (this.auth.hasOrganization()) {

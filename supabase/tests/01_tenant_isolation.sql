@@ -289,6 +289,44 @@ $$;
 
 set local role postgres;
 
+-- ==========================================================================
+-- 7. Invitations (phase 4).
+-- ==========================================================================
+set local role authenticated;
+
+-- (a) Un rôle sans `users.manage` ne peut pas inviter.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+do $$
+declare v_role uuid;
+begin
+  select id into v_role from public.roles where code = 'CASHIER';
+  insert into public.organization_invitations (organization_id, email, role_id)
+  values ('aaaaaaaa-0000-0000-0000-000000000001', 'x@vehora.test', v_role);
+  raise exception 'ÉCHEC — un OPERATOR a pu inviter';
+exception
+  when insufficient_privilege then raise notice 'ok — inviter exige users.manage';
+end;
+$$;
+
+-- (b) Même avec `users.manage`, inviter à un rôle de plateforme est refusé :
+--     ce serait la porte d'entrée vers le Super Admin.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+declare v_role uuid;
+begin
+  select id into v_role from public.roles where code = 'SUPER_ADMIN';
+  insert into public.organization_invitations (organization_id, email, role_id)
+  values ('aaaaaaaa-0000-0000-0000-000000000001', 'x@vehora.test', v_role);
+  raise exception 'ÉCHEC CRITIQUE — invitation à un rôle de plateforme acceptée';
+exception
+  when insufficient_privilege then raise notice 'ok — invitation à un rôle de plateforme refusée';
+end;
+$$;
+
+set local role postgres;
+
 -- Une organisation doit rester supprimable : l'invariant « dernier
 -- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
 do $$

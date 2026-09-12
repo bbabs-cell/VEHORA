@@ -1,0 +1,45 @@
+.creation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--vh-space-4);
+}
+
+.creation__carte {
+  width: 100%;
+  max-width: 460px;
+}
+
+.creation__entete {
+  margin-bottom: var(--vh-space-6);
+}
+
+.creation__marque {
+  margin: 0 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--vh-accent);
+}
+
+.creation__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.creation__sous-titre {
+  margin: var(--vh-space-2) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.erreur-champ {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}

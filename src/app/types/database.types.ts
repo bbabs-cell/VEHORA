@@ -1,5 +1,8 @@
-// GÉNÉRÉ AUTOMATIQUEMENT — NE PAS MODIFIER À LA MAIN.
-// Source : projet Supabase VEHORA. Régénérer après chaque migration.
+// GÉNÉRÉ depuis le projet Supabase VEHORA — ne pas modifier à la main.
+// À régénérer après chaque migration :
+//   MCP Supabase `generate_typescript_types`, ou la CLI Supabase.
+// Toute divergence avec la base se voit immédiatement : la compilation stricte
+// et les tests de parcours échouent.
 export type Json =
   | string
   | number
@@ -62,6 +65,56 @@ export type Database = {
         };
         Relationships: [];
       };
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          organization_id: string;
+          role_id: string;
+          status: Database['public']['Enums']['invitation_status'];
+          token: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id?: string;
+          role_id: string;
+          status?: Database['public']['Enums']['invitation_status'];
+          token?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id?: string;
+          role_id?: string;
+          status?: Database['public']['Enums']['invitation_status'];
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_invitations_role_id_fkey';
+            columns: ['role_id'];
+            isOneToOne: false;
+            referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organization_memberships: {
         Row: {
           created_at: string;
@@ -93,7 +146,22 @@ export type Database = {
           status?: Database['public']['Enums']['membership_status'];
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'organization_memberships_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organization_memberships_role_id_fkey';
+            columns: ['role_id'];
+            isOneToOne: false;
+            referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       organization_settings: {
         Row: {
@@ -304,8 +372,23 @@ export type Database = {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      accepter_invitation: {
+        Args: { p_token: string };
+        Returns: string;
+      };
+      provisionner_organisation: {
+        Args: {
+          p_nom: string;
+          p_pays: string;
+          p_ville?: string | null;
+          p_nom_station?: string | null;
+        };
+        Returns: string;
+      };
+    };
     Enums: {
+      invitation_status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
       membership_status: 'ACTIVE' | 'SUSPENDED';
       organization_status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'DEACTIVATED';
       payment_before_delivery_rule: 'STRICT' | 'ALLOW_DEBT';

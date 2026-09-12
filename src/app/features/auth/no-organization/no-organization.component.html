@@ -1,0 +1,61 @@
+<main class="sans-org">
+  <section class="sans-org__carte vh-card">
+    <header>
+      <p class="sans-org__marque">VEHORA</p>
+      <h1 class="sans-org__titre">Bienvenue</h1>
+      <p class="vh-muted">
+        Votre compte n’est encore rattaché à aucune entreprise. Deux possibilités.
+      </p>
+    </header>
+
+    <div class="sans-org__bloc">
+      <h2 class="sans-org__soustitre">Vous dirigez une entreprise</h2>
+      <p class="vh-muted sans-org__texte">
+        Créez-la en moins d’une minute. Vous pourrez inviter votre équipe ensuite.
+      </p>
+      <a class="vh-button sans-org__principal" routerLink="/creer-organisation">
+        Créer mon entreprise
+      </a>
+    </div>
+
+    <div class="sans-org__separateur"><span>ou</span></div>
+
+    <div class="sans-org__bloc">
+      <h2 class="sans-org__soustitre">Vous avez reçu une invitation</h2>
+      <p class="vh-muted sans-org__texte">
+        Collez le code reçu de votre responsable. Il est valable 14 jours et ne
+        fonctionne qu’avec l’adresse e-mail invitée.
+      </p>
+      <form [formGroup]="form" (ngSubmit)="rejoindre()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="code">Code d’invitation</label>
+          <input
+            id="code"
+            class="vh-input"
+            type="text"
+            formControlName="code"
+            autocomplete="off"
+            spellcheck="false"
+            [attr.aria-invalid]="form.controls.code.touched && form.controls.code.invalid"
+          />
+          @if (form.controls.code.touched && form.controls.code.invalid) {
+            <p class="erreur-champ">Collez le code complet reçu par votre responsable.</p>
+          }
+        </div>
+
+        @if (erreur(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <button class="vh-button vh-button--ghost" type="submit" [disabled]="enCours()">
+          {{ enCours() ? 'Vérification…' : 'Rejoindre l’entreprise' }}
+        </button>
+      </form>
+    </div>
+
+    <footer class="sans-org__pied">
+      <button class="lien" type="button" (click)="reessayer()">Actualiser</button>
+      <button class="lien" type="button" (click)="deconnecter()">Se déconnecter</button>
+    </footer>
+  </section>
+</main>

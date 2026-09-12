@@ -1,0 +1,190 @@
+<div class="utilisateurs">
+  <header class="utilisateurs__entete">
+    <div>
+      <h1 class="utilisateurs__titre">Utilisateurs</h1>
+      <p class="vh-muted utilisateurs__sous-titre">
+        Les personnes qui peuvent se connecter à votre entreprise, et ce qu’elles
+        ont le droit de faire.
+      </p>
+    </div>
+    <button
+      class="vh-button"
+      type="button"
+      (click)="ouvrirInvitation()"
+      [disabled]="!pretAInviter()"
+    >
+      Inviter quelqu’un
+    </button>
+  </header>
+
+  @if (membres.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (erreurAction(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  <!-- ---------- Invitations en attente ---------- -->
+  @if (membres.invitations().length > 0) {
+    <section aria-labelledby="titre-invitations">
+      <h2 id="titre-invitations" class="utilisateurs__section">Invitations en attente</h2>
+      <ul class="liste">
+        @for (invitation of membres.invitations(); track invitation.id) {
+          <li class="vh-card carte">
+            <div class="carte__infos">
+              <p class="carte__nom">{{ invitation.email }}</p>
+              <p class="vh-muted carte__detail">{{ invitation.roleLabel }}</p>
+              <code class="code">{{ invitation.token }}</code>
+            </div>
+            <div class="carte__actions">
+              <button class="vh-button vh-button--ghost" type="button" (click)="copier(invitation)">
+                {{ codeCopie() === invitation.id ? 'Copié' : 'Copier le code' }}
+              </button>
+              <button class="vh-button vh-button--ghost" type="button" (click)="revoquer(invitation)">
+                Révoquer
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="vh-muted utilisateurs__aide">
+        Transmettez ce code à la personne concernée. Elle crée son compte avec
+        l’adresse invitée, puis colle le code à la première connexion.
+      </p>
+    </section>
+  }
+
+  <!-- ---------- Membres ---------- -->
+  <section aria-labelledby="titre-membres">
+    <h2 id="titre-membres" class="utilisateurs__section">Membres</h2>
+
+    @if (membres.chargement() && membres.membres().length === 0) {
+      <div class="liste">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
+        }
+      </div>
+    } @else if (membres.membres().length === 0) {
+      <div class="vh-card">
+        <vh-empty-state
+          titre="Aucun membre"
+          texte="Invitez vos collègues pour qu’ils puissent travailler avec vous."
+        />
+      </div>
+    } @else {
+      <ul class="liste" aria-label="Liste des membres">
+        @for (membre of membres.membres(); track membre.id) {
+          <li class="vh-card carte">
+            <div class="carte__infos">
+              <p class="carte__nom">
+                {{ membre.nom }}
+                @if (membre.profileId === moi()) {
+                  <span class="etiquette">Vous</span>
+                }
+                @if (membre.statut === 'SUSPENDED') {
+                  <span class="etiquette etiquette--suspendu">Suspendu</span>
+                }
+              </p>
+              <p class="vh-muted carte__detail">{{ membre.roleLabel }}</p>
+            </div>
+
+            <div class="carte__actions">
+              <label class="vh-sr-only" [attr.for]="'role-' + membre.id">
+                Rôle de {{ membre.nom }}
+              </label>
+              <!--
+                La sélection est portée par `selected` sur l'option, pas par
+                `value` sur le select : les options sont rendues après, et la
+                valeur du select était ignorée — tous les membres semblaient
+                avoir le rôle de la première option.
+              -->
+              <select
+                class="vh-input select-role"
+                [id]="'role-' + membre.id"
+                [disabled]="membre.profileId === moi()"
+                (change)="changerRole(membre, $event)"
+              >
+                @for (role of membres.roles(); track role.id) {
+                  <option [value]="role.id" [selected]="role.id === membre.roleId">
+                    {{ role.label }}
+                  </option>
+                }
+              </select>
+
+              @if (membre.profileId !== moi()) {
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="basculerStatut(membre)"
+                  [attr.aria-label]="
+                    (membre.statut === 'ACTIVE' ? 'Suspendre ' : 'Réactiver ') + membre.nom
+                  "
+                >
+                  {{ membre.statut === 'ACTIVE' ? 'Suspendre' : 'Réactiver' }}
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="vh-muted utilisateurs__aide">
+        Vous ne pouvez pas modifier votre propre rôle : cela permettrait de se
+        retirer ses droits par accident, ou de contourner la règle du dernier
+        propriétaire.
+      </p>
+    }
+  </section>
+</div>
+
+@if (formulaireOuvert()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-invitation">
+    <div class="modale__contenu vh-card">
+      <h2 id="titre-invitation" class="modale__titre">Inviter quelqu’un</h2>
+      <p class="vh-muted modale__texte">
+        L’invitation ne fonctionnera qu’avec cette adresse e-mail exacte. Elle
+        expire au bout de 14 jours.
+      </p>
+
+      <form [formGroup]="form" (ngSubmit)="inviter()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="email-invite">Adresse e-mail</label>
+          <input
+            id="email-invite"
+            class="vh-input"
+            type="email"
+            inputmode="email"
+            autocapitalize="off"
+            spellcheck="false"
+            formControlName="email"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <p class="erreur-champ">Saisissez une adresse e-mail valide.</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="role-invite">Rôle</label>
+          <select id="role-invite" class="vh-input" formControlName="roleId">
+            @for (role of membres.roles(); track role.id) {
+              <option [value]="role.id">{{ role.label }} — {{ role.description }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="modale__actions">
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="formulaireOuvert.set(false)"
+          >
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enCours()">
+            {{ enCours() ? 'Envoi…' : 'Créer l’invitation' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

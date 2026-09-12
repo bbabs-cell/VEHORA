@@ -1,0 +1,62 @@
+<main class="creation">
+  <section class="creation__carte vh-card" aria-labelledby="titre-creation">
+    <header class="creation__entete">
+      <p class="creation__marque">VEHORA</p>
+      <h1 id="titre-creation" class="creation__titre">Créer votre entreprise</h1>
+      <p class="vh-muted creation__sous-titre">
+        Vous en serez le propriétaire. Une première station est créée
+        automatiquement, vous pourrez la renommer ensuite.
+      </p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
+      <div class="vh-field">
+        <label class="vh-label" for="nom">Nom de l’entreprise</label>
+        <input
+          id="nom"
+          class="vh-input"
+          type="text"
+          formControlName="nom"
+          autocomplete="organization"
+          [attr.aria-invalid]="form.controls.nom.touched && form.controls.nom.invalid"
+        />
+        @if (form.controls.nom.touched && form.controls.nom.invalid) {
+          <p class="erreur-champ">Indiquez le nom de votre entreprise.</p>
+        }
+      </div>
+
+      <div class="vh-field">
+        <label class="vh-label" for="pays">Pays</label>
+        <select id="pays" class="vh-input" formControlName="pays">
+          @for (p of pays; track p.code) {
+            <option [value]="p.code">{{ p.nom }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="vh-field">
+        <label class="vh-label" for="ville">Ville</label>
+        <input id="ville" class="vh-input" type="text" formControlName="ville" />
+      </div>
+
+      <div class="vh-field">
+        <label class="vh-label" for="station">Nom de votre première station</label>
+        <input
+          id="station"
+          class="vh-input"
+          type="text"
+          formControlName="nomStation"
+          placeholder="Station principale"
+        />
+      </div>
+
+      @if (erreur(); as message) {
+        <p class="vh-alert" role="alert">{{ message }}</p>
+      }
+
+      <button class="vh-button" type="submit" [disabled]="enCours()">
+        {{ enCours() ? 'Création…' : 'Créer mon entreprise' }}
+      </button>
+    </form>
+  </section>
+</main>

@@ -22,6 +22,7 @@ create schema if not exists auth;
 create schema if not exists extensions;
 create table if not exists auth.users (
   id uuid primary key,
+  email text,
   raw_user_meta_data jsonb default '{}'::jsonb
 );
 do $$ begin create role anon;                exception when duplicate_object then null; end $$;
