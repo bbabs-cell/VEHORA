@@ -138,11 +138,14 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 4 validée.** Une entreprise peut être créée et son équipe invitée
-depuis l'application, sans SQL. Prochaine étape : CRM clients.
+**Phase 5 validée.** CRM clients en place. Prochaine étape : véhicules, puis
+inspection et photos.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 18 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- 20 migrations appliquées ; référentiel : 10 rôles, 36 permissions.
+- **Les numéros de téléphone sont normalisés par trigger** en forme
+  internationale, à partir du pays de l'organisation. Ne jamais écrire
+  `phone_digits` depuis le client, ni comparer des numéros bruts.
 - Deux points d'entrée privilégiés volontairement exposés :
   `provisionner_organisation()` et `accepter_invitation()`. Ils vérifient
   eux-mêmes leurs conditions et auditent. **Ne pas révoquer leur EXECUTE** :
@@ -155,8 +158,11 @@ depuis l'application, sans SQL. Prochaine étape : CRM clients.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **61 tests Playwright**,
-  **21 assertions SQL**, et une campagne d'intrusion par l'API réelle.
+- Parcours connecté vérifié de bout en bout ; **81 tests Playwright**,
+  **26 assertions SQL**, et une campagne d'intrusion par l'API réelle.
+- **Leçon récurrente** : trois défauts d'interface (thème par défaut, sélecteur
+  de rôle, affichage des numéros) ont échappé aux tests et se sont vus à
+  l'écran. Sur un écran, une assertion doit décrire ce que l'œil doit voir.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),

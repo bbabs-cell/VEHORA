@@ -1,0 +1,198 @@
+<div class="clients">
+  <header class="clients__entete">
+    <div>
+      <h1 class="clients__titre">Clients</h1>
+      <p class="vh-muted clients__sous-titre">
+        Recherchez par nom ou par numéro. L’orthographe approximative fonctionne.
+      </p>
+    </div>
+    @if (peutEcrire()) {
+      <button class="vh-button" type="button" (click)="ouvrirCreation()">
+        Nouveau client
+      </button>
+    }
+  </header>
+
+  <div class="recherche">
+    <label class="vh-sr-only" for="recherche">Rechercher un client</label>
+    <input
+      id="recherche"
+      class="vh-input recherche__champ"
+      type="search"
+      inputmode="search"
+      autocomplete="off"
+      placeholder="Nom ou téléphone…"
+      (input)="surRecherche($event)"
+    />
+  </div>
+
+  @if (clients.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (clients.chargement() && clients.clients().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
+      }
+    </div>
+  } @else if (clients.clients().length === 0) {
+    <div class="vh-card">
+      @if (clients.recherche().length > 0) {
+        <vh-empty-state
+          titre="Aucun résultat"
+          texte="Aucun client ne correspond à cette recherche. Vérifiez le numéro,
+                 ou créez la fiche si c’est un nouveau client."
+        >
+          @if (peutEcrire()) {
+            <button class="vh-button" type="button" (click)="ouvrirCreation()">
+              Créer ce client
+            </button>
+          }
+        </vh-empty-state>
+      } @else {
+        <vh-empty-state
+          titre="Aucun client pour l’instant"
+          texte="Enregistrez vos clients pour retrouver leur historique, leurs
+                 véhicules et leurs prestations en un coup d’œil."
+        >
+          @if (peutEcrire()) {
+            <button class="vh-button" type="button" (click)="ouvrirCreation()">
+              Créer le premier client
+            </button>
+          }
+        </vh-empty-state>
+      }
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Liste des clients">
+      @for (client of clients.clients(); track client.id) {
+        <li class="vh-card carte">
+          <div class="carte__infos">
+            <p class="carte__nom">{{ client.full_name }}</p>
+            <p class="vh-muted carte__detail">
+              {{ telephoneLisible(client) }}
+              @if (client.email) {
+                · {{ client.email }}
+              }
+            </p>
+          </div>
+
+          @if (peutEcrire()) {
+            <div class="carte__actions">
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="ouvrirEdition(client)"
+                [attr.aria-label]="'Modifier ' + client.full_name"
+              >
+                Modifier
+              </button>
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="archiver(client)"
+                [attr.aria-label]="'Archiver ' + client.full_name"
+              >
+                Archiver
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (!clients.finDeListe()) {
+      <button
+        class="vh-button vh-button--ghost clients__suite"
+        type="button"
+        (click)="clients.chargerSuite()"
+        [disabled]="clients.chargement()"
+      >
+        {{ clients.chargement() ? 'Chargement…' : 'Afficher plus de clients' }}
+      </button>
+    }
+  }
+</div>
+
+@if (formulaireOuvert()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-client">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-client" class="modale__titre">
+          {{ enEdition() ? 'Modifier le client' : 'Nouveau client' }}
+        </h2>
+        <button class="modale__fermer" type="button" (click)="fermer()" aria-label="Fermer">
+          <vh-icon nom="fermer" />
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="enregistrer()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="nom-client">Nom du client</label>
+          <input
+            id="nom-client"
+            class="vh-input"
+            type="text"
+            formControlName="full_name"
+            autocomplete="name"
+            [attr.aria-invalid]="form.controls.full_name.touched && form.controls.full_name.invalid"
+          />
+          @if (form.controls.full_name.touched && form.controls.full_name.invalid) {
+            <p class="erreur-champ">Le nom comporte entre 2 et 120 caractères.</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="tel-client">Téléphone</label>
+          <input
+            id="tel-client"
+            class="vh-input"
+            type="tel"
+            inputmode="tel"
+            formControlName="phone"
+            autocomplete="tel"
+            placeholder="77 123 45 67"
+          />
+          <p class="vh-muted aide-champ">
+            Peu importe la forme : l’indicatif est ajouté automatiquement.
+          </p>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="email-client">E-mail (facultatif)</label>
+          <input
+            id="email-client"
+            class="vh-input"
+            type="email"
+            inputmode="email"
+            autocapitalize="off"
+            formControlName="email"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <p class="erreur-champ">Saisissez une adresse e-mail valide, ou laissez vide.</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="notes-client">Notes</label>
+          <input id="notes-client" class="vh-input" type="text" formControlName="notes" />
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermer()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -327,6 +327,58 @@ $$;
 
 set local role postgres;
 
+-- ==========================================================================
+-- 8. Clients (phase 5).
+-- ==========================================================================
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+insert into public.customers (full_name, phone) values ('Moussa Diallo', '+221 77 123 45 67');
+
+select pg_temp.check('le numéro est normalisé en forme internationale',
+  (select count(*) from public.customers where phone_digits = '221771234567'), 1);
+
+-- Le doublon est la première erreur de saisie en station : cinq écritures du
+-- même numéro doivent toutes être reconnues.
+do $$
+declare v_forme text;
+begin
+  foreach v_forme in array array['00221 77 123 45 67', '221771234567',
+                                 '77 123 45 67', '+221-77-123-45-67', '077 123 45 67'] loop
+    begin
+      insert into public.customers (full_name, phone) values ('Doublon', v_forme);
+      raise exception 'ÉCHEC — doublon accepté pour la forme %', v_forme;
+    exception
+      when unique_violation then null;
+    end;
+  end loop;
+  raise notice 'ok — cinq écritures du même numéro reconnues comme doublons';
+end;
+$$;
+
+-- Un rôle sans `customers.write` ne peut pas écrire, même en lecture autorisée.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un OPERATOR lit les clients',
+  (select count(*) from public.customers), 1);
+do $$
+begin
+  insert into public.customers (full_name) values ('Créé sans permission');
+  raise exception 'ÉCHEC — écriture acceptée sans customers.write';
+exception
+  when insufficient_privilege then raise notice 'ok — écriture refusée sans customers.write';
+end;
+$$;
+
+-- Cloisonnement : l'organisation B ne voit rien.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('une autre organisation ne voit aucun client',
+  (select count(*) from public.customers), 0);
+
+set local role postgres;
+
 -- Une organisation doit rester supprimable : l'invariant « dernier
 -- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1).
 do $$

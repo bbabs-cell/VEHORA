@@ -41,6 +41,13 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'tableau-de-bord' },
       {
+        path: 'clients',
+        title: 'Clients — VEHORA',
+        canActivate: [permissionGuard('customers.read')],
+        loadComponent: () =>
+          import('./features/customers/customers.component').then((m) => m.CustomersComponent),
+      },
+      {
         path: 'stations',
         title: 'Stations — VEHORA',
         // Confort d'interface : la RLS refuse de toute façon l'écriture sans

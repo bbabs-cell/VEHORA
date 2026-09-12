@@ -33,6 +33,7 @@ export class DashboardComponent {
 
   readonly peutGererStations = computed(() => this.auth.hasPermission('stations.manage'));
   readonly peutGererUtilisateurs = computed(() => this.auth.hasPermission('users.manage'));
+  readonly peutVoirClients = computed(() => this.auth.hasPermission('customers.read'));
 
   readonly stationsActives = computed(
     () => this.stations.stations().filter((s) => s.status === 'ACTIVE').length,

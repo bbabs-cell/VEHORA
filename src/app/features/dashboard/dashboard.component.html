@@ -21,11 +21,12 @@
         <span>Nouvelle prestation</span>
         <span class="action__bientot">Bientôt</span>
       </span>
-      <span class="action action--bientot" aria-disabled="true">
-        <vh-icon nom="client" [taille]="22" />
-        <span>Nouveau client</span>
-        <span class="action__bientot">Bientôt</span>
-      </span>
+      @if (peutVoirClients()) {
+        <a class="action" routerLink="/clients">
+          <vh-icon nom="client" [taille]="22" />
+          <span>Clients</span>
+        </a>
+      }
     </div>
   </section>
 

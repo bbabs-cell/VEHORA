@@ -65,6 +65,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      customers: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          full_name: string;
+          id: string;
+          notes: string | null;
+          organization_id: string;
+          phone: string | null;
+          phone_digits: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          full_name: string;
+          id?: string;
+          notes?: string | null;
+          organization_id?: string;
+          phone?: string | null;
+          phone_digits?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          full_name?: string;
+          id?: string;
+          notes?: string | null;
+          organization_id?: string;
+          phone?: string | null;
+          phone_digits?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       organization_invitations: {
         Row: {
           accepted_at: string | null;
@@ -373,6 +415,10 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      rechercher_clients: {
+        Args: { p_recherche?: string | null; p_limite?: number; p_decalage?: number };
+        Returns: Database['public']['Tables']['customers']['Row'][];
+      };
       accepter_invitation: {
         Args: { p_token: string };
         Returns: string;
