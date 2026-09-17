@@ -857,6 +857,186 @@ export type Database = {
           },
         ];
       };
+      cash_registers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          station_id: string;
+          opened_by: string;
+          status: Database['public']['Enums']['cash_register_status'];
+          opening_float_minor: number;
+          currency: string;
+          opened_at: string;
+          declared_closing_minor: number | null;
+          theoretical_minor: number | null;
+          variance_minor: number | null;
+          closing_note: string | null;
+          closed_by: string | null;
+          closed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** `currency` est posée par la base ; la clôture passe par `cloturer_caisse`. */
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          station_id: string;
+          opened_by: string;
+          opening_float_minor: number;
+          currency?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'cash_registers_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cash_registers_opened_by_fkey';
+            columns: ['opened_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cash_registers_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      payments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          service_order_id: string;
+          station_id: string;
+          kind: Database['public']['Enums']['payment_kind'];
+          method: Database['public']['Enums']['payment_method'];
+          status: Database['public']['Enums']['payment_status'];
+          amount_minor: number;
+          currency: string;
+          provider_name: string | null;
+          external_ref: string | null;
+          reverses_payment_id: string | null;
+          reason: string | null;
+          cash_register_id: string | null;
+          received_by: string | null;
+          created_at: string;
+        };
+        /**
+         * `station_id`, `currency`, `cash_register_id` et `received_by` sont
+         * posés par la base. Un paiement ne se modifie ni ne se supprime : la
+         * correction est un remboursement qui le référence.
+         */
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          service_order_id: string;
+          station_id?: string;
+          kind?: Database['public']['Enums']['payment_kind'];
+          method: Database['public']['Enums']['payment_method'];
+          amount_minor: number;
+          currency?: string;
+          provider_name?: string | null;
+          external_ref?: string | null;
+          reverses_payment_id?: string | null;
+          reason?: string | null;
+          cash_register_id?: string | null;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'payments_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_cash_register_id_fkey';
+            columns: ['cash_register_id'];
+            isOneToOne: false;
+            referencedRelation: 'cash_registers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_reverses_payment_id_fkey';
+            columns: ['reverses_payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_received_by_fkey';
+            columns: ['received_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payments_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      cash_transactions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          cash_register_id: string;
+          kind: Database['public']['Enums']['cash_transaction_kind'];
+          amount_minor: number;
+          currency: string;
+          payment_id: string | null;
+          reason: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        /** Seuls les mouvements libres s'écrivent d'ici : ceux liés à un
+         *  paiement sont posés par la base. */
+        Insert: {
+          id?: string;
+          organization_id?: string;
+          cash_register_id: string;
+          kind: 'CASH_IN' | 'CASH_OUT';
+          amount_minor: number;
+          currency?: string;
+          reason: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'cash_transactions_cash_register_id_fkey';
+            columns: ['cash_register_id'];
+            isOneToOne: false;
+            referencedRelation: 'cash_registers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cash_transactions_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cash_transactions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       employees: {
         Row: {
           id: string;
@@ -1250,6 +1430,26 @@ export type Database = {
       };
     };
     Views: {
+      service_order_payment_state: {
+        Row: {
+          service_order_id: string;
+          organization_id: string;
+          total_amount_minor: number;
+          paid_amount_minor: number;
+          balance_minor: number;
+          payment_status: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERPAID';
+        };
+        Relationships: [];
+      };
+      cash_register_state: {
+        Row: {
+          cash_register_id: string;
+          organization_id: string;
+          theoretical_minor: number;
+          mouvements: number;
+        };
+        Relationships: [];
+      };
       service_order_totals: {
         Row: {
           service_order_id: string;
@@ -1265,6 +1465,14 @@ export type Database = {
       };
     };
     Functions: {
+      cloturer_caisse: {
+        Args: {
+          p_cash_register_id: string;
+          p_declared_minor: number;
+          p_note?: string | null;
+        };
+        Returns: Database['public']['Tables']['cash_registers']['Row'];
+      };
       remplacer_tarif: {
         Args: { p_price_id: string; p_amount_minor: number; p_valid_from?: string | null };
         Returns: string;
@@ -1324,6 +1532,11 @@ export type Database = {
       };
     };
     Enums: {
+      cash_register_status: 'OPEN' | 'CLOSED';
+      cash_transaction_kind: 'PAYMENT_IN' | 'REFUND_OUT' | 'CASH_IN' | 'CASH_OUT';
+      payment_kind: 'PAYMENT' | 'REFUND';
+      payment_method: 'CASH' | 'MOBILE_MONEY' | 'CARD' | 'BANK_TRANSFER' | 'OTHER';
+      payment_status: 'PENDING' | 'COMPLETED' | 'FAILED';
       employee_status: 'ACTIVE' | 'INACTIVE';
       operation_status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
       inspection_condition: 'OK' | 'ANOMALY';

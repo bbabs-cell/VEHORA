@@ -1467,6 +1467,440 @@ select pg_temp.check('l''organisation B ne voit aucun employé de A',
 select pg_temp.check('l''organisation B ne voit aucune opération de A',
   (select count(*) from public.service_order_operations), 0);
 
+-- ===========================================================================
+-- Phase 11 — paiements, caisse et restitution
+-- ===========================================================================
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Un dossier mené jusqu'à PRÊT, pour l'encaisser.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (id, station_id, vehicle_id)
+  values ('d0551e00-0000-0000-0000-000000000002',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');  -- 12 000
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'DONE'
+   where service_order_id = v_dossier;
+  perform public.transitionner_dossier(v_dossier, 'CONTROL');
+  perform public.transitionner_dossier(v_dossier, 'READY');
+  raise notice 'ok — un dossier va de l''arrivée à PRÊT';
+end;
+$$;
+
+-- Encaisser en espèces sans caisse ouverte est refusé : l'argent irait nulle part.
+do $$
+begin
+  insert into public.payments (service_order_id, method, amount_minor)
+  values ('d0551e00-0000-0000-0000-000000000002', 'CASH', 5000);
+  raise exception 'ÉCHEC — espèces encaissées sans caisse ouverte';
+exception
+  when check_violation then
+    raise notice 'ok — encaisser en espèces exige une caisse ouverte';
+end;
+$$;
+
+-- Mobile Money n'exige pas de caisse : l'argent n'est pas dans le tiroir.
+do $$
+declare p public.payments; n integer;
+begin
+  insert into public.payments (service_order_id, method, amount_minor,
+                               provider_name, external_ref, currency)
+  values ('d0551e00-0000-0000-0000-000000000002', 'MOBILE_MONEY', 2000,
+          'Wave', 'TX-001', 'EUR')
+  returning * into p;
+
+  if p.cash_register_id is not null then
+    raise exception 'ÉCHEC — un paiement Mobile Money a touché la caisse';
+  end if;
+  raise notice 'ok — Mobile Money n''entre pas dans le tiroir';
+
+  if p.currency <> 'XOF' then
+    raise exception 'ÉCHEC — devise imposée par le client (%)', p.currency;
+  end if;
+  raise notice 'ok — la devise d''un paiement vient de l''organisation';
+
+  select count(*) into n from public.cash_transactions where payment_id = p.id;
+  if n <> 0 then
+    raise exception 'ÉCHEC — un mouvement de caisse a été créé sans espèces';
+  end if;
+  raise notice 'ok — aucun mouvement de caisse sans espèces';
+end;
+$$;
+
+-- La caisse s'ouvre HORS du bloc qui attend un échec : une exception attrapée
+-- en PL/pgSQL annule tout ce que son bloc a écrit, ouverture comprise. La règle
+-- est dans CLAUDE.md depuis la phase 10 ; elle vient d'être refaite ici.
+insert into public.cash_registers (id, station_id, opened_by, opening_float_minor)
+values ('ca155e00-0000-0000-0000-000000000001',
+        'a1a1a1a1-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111', 10000);
+
+do $$
+declare n integer;
+begin
+  select count(*) into n from public.cash_registers
+   where id = 'ca155e00-0000-0000-0000-000000000001' and status = 'OPEN';
+  if n <> 1 then raise exception 'ÉCHEC — la caisse n''est pas ouverte'; end if;
+  raise notice 'ok — caisse ouverte avec son fonds';
+
+  insert into public.cash_registers (station_id, opened_by, opening_float_minor)
+  values ('a1a1a1a1-0000-0000-0000-000000000001',
+          '11111111-1111-1111-1111-111111111111', 5000);
+  raise exception 'ÉCHEC — deux caisses ouvertes pour la même personne';
+exception
+  when unique_violation then
+    raise notice 'ok — une seule caisse ouverte par station et par personne';
+end;
+$$;
+
+-- On n'ouvre pas une caisse au nom de quelqu'un d'autre.
+do $$
+begin
+  insert into public.cash_registers (station_id, opened_by, opening_float_minor)
+  values ('a2a2a2a2-0000-0000-0000-000000000002',
+          '33333333-3333-3333-3333-333333333333', 1000);
+  raise exception 'ÉCHEC — caisse ouverte au nom d''un autre';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — on n''ouvre pas une caisse au nom d''un autre';
+end;
+$$;
+
+-- Un encaissement en espèces génère son mouvement de caisse, écrit par la base.
+do $$
+declare p public.payments; m public.cash_transactions; t bigint;
+begin
+  insert into public.payments (service_order_id, method, amount_minor)
+  values ('d0551e00-0000-0000-0000-000000000002', 'CASH', 6000)
+  returning * into p;
+
+  if p.cash_register_id <> 'ca155e00-0000-0000-0000-000000000001' then
+    raise exception 'ÉCHEC — paiement non rattaché à la caisse ouverte';
+  end if;
+  raise notice 'ok — un paiement en espèces rejoint la caisse ouverte';
+
+  select * into m from public.cash_transactions where payment_id = p.id;
+  if m.id is null or m.amount_minor <> 6000 or m.kind <> 'PAYMENT_IN' then
+    raise exception 'ÉCHEC — mouvement de caisse absent ou incorrect';
+  end if;
+  raise notice 'ok — le mouvement de caisse est écrit par la base';
+
+  select theoretical_minor into t from public.cash_register_state
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000001';
+  if t <> 16000 then
+    raise exception 'ÉCHEC — solde théorique incorrect (%)', t;
+  end if;
+  raise notice 'ok — le solde théorique suit le fonds et les mouvements';
+end;
+$$;
+
+-- L'état financier du dossier est dérivé, jamais stocké.
+do $$
+declare e record;
+begin
+  select * into e from public.service_order_payment_state
+   where service_order_id = 'd0551e00-0000-0000-0000-000000000002';
+
+  if e.total_amount_minor <> 12000 or e.paid_amount_minor <> 8000
+     or e.balance_minor <> 4000 or e.payment_status <> 'PARTIAL' then
+    raise exception 'ÉCHEC — état financier incorrect : % / % / % / %',
+      e.total_amount_minor, e.paid_amount_minor, e.balance_minor, e.payment_status;
+  end if;
+  raise notice 'ok — total, payé, solde et statut sont calculés';
+end;
+$$;
+
+-- Un paiement ne se modifie ni ne se supprime.
+do $$
+declare v_p uuid; n integer;
+begin
+  select id into v_p from public.payments limit 1;
+
+  update public.payments set amount_minor = 1 where id = v_p;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC — un paiement a été modifié'; end if;
+  raise notice 'ok — un paiement ne se modifie pas';
+
+  delete from public.payments where id = v_p;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC — un paiement a été supprimé'; end if;
+  raise notice 'ok — un paiement ne se supprime pas';
+end;
+$$;
+
+-- Un remboursement référence son paiement, exige un motif, et sort de la caisse.
+do $$
+declare v_p uuid; r public.payments; m public.cash_transactions; t bigint;
+begin
+  select id into v_p from public.payments
+   where method = 'CASH' and kind = 'PAYMENT' limit 1;
+
+  begin
+    insert into public.payments (service_order_id, kind, method, amount_minor,
+                                 reverses_payment_id)
+    values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 1000, v_p);
+    raise exception 'ÉCHEC — remboursement sans motif accepté';
+  exception
+    when check_violation then raise notice 'ok — un remboursement exige un motif';
+  end;
+
+  begin
+    insert into public.payments (service_order_id, kind, method, amount_minor, reason)
+    values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 1000, 'Erreur');
+    raise exception 'ÉCHEC — remboursement sans paiement d''origine accepté';
+  exception
+    when check_violation then
+      raise notice 'ok — un remboursement référence toujours un paiement';
+  end;
+
+  begin
+    insert into public.payments (service_order_id, kind, method, amount_minor,
+                                 reverses_payment_id, reason)
+    values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 99000, v_p,
+            'Trop rendu');
+    raise exception 'ÉCHEC — remboursement supérieur au paiement accepté';
+  exception
+    when check_violation then
+      raise notice 'ok — on ne rembourse pas plus qu''on n''a reçu';
+  end;
+
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 1000, v_p,
+          'Erreur de saisie du caissier')
+  returning * into r;
+  raise notice 'ok — remboursement enregistré avec son motif';
+
+  select * into m from public.cash_transactions where payment_id = r.id;
+  if m.amount_minor <> -1000 or m.kind <> 'REFUND_OUT' then
+    raise exception 'ÉCHEC — sortie de caisse absente ou incorrecte (%)', m.amount_minor;
+  end if;
+  raise notice 'ok — un remboursement en espèces sort de la caisse';
+
+  select theoretical_minor into t from public.cash_register_state
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000001';
+  if t <> 15000 then
+    raise exception 'ÉCHEC — solde théorique après remboursement (%)', t;
+  end if;
+  raise notice 'ok — le solde théorique intègre le remboursement';
+end;
+$$;
+
+-- Un mouvement libre exige un motif.
+do $$
+begin
+  insert into public.cash_transactions (cash_register_id, kind, amount_minor)
+  values ('ca155e00-0000-0000-0000-000000000001', 'CASH_OUT', -2000);
+  raise exception 'ÉCHEC — sortie de caisse sans motif acceptée';
+exception
+  when check_violation then raise notice 'ok — un mouvement libre exige un motif';
+end;
+$$;
+
+-- Restitution : le solde restant bloque ou exige une décision motivée.
+do $$
+declare d public.service_orders;
+begin
+  -- L'organisation A est en ALLOW_DEBT (défaut) : sans motif, refus.
+  begin
+    perform public.transitionner_dossier('d0551e00-0000-0000-0000-000000000002', 'DELIVERED');
+    raise exception 'ÉCHEC — restitution avec solde sans motif';
+  exception
+    when check_violation then
+      raise notice 'ok — restituer avec un solde exige un motif';
+  end;
+
+  d := public.transitionner_dossier('d0551e00-0000-0000-0000-000000000002', 'DELIVERED',
+                                    'Client régulier, règlement en fin de semaine');
+  if d.status <> 'DELIVERED' or d.delivered_at is null then
+    raise exception 'ÉCHEC — restitution refusée malgré le motif';
+  end if;
+  raise notice 'ok — ALLOW_DEBT autorise la restitution avec créance motivée';
+
+  if not exists (select 1 from public.audit_logs
+                  where action = 'service_order.transition'
+                    and resource_id = 'd0551e00-0000-0000-0000-000000000002'
+                    and new_value ->> 'status' = 'DELIVERED') then
+    raise exception 'ÉCHEC — restitution avec créance non auditée';
+  end if;
+  raise notice 'ok — la restitution avec créance est auditée';
+end;
+$$;
+
+-- Un dossier restitué ne s'encaisse plus par la porte de derrière : il est clos.
+do $$
+declare n integer;
+begin
+  update public.service_orders set notes = 'rouvert'
+   where id = 'd0551e00-0000-0000-0000-000000000002';
+  raise exception 'ÉCHEC — dossier restitué encore modifiable';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un dossier restitué est immuable';
+end;
+$$;
+
+-- En STRICT, la restitution est refusée tant que le solde n'est pas nul.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  update public.organization_settings set payment_before_delivery = 'STRICT'
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (id, station_id, vehicle_id)
+  values ('d0551e00-0000-0000-0000-000000000003',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'DONE'
+   where service_order_id = v_dossier;
+  perform public.transitionner_dossier(v_dossier, 'CONTROL');
+  perform public.transitionner_dossier(v_dossier, 'READY');
+
+  begin
+    perform public.transitionner_dossier(v_dossier, 'DELIVERED', 'Je paierai plus tard');
+    raise exception 'ÉCHEC — STRICT a laissé partir un dossier impayé';
+  exception
+    when check_violation then
+      raise notice 'ok — en STRICT, aucun véhicule ne part impayé';
+  end;
+
+  insert into public.payments (service_order_id, method, amount_minor)
+  values (v_dossier, 'CASH', 12000);
+  perform public.transitionner_dossier(v_dossier, 'DELIVERED');
+  raise notice 'ok — en STRICT, la restitution passe une fois soldé';
+
+  update public.organization_settings set payment_before_delivery = 'ALLOW_DEBT'
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+end;
+$$;
+
+-- Clôture : l'écart est calculé, jamais saisi, et la session devient immuable.
+do $$
+declare c public.cash_registers;
+begin
+  -- 10 000 de fonds + 6 000 encaissés − 1 000 remboursés + 12 000 = 27 000.
+  c := public.cloturer_caisse('ca155e00-0000-0000-0000-000000000001', 25000,
+                              'Manque constaté au comptage');
+
+  if c.theoretical_minor <> 27000 then
+    raise exception 'ÉCHEC — solde théorique de clôture (%)', c.theoretical_minor;
+  end if;
+  if c.variance_minor <> -2000 then
+    raise exception 'ÉCHEC — écart mal calculé (%)', c.variance_minor;
+  end if;
+  raise notice 'ok — l''écart est calculé par la base, pas déclaré';
+
+  if not exists (select 1 from public.audit_logs where action = 'cash_register.close') then
+    raise exception 'ÉCHEC — clôture non auditée';
+  end if;
+  raise notice 'ok — la clôture est auditée avec son écart';
+end;
+$$;
+
+-- Une session clôturée est immuable, et n'accepte plus de mouvement.
+do $$
+begin
+  update public.cash_registers set variance_minor = 0
+   where id = 'ca155e00-0000-0000-0000-000000000001';
+  raise exception 'ÉCHEC — écart corrigé après clôture';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — une session clôturée est immuable';
+end;
+$$;
+
+do $$
+begin
+  insert into public.cash_transactions (cash_register_id, kind, amount_minor, reason)
+  values ('ca155e00-0000-0000-0000-000000000001', 'CASH_IN', 1000, 'Après coup');
+  raise exception 'ÉCHEC — mouvement ajouté à une caisse clôturée';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — aucun mouvement après clôture';
+end;
+$$;
+
+-- La clôture ne se fait pas par UPDATE direct.
+do $$
+declare v_c uuid;
+begin
+  insert into public.cash_registers (station_id, opened_by, opening_float_minor)
+  values ('a1a1a1a1-0000-0000-0000-000000000001',
+          '11111111-1111-1111-1111-111111111111', 0)
+  returning id into v_c;
+
+  update public.cash_registers set status = 'CLOSED', variance_minor = 0 where id = v_c;
+  raise exception 'ÉCHEC — caisse clôturée par UPDATE direct';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — la clôture passe par cloturer_caisse, pas par UPDATE';
+end;
+$$;
+
+-- Un caissier encaisse mais ne rembourse pas.
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+do $$
+declare v_p uuid;
+begin
+  select id into v_p from public.payments where kind = 'PAYMENT' limit 1;
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason)
+  values ((select service_order_id from public.payments where id = v_p),
+          'REFUND', 'CASH', 100, v_p, 'Tentative');
+  raise exception 'ÉCHEC — un caissier a remboursé';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — rembourser exige payments.refund';
+end;
+$$;
+
+-- Un opérateur ne voit pas les paiements.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+select pg_temp.check('un OPERATOR ne voit aucun paiement',
+  (select count(*) from public.payments), 0);
+select pg_temp.check('un OPERATOR ne voit aucune caisse',
+  (select count(*) from public.cash_registers), 0);
+
+-- Une autre organisation ne voit rien.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucun paiement de A',
+  (select count(*) from public.payments), 0);
+select pg_temp.check('l''organisation B ne voit aucune caisse de A',
+  (select count(*) from public.cash_registers), 0);
+select pg_temp.check('l''organisation B ne voit aucun mouvement de caisse de A',
+  (select count(*) from public.cash_transactions), 0);
+select pg_temp.check('l''organisation B ne voit aucun état financier de A',
+  (select count(*) from public.service_order_payment_state), 0);
+
 set local role postgres;
 
 -- Un employé reste supprimable même après avoir travaillé sur un dossier clos :

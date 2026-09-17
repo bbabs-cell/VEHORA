@@ -64,6 +64,13 @@ export const routes: Routes = [
           import('./features/employes/employes.component').then((m) => m.EmployesComponent),
       },
       {
+        path: 'caisse',
+        title: 'Caisse — VEHORA',
+        canActivate: [permissionGuard('payments.read')],
+        loadComponent: () =>
+          import('./features/caisse/caisse.component').then((m) => m.CaisseComponent),
+      },
+      {
         path: 'clients',
         title: 'Clients — VEHORA',
         canActivate: [permissionGuard('customers.read')],

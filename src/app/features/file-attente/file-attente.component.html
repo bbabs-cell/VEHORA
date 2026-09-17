@@ -88,9 +88,17 @@
                   <span class="sans-prestation">Aucune prestation</span>
                 } @else {
                   <span class="dossier__total">{{ total(dossier) }}</span>
-                  <span class="vh-muted dossier__lignes">
-                    {{ dossier.lignes }} prestation{{ dossier.lignes > 1 ? 's' : '' }}
-                  </span>
+                  @if (peutVoirPaiements()) {
+                    @if (dossier.balance_minor > 0) {
+                      <span class="solde-du">reste {{ solde(dossier) }}</span>
+                    } @else {
+                      <span class="solde-ok">{{ libelleEtat(dossier) }}</span>
+                    }
+                  } @else {
+                    <span class="vh-muted dossier__lignes">
+                      {{ dossier.lignes }} prestation{{ dossier.lignes > 1 ? 's' : '' }}
+                    </span>
+                  }
                 }
               </div>
 
@@ -113,6 +121,16 @@
                   >
                     Faire l’inspection
                   </a>
+                }
+                @if (peutEncaisser() && dossier.lignes > 0) {
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="ouvrirEncaissement(dossier)"
+                    [attr.aria-label]="'Encaisser le dossier ' + dossier.number"
+                  >
+                    Encaisser
+                  </button>
                 }
                 @if (actionSuivante(dossier); as suite) {
                   <button
@@ -379,6 +397,215 @@
           </button>
           <button class="vh-button vh-button--danger" type="submit" [disabled]="enregistrement()">
             {{ enregistrement() ? 'Annulation…' : 'Annuler le dossier' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (encaissementOuvert(); as dossier) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-encaissement">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-encaissement" class="modale__titre">
+          Encaisser — dossier n° {{ dossier.number }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerEncaissement()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      @if (paiements.etat(); as etat) {
+        <dl class="etat" aria-label="État financier du dossier">
+          <div><dt>Total</dt><dd>{{ formaterMinor(etat.total_amount_minor) }}</dd></div>
+          <div><dt>Encaissé</dt><dd>{{ formaterMinor(etat.paid_amount_minor) }}</dd></div>
+          <div class="etat__solde">
+            <dt>Reste à payer</dt>
+            <dd>{{ formaterMinor(etat.balance_minor) }}</dd>
+          </div>
+        </dl>
+      }
+
+      @if (paiements.paiements().length > 0) {
+        <ul class="paiements" aria-label="Paiements du dossier">
+          @for (paiement of paiements.paiements(); track paiement.id) {
+            <li class="paiement" [class.paiement--remboursement]="paiement.kind === 'REFUND'">
+              <span class="paiement__montant">
+                {{ paiement.kind === 'REFUND' ? '−' : '' }}{{
+                  formaterMinor(paiement.amount_minor)
+                }}
+              </span>
+              <span class="vh-muted paiement__methode">
+                {{ libelleMethode(paiement.method) }}
+                @if (paiement.provider_name) {
+                  · {{ paiement.provider_name }}
+                }
+                @if (paiement.kind === 'REFUND') {
+                  · remboursement
+                }
+              </span>
+              @if (peutRembourser() && paiement.kind === 'PAYMENT') {
+                <button
+                  class="paiement__rembourser"
+                  type="button"
+                  (click)="rembourser(paiement.id, paiement.amount_minor)"
+                  [disabled]="enregistrement()"
+                  [attr.aria-label]="
+                    'Rembourser ' + formaterMinor(paiement.amount_minor) + ' — ' +
+                    libelleMethode(paiement.method)
+                  "
+                >
+                  Rembourser
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <form [formGroup]="formPaiement" (ngSubmit)="encaisser()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="methode-paiement">Moyen de paiement</label>
+          <select id="methode-paiement" class="vh-input" formControlName="methode">
+            @for (methode of methodes; track methode) {
+              <option
+                [value]="methode"
+                [selected]="formPaiement.controls.methode.value === methode"
+              >
+                {{ libelleMethode(methode) }}
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (caisseRequiseManquante()) {
+          <p class="vh-alert" role="alert">
+            Aucune caisse ouverte à cette station pour vous. Ouvrez-la depuis l’écran
+            Caisse avant d’encaisser en espèces.
+          </p>
+        }
+
+        @if (formPaiement.controls.methode.value === 'MOBILE_MONEY') {
+          <div class="vh-field">
+            <label class="vh-label" for="fournisseur-paiement">Fournisseur</label>
+            <input
+              id="fournisseur-paiement"
+              class="vh-input"
+              type="text"
+              formControlName="fournisseur"
+              autocomplete="off"
+              placeholder="Wave, Orange Money, Free Money…"
+            />
+          </div>
+          <div class="vh-field">
+            <label class="vh-label" for="reference-paiement">Référence de transaction</label>
+            <input
+              id="reference-paiement"
+              class="vh-input"
+              type="text"
+              formControlName="reference"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+        }
+
+        <div class="vh-field">
+          <label class="vh-label" for="montant-paiement">Montant reçu ({{ symbole() }})</label>
+          <input
+            id="montant-paiement"
+            class="vh-input champ-montant"
+            type="text"
+            inputmode="numeric"
+            formControlName="montant"
+            autocomplete="off"
+          />
+          <p class="vh-muted aide-champ">
+            Un dossier peut être réglé en plusieurs fois, et par plusieurs moyens.
+          </p>
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <!-- Pas « Fermer » : la croix porte déjà ce nom accessible, et deux
+               contrôles homonymes dans la même boîte de dialogue rendent la
+               navigation au clavier et au lecteur d'écran ambiguë. -->
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerEncaissement()">
+            Terminer
+          </button>
+          <button
+            class="vh-button"
+            type="submit"
+            [disabled]="enregistrement() || caisseRequiseManquante()"
+          >
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer le paiement' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (restitutionOuverte(); as dossier) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-restitution">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-restitution" class="modale__titre">
+          Restituer avec un solde — dossier n° {{ dossier.number }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerRestitution()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formRestitution" (ngSubmit)="restituer()" novalidate>
+        <p class="vh-alert" role="status">
+          Il reste <strong>{{ solde(dossier) }}</strong> à encaisser. Le véhicule part
+          avec une créance, tracée à votre nom.
+        </p>
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-restitution">Motif</label>
+          <input
+            id="motif-restitution"
+            class="vh-input"
+            type="text"
+            formControlName="motif"
+            autocomplete="off"
+            placeholder="Client régulier, règlement en fin de semaine"
+            [attr.aria-invalid]="
+              formRestitution.controls.motif.touched && formRestitution.controls.motif.invalid
+            "
+          />
+          @if (formRestitution.controls.motif.touched && formRestitution.controls.motif.invalid) {
+            <p class="erreur-champ">Le motif est obligatoire.</p>
+          }
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerRestitution()">
+            Revenir
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Restitution…' : 'Restituer malgré le solde' }}
           </button>
         </div>
       </form>

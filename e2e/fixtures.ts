@@ -25,6 +25,17 @@ export async function connecterApi(): Promise<SupabaseClient<Database>> {
   return client;
 }
 
+/**
+ * Chaque projet Playwright (mobile, desktop) travaille sur sa propre station.
+ *
+ * La caisse est une ressource par (station, utilisateur) : sans cette
+ * séparation, deux projets qui tournent en parallèle se ferment mutuellement
+ * leur session, et le test qui échoue n'est pas celui qui a le défaut.
+ */
+export function stationDuProjet(projet: string): number {
+  return projet === 'desktop' ? 1 : 0;
+}
+
 export interface DossierDeTest {
   readonly id: string;
   readonly numero: number;
@@ -35,10 +46,12 @@ export interface DossierDeTest {
 /** Un dossier tout juste arrivé, avec une prestation tarifée. */
 export async function creerDossierArrive(
   nomPrestation = 'Lavage complet',
+  indexStation = 0,
 ): Promise<DossierDeTest> {
   const api = await connecterApi();
 
-  const { data: station } = await api.from('stations').select('id').order('name').limit(1).single();
+  const { data: stations } = await api.from('stations').select('id').order('name');
+  const station = stations![indexStation] ?? stations![0];
   const { data: vehicule } = await api
     .from('vehicles')
     .select('id')
@@ -78,10 +91,12 @@ export async function creerDossierArrive(
 /** Un dossier en file d'attente, avec une prestation et son opération. */
 export async function creerDossierEnAttente(
   nomPrestation = 'Lavage complet',
+  indexStation = 0,
 ): Promise<DossierDeTest> {
   const api = await connecterApi();
 
-  const { data: station } = await api.from('stations').select('id').order('name').limit(1).single();
+  const { data: stations } = await api.from('stations').select('id').order('name');
+  const station = stations![indexStation] ?? stations![0];
   const { data: vehicule } = await api
     .from('vehicles')
     .select('id')
@@ -127,4 +142,71 @@ export async function creerDossierEnAttente(
       });
     },
   };
+}
+
+/** Un dossier prêt à restituer : tout le cycle joué par l'API réelle. */
+export async function creerDossierPret(
+  nomPrestation = 'Lavage complet',
+  indexStation = 0,
+): Promise<DossierDeTest> {
+  const api = await connecterApi();
+  const dossier = await creerDossierEnAttente(nomPrestation, indexStation);
+
+  const { data: employe } = await api
+    .from('employees')
+    .select('id')
+    .eq('status', 'ACTIVE')
+    .limit(1)
+    .single();
+  const { data: operation } = await api
+    .from('service_order_operations')
+    .select('id')
+    .eq('service_order_id', dossier.id)
+    .single();
+
+  await api
+    .from('service_order_operations')
+    .update({ employee_id: employe!.id })
+    .eq('id', operation!.id);
+  await api
+    .from('service_order_operations')
+    .update({ status: 'IN_PROGRESS' })
+    .eq('id', operation!.id);
+  await api.from('service_order_operations').update({ status: 'DONE' }).eq('id', operation!.id);
+  await api.rpc('transitionner_dossier', {
+    p_service_order_id: dossier.id,
+    p_to_status: 'CONTROL',
+  });
+  await api.rpc('transitionner_dossier', {
+    p_service_order_id: dossier.id,
+    p_to_status: 'READY',
+  });
+
+  return dossier;
+}
+
+/**
+ * Ferme les sessions de caisse ouvertes par le compte de test à UNE station.
+ * Toutes les fermer viderait la station de l'autre projet en pleine course.
+ */
+export async function fermerMesCaisses(indexStation = 0): Promise<void> {
+  const api = await connecterApi();
+  const { data: moi } = await api.auth.getUser();
+  const { data: stations } = await api.from('stations').select('id').order('name');
+  const station = stations![indexStation] ?? stations![0];
+
+  const { data: ouvertes } = await api
+    .from('cash_registers')
+    .select('id')
+    .eq('status', 'OPEN')
+    .eq('station_id', station.id)
+    .eq('opened_by', moi.user!.id);
+
+  for (const caisse of ouvertes ?? []) {
+    await api.rpc('cloturer_caisse', {
+      p_cash_register_id: caisse.id,
+      p_declared_minor: 0,
+      p_note: 'Nettoyage de test automatisé',
+    });
+  }
 }

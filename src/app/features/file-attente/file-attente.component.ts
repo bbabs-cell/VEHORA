@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -18,10 +19,22 @@ import {
   type StatutDossier,
 } from '../../core/service-orders/service-order.service';
 import { StationService } from '../../core/stations/station.service';
+import { ScrollLockService } from '../../core/ui/scroll-lock.service';
 import { VehicleService, type VehiculeListe } from '../../core/vehicles/vehicle.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
-import { formaterMontant } from '../../shared/format/montant';
+import {
+  LIBELLES_ETAT,
+  LIBELLES_METHODE,
+  ORDRE_METHODES,
+  PaymentService,
+  type MethodePaiement,
+} from '../../core/payments/payment.service';
+import {
+  formaterMontant,
+  symboleDevise,
+  versMontantMineur,
+} from '../../shared/format/montant';
 
 /** Un groupe de la file : un statut et ses dossiers. */
 interface GroupeFile {
@@ -39,6 +52,9 @@ interface ActionSuivante {
 const SUITE: Partial<Record<StatutDossier, ActionSuivante>> = {
   ARRIVED: { vers: 'INSPECTION', libelle: 'Inspecter' },
   INSPECTION: { vers: 'WAITING', libelle: 'Mettre en attente' },
+  IN_PROGRESS: { vers: 'CONTROL', libelle: 'Envoyer au contrôle' },
+  CONTROL: { vers: 'READY', libelle: 'Valider le contrôle' },
+  READY: { vers: 'DELIVERED', libelle: 'Restituer' },
 };
 
 const DELAI_RECHERCHE = 300;
@@ -66,6 +82,8 @@ export class FileAttenteComponent {
 
   readonly stations = computed(() => this.stationsService.stations());
   readonly devise = computed(() => this.organisation.organisation()?.currency ?? 'XOF');
+  /** « F CFA » plutôt que « XOF » : c'est ce que l'utilisateur lit sur son affiche. */
+  readonly symbole = computed(() => symboleDevise(this.devise()));
 
   readonly ouvertureOuverte = signal(false);
   readonly dossierOuvert = signal<DossierListe | null>(null);
@@ -86,9 +104,48 @@ export class FileAttenteComponent {
     motif: ['', [Validators.required, Validators.minLength(3)]],
   });
 
+  // ---------------------------------------------------------------------
+  // Encaissement
+  // ---------------------------------------------------------------------
+  readonly paiements = inject(PaymentService);
+  readonly encaissementOuvert = signal<DossierListe | null>(null);
+  readonly restitutionOuverte = signal<DossierListe | null>(null);
+
+  readonly peutEncaisser = computed(() => this.auth.hasPermission('payments.record'));
+  readonly peutRembourser = computed(() => this.auth.hasPermission('payments.refund'));
+  readonly peutVoirPaiements = computed(() => this.auth.hasPermission('payments.read'));
+
+  readonly methodes = ORDRE_METHODES;
+  readonly libelleMethode = (m: MethodePaiement): string => LIBELLES_METHODE[m];
+
+  readonly formPaiement = this.fb.nonNullable.group({
+    methode: ['CASH' as MethodePaiement, Validators.required],
+    montant: ['', Validators.required],
+    fournisseur: [''],
+    reference: [''],
+  });
+
+  readonly formRestitution = this.fb.nonNullable.group({
+    motif: ['', [Validators.required, Validators.minLength(3)]],
+  });
+
   private minuterie?: ReturnType<typeof setTimeout>;
 
+  private readonly verrou = inject(ScrollLockService);
+
+  /** Vrai dès qu'une boîte de dialogue de cet écran est ouverte. */
+  private readonly modaleOuverte = computed(
+    () =>
+      this.ouvertureOuverte() ||
+      this.dossierOuvert() !== null ||
+      this.annulation() !== null ||
+      this.encaissementOuvert() !== null ||
+      this.restitutionOuverte() !== null,
+  );
+
   constructor() {
+    effect(() => this.verrou.verrouiller(this.modaleOuverte()));
+
     void this.dossiers.chargerFile();
     void this.organisation.charger();
     void this.stationsService.charger();
@@ -302,10 +359,160 @@ export class FileAttenteComponent {
     const suite = this.actionSuivante(dossier);
     if (!suite || this.enregistrement()) return;
 
+    // Restituer avec un solde est une décision, pas un clic : on demande le
+    // motif d'abord, plutôt que de laisser la base refuser après coup.
+    if (suite.vers === 'DELIVERED' && dossier.balance_minor > 0) {
+      this.ouvrirRestitution(dossier);
+      return;
+    }
+
     this.enregistrement.set(true);
     const erreur = await this.dossiers.transitionner(dossier.id, suite.vers);
     this.enregistrement.set(false);
     this.erreurFormulaire.set(erreur);
+  }
+
+  // ---------------------------------------------------------------------
+  // Paiement
+  // ---------------------------------------------------------------------
+
+  solde(dossier: DossierListe): string {
+    return formaterMontant(dossier.balance_minor, dossier.currency ?? this.devise());
+  }
+
+  libelleEtat(dossier: DossierListe): string {
+    return LIBELLES_ETAT[dossier.payment_status];
+  }
+
+  formaterMinor(montant: number): string {
+    return formaterMontant(montant, this.devise());
+  }
+
+  async ouvrirEncaissement(dossier: DossierListe): Promise<void> {
+    this.erreurFormulaire.set(null);
+    this.formPaiement.reset({
+      methode: 'CASH',
+      // Le solde restant est le montant le plus probable : on le propose, on
+      // ne l'impose pas — un client peut payer une partie.
+      montant: dossier.balance_minor > 0 ? String(dossier.balance_minor) : '',
+      fournisseur: '',
+      reference: '',
+    });
+    this.encaissementOuvert.set(dossier);
+    await Promise.all([
+      this.paiements.chargerDossier(dossier.id),
+      this.paiements.chargerMaCaisse(dossier.station_id),
+    ]);
+  }
+
+  fermerEncaissement(): void {
+    this.encaissementOuvert.set(null);
+    void this.dossiers.chargerFile();
+  }
+
+  /** Espèces sans caisse ouverte : la base refusera, l'écran le dit avant. */
+  readonly caisseRequiseManquante = computed(
+    () => this.formPaiement.controls.methode.value === 'CASH' && this.paiements.caisse() === null,
+  );
+
+  async encaisser(): Promise<void> {
+    const dossier = this.encaissementOuvert();
+    if (!dossier || this.enregistrement()) return;
+    if (this.formPaiement.invalid) {
+      this.formPaiement.markAllAsTouched();
+      return;
+    }
+
+    const v = this.formPaiement.getRawValue();
+    const montant = versMontantMineur(v.montant, dossier.currency ?? this.devise());
+    if (montant === null || montant <= 0) {
+      this.erreurFormulaire.set('Saisissez un montant valide, sans signe ni lettre.');
+      return;
+    }
+
+    this.enregistrement.set(true);
+    this.erreurFormulaire.set(null);
+    const erreur = await this.paiements.encaisser(
+      dossier.id,
+      v.methode,
+      montant,
+      v.fournisseur.trim() || null,
+      v.reference.trim() || null,
+    );
+    this.enregistrement.set(false);
+
+    if (erreur) {
+      this.erreurFormulaire.set(erreur);
+      return;
+    }
+
+    await this.dossiers.chargerFile();
+
+    // Le dossier reste ouvert : un client règle souvent en deux fois, et le
+    // montant le plus probable est ce qu'il reste. Le champ le propose plutôt
+    // que de se vider et d'obliger à retaper.
+    const reste = this.paiements.etat()?.balance_minor ?? 0;
+    this.formPaiement.patchValue({
+      montant: reste > 0 ? String(reste) : '',
+      reference: '',
+    });
+
+    // La carte de la file, derrière la modale, doit suivre : afficher un solde
+    // périmé pendant qu'on encaisse est pire que ne rien afficher.
+    const frais = this.dossiers.dossiers().find((d) => d.id === dossier.id);
+    if (frais) this.encaissementOuvert.set(frais);
+  }
+
+  async rembourser(paiementId: string, montantMineur: number): Promise<void> {
+    const dossier = this.encaissementOuvert();
+    if (!dossier || this.enregistrement()) return;
+
+    const motif = window.prompt('Motif du remboursement (obligatoire)');
+    if (!motif || motif.trim().length < 3) return;
+
+    this.enregistrement.set(true);
+    this.erreurFormulaire.set(
+      await this.paiements.rembourser(dossier.id, paiementId, montantMineur, motif.trim()),
+    );
+    this.enregistrement.set(false);
+    await this.dossiers.chargerFile();
+  }
+
+  // ---------------------------------------------------------------------
+  // Restitution avec créance
+  // ---------------------------------------------------------------------
+
+  ouvrirRestitution(dossier: DossierListe): void {
+    this.erreurFormulaire.set(null);
+    this.formRestitution.reset({ motif: '' });
+    this.restitutionOuverte.set(dossier);
+  }
+
+  fermerRestitution(): void {
+    this.restitutionOuverte.set(null);
+  }
+
+  async restituer(): Promise<void> {
+    const dossier = this.restitutionOuverte();
+    if (!dossier || this.enregistrement()) return;
+    if (this.formRestitution.invalid) {
+      this.formRestitution.markAllAsTouched();
+      return;
+    }
+
+    this.enregistrement.set(true);
+    const erreur = await this.dossiers.transitionner(
+      dossier.id,
+      'DELIVERED',
+      this.formRestitution.getRawValue().motif.trim(),
+    );
+    this.enregistrement.set(false);
+
+    if (erreur) {
+      this.erreurFormulaire.set(erreur);
+      return;
+    }
+    this.restitutionOuverte.set(null);
   }
 
   ouvrirAnnulation(dossier: DossierListe): void {

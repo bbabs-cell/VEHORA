@@ -20,9 +20,18 @@ export interface DossierListe {
   readonly total_minor: number;
   readonly currency: string | null;
   readonly lignes: number;
+  readonly balance_minor: number;
+  readonly payment_status: SoldeDossier['payment_status'];
 }
 
 /** Libellés français des statuts. Stockés en anglais, affichés en français. */
+/** Montant dû, joint à la file : l'exploitant doit voir qui reste à encaisser. */
+export interface SoldeDossier {
+  readonly service_order_id: string;
+  readonly balance_minor: number;
+  readonly payment_status: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERPAID';
+}
+
 export const LIBELLES_STATUT: Readonly<Record<StatutDossier, string>> = {
   ARRIVED: 'Arrivé',
   INSPECTION: 'Inspection',
@@ -126,7 +135,7 @@ export class ServiceOrderService {
     this._chargement.set(true);
     this._erreur.set(null);
 
-    const [dossiers, totaux] = await Promise.all([
+    const [dossiers, totaux, soldes] = await Promise.all([
       this.supabase.client
         .from('service_orders')
         .select(SELECT_DOSSIER)
@@ -137,19 +146,26 @@ export class ServiceOrderService {
         .from('service_order_totals')
         .select('service_order_id, total_amount_minor, currency, lignes')
         .limit(200),
+      this.supabase.client
+        .from('service_order_payment_state')
+        .select('service_order_id, balance_minor, payment_status')
+        .limit(200),
     ]);
 
     if (identifiant !== this.requeteCourante) return;
     this._chargement.set(false);
 
     const { data, error } = dossiers;
-    if (error || totaux.error) {
-      const echec = error ?? totaux.error!;
+    if (error || totaux.error || soldes.error) {
+      const echec = error ?? totaux.error ?? soldes.error!;
       this._erreur.set(message(echec.code, echec.message));
       return;
     }
 
     const parDossier = new Map((totaux.data ?? []).map((t) => [t.service_order_id, t]));
+    // `service_order_payment_state` est une vue agrégée : PostgREST ne peut pas
+    // la joindre, elle se lit à part. Le calcul reste côté serveur.
+    const parSolde = new Map((soldes.data ?? []).map((s) => [s.service_order_id, s]));
 
     this._dossiers.set(
       (data ?? []).map((d) => ({
@@ -166,6 +182,8 @@ export class ServiceOrderService {
         total_minor: parDossier.get(d.id)?.total_amount_minor ?? 0,
         currency: parDossier.get(d.id)?.currency ?? null,
         lignes: parDossier.get(d.id)?.lignes ?? 0,
+        balance_minor: parSolde.get(d.id)?.balance_minor ?? 0,
+        payment_status: parSolde.get(d.id)?.payment_status ?? 'UNPAID',
       })),
     );
   }

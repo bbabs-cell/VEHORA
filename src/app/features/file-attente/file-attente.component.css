@@ -409,3 +409,114 @@
     padding: var(--vh-space-6);
   }
 }
+
+/* ---------- Encaissement ---------- */
+
+/* Le solde restant est l'information que le caissier cherche des yeux. */
+.solde-du {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--vh-warning);
+  white-space: nowrap;
+}
+
+.solde-ok {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-success);
+  white-space: nowrap;
+}
+
+.etat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+  margin: 0;
+  padding: var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-3);
+}
+
+.etat > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+}
+
+.etat dt,
+.etat dd {
+  margin: 0;
+}
+
+.etat dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.etat__solde {
+  padding-top: var(--vh-space-2);
+  border-top: 1px solid var(--vh-border);
+  font-size: var(--vh-text-lg);
+}
+
+.paiements {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.paiement {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  flex-wrap: wrap;
+}
+
+.paiement__montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Un remboursement se lit comme un mouvement inverse, pas comme une ligne
+   ordinaire : il doit sauter aux yeux dans l'historique du dossier. */
+.paiement--remboursement .paiement__montant {
+  color: var(--vh-error);
+}
+
+.paiement__methode {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.paiement__rembourser {
+  background: none;
+  border: none;
+  padding: 0 var(--vh-space-2);
+  min-height: var(--vh-touch-min);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.paiement__rembourser:hover:not(:disabled) {
+  color: var(--vh-error);
+  background: var(--vh-surface-3);
+}
+
+/* Un montant se saisit et se relit en chiffres alignés. */
+.champ-montant {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--vh-text-lg);
+  min-height: var(--vh-touch-primary);
+}
+
+.aide-champ {
+  margin: 0;
+  font-size: var(--vh-text-xs);
+}

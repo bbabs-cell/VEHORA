@@ -1,0 +1,275 @@
+<div class="caisse">
+  <header class="caisse__entete">
+    <div>
+      <h1 class="caisse__titre">Caisse</h1>
+      <p class="vh-muted caisse__sous-titre">
+        Une session par station et par personne. L’écart de clôture est calculé par
+        le serveur, jamais saisi.
+      </p>
+    </div>
+  </header>
+
+  @if (stations().length > 1) {
+    <div class="vh-field">
+      <label class="vh-label" for="station-caisse">Station</label>
+      <select
+        id="station-caisse"
+        class="vh-input"
+        (change)="surChangementStation($event)"
+      >
+        @for (station of stations(); track station.id) {
+          <option [value]="station.id" [selected]="stationChoisie() === station.id">
+            {{ station.name }}
+          </option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (paiements.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (erreur(); as message) {
+    @if (!clotureOuverte() && !mouvementOuvert()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
+
+  @if (dernierEcart() !== null) {
+    <p class="ecart" role="status">
+      Session clôturée. Écart constaté :
+      <strong class="ecart__montant">{{ formater(dernierEcart()!) }}</strong>.
+      Il reste consultable et ne peut plus être modifié.
+    </p>
+  }
+
+  @if (paiements.caisse(); as caisse) {
+    <section class="vh-card session" aria-label="Session de caisse ouverte">
+      <dl class="session__chiffres">
+        <div>
+          <dt>Fonds d’ouverture</dt>
+          <dd>{{ formater(caisse.opening_float_minor) }}</dd>
+        </div>
+        <div class="session__theorique">
+          <dt>Solde théorique</dt>
+          <dd>
+            {{ paiements.theorique() !== null ? formater(paiements.theorique()!) : '—' }}
+          </dd>
+        </div>
+      </dl>
+
+      <div class="session__actions">
+        @if (peutBouger()) {
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="ouvrirMouvement('CASH_IN')"
+          >
+            Entrée d’argent
+          </button>
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="ouvrirMouvement('CASH_OUT')"
+          >
+            Sortie d’argent
+          </button>
+        }
+        @if (peutCloturer()) {
+          <button class="vh-button" type="button" (click)="ouvrirCloture()">
+            Clôturer la caisse
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="mouvements-section" aria-label="Mouvements de la session">
+      <h2 class="mouvements__titre">Mouvements</h2>
+      @if (paiements.mouvements().length === 0) {
+        <p class="vh-muted">
+          Aucun mouvement pour l’instant. Les encaissements en espèces arriveront ici
+          tout seuls.
+        </p>
+      } @else {
+        <ul class="mouvements" aria-label="Liste des mouvements">
+          @for (mouvement of paiements.mouvements(); track mouvement.id) {
+            <li class="mouvement">
+              <span
+                class="mouvement__montant"
+                [class.mouvement__montant--sortie]="mouvement.amount_minor < 0"
+              >
+                {{ formater(mouvement.amount_minor) }}
+              </span>
+              <span class="vh-muted mouvement__detail">
+                {{ libelleMouvement(mouvement) }}
+                @if (mouvement.reason) {
+                  · {{ mouvement.reason }}
+                }
+              </span>
+              <span class="vh-muted mouvement__heure">{{ heure(mouvement.created_at) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  } @else {
+    <div class="vh-card">
+      <vh-empty-state
+        titre="Aucune caisse ouverte"
+        texte="Déclarez le fonds présent dans le tiroir avant de commencer à encaisser.
+               Sans session ouverte, aucun paiement en espèces n’est possible."
+      >
+        @if (peutOuvrir()) {
+          <form [formGroup]="formOuverture" (ngSubmit)="ouvrir()" novalidate class="ouverture">
+            <div class="vh-field">
+              <label class="vh-label" for="fonds-caisse">
+                Fonds de caisse ({{ symbole() }})
+              </label>
+              <input
+                id="fonds-caisse"
+                class="vh-input champ-montant"
+                type="text"
+                inputmode="numeric"
+                formControlName="fonds"
+                autocomplete="off"
+              />
+            </div>
+            <button class="vh-button" type="submit" [disabled]="enregistrement() || !pret()">
+              {{ enregistrement() ? 'Ouverture…' : 'Ouvrir la caisse' }}
+            </button>
+          </form>
+        }
+      </vh-empty-state>
+    </div>
+  }
+</div>
+
+@if (clotureOuverte()) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-cloture">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-cloture" class="modale__titre">Clôturer la caisse</h2>
+        <button class="modale__fermer" type="button" (click)="fermerCloture()" aria-label="Fermer">
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formCloture" (ngSubmit)="cloturer()" novalidate>
+        <p class="vh-muted">
+          Comptez le tiroir et saisissez ce que vous trouvez. L’écart avec le solde
+          théorique sera calculé et conservé — ne cherchez pas à le faire tomber juste.
+        </p>
+
+        <div class="vh-field">
+          <label class="vh-label" for="compte-caisse">Montant compté ({{ symbole() }})</label>
+          <input
+            id="compte-caisse"
+            class="vh-input champ-montant"
+            type="text"
+            inputmode="numeric"
+            formControlName="compte"
+            autocomplete="off"
+            [attr.aria-invalid]="
+              formCloture.controls.compte.touched && formCloture.controls.compte.invalid
+            "
+          />
+          @if (formCloture.controls.compte.touched && formCloture.controls.compte.invalid) {
+            <p class="erreur-champ">Le montant compté est obligatoire.</p>
+          }
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="note-caisse">Remarque (facultatif)</label>
+          <input
+            id="note-caisse"
+            class="vh-input"
+            type="text"
+            formControlName="note"
+            autocomplete="off"
+            placeholder="Manque constaté, appoint donné au client…"
+          />
+        </div>
+
+        @if (erreur(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerCloture()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Clôture…' : 'Clôturer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (mouvementOuvert(); as sens) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-mouvement">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-mouvement" class="modale__titre">
+          {{ sens === 'CASH_IN' ? 'Entrée d’argent' : 'Sortie d’argent' }}
+        </h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerMouvement()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formMouvement" (ngSubmit)="enregistrerMouvement()" novalidate>
+        <div class="vh-field">
+          <label class="vh-label" for="montant-mouvement">Montant ({{ symbole() }})</label>
+          <input
+            id="montant-mouvement"
+            class="vh-input champ-montant"
+            type="text"
+            inputmode="numeric"
+            formControlName="montant"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-mouvement">Motif</label>
+          <input
+            id="motif-mouvement"
+            class="vh-input"
+            type="text"
+            formControlName="motif"
+            autocomplete="off"
+            placeholder="Achat de savon, appoint, dépôt…"
+            [attr.aria-invalid]="
+              formMouvement.controls.motif.touched && formMouvement.controls.motif.invalid
+            "
+          />
+          @if (formMouvement.controls.motif.touched && formMouvement.controls.motif.invalid) {
+            <p class="erreur-champ">
+              Le motif est obligatoire : « sortie de 50 000 » sans raison ne veut rien dire.
+            </p>
+          }
+        </div>
+
+        @if (erreur(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerMouvement()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

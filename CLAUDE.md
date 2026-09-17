@@ -138,13 +138,28 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 10 validée.** Clients, véhicules, inspection, photos, catalogue, tarifs,
-Service Order, employés et opérations en place. Le cycle va de l'arrivée à
-« prêt ». Prochaine étape : le paiement et la caisse.
+**Phase 11 validée.** Le cycle métier est complet : arrivée, inspection, file
+d'attente, travail, contrôle, prêt, paiement, restitution. Prochaine étape au
+choix : reçus et rapports, espace Super Admin, ou dette d'interface.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 31 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
-  9 types de véhicules, 10 zones d'inspection, 14 transitions de dossier.
+- 34 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+  9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
+- **Paiement, mouvement de caisse et session de caisse sont trois choses.**
+  Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
+  un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
+  écrire l'un sans l'autre, c'est pouvoir faire disparaître de l'argent.
+- **Aucun paiement ne se modifie ni ne se supprime** : la correction est un
+  remboursement qui le référence, avec motif, plafonné au montant reçu, et de
+  la même méthode.
+- **L'écart de caisse est calculé, jamais saisi** (`déclaré − théorique`), la
+  clôture passe par `cloturer_caisse()`, et une session clôturée est immuable.
+- **Restituer avec un solde** exige `payments.refund` + un motif, et c'est
+  audité — sauf en `STRICT`, où c'est refusé. Un caissier ne l'accorde pas.
+- **Une modale fige la page derrière elle** (`ScrollLockService`) : sinon on
+  perd sa place dans la file en encaissant.
+- **Deux contrôles ne portent jamais le même nom accessible** dans une même
+  boîte de dialogue — la croix s'appelle déjà « Fermer ».
 - **Un employé n'est pas un utilisateur.** `employees.profile_id` est nullable
   et le reste dans le cas courant. Les opérations référencent `employee_id` :
   l'historique de travail survit au départ de la personne et à la suppression
@@ -212,25 +227,32 @@ Service Order, employés et opérations en place. Le cycle va de l'arrivée à
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **169 tests Playwright**,
-  **115 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-operations.mjs`, 17 assertions ;
-  `scripts/intrusion-dossiers.mjs`, 23 ; `scripts/intrusion-catalogue.mjs`, 21 ;
-  14 sur le stockage).
+- Parcours connecté vérifié de bout en bout ; **185 tests Playwright**,
+  **154 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-caisse.mjs`, 25 assertions ;
+  `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
+  `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
 - **Un test ne doit pas modifier l'état que d'autres tests lisent**, ni épingler
   un numéro qui avance. `e2e/fixtures.ts` monte un dossier par l'API réelle ;
   chaque test qui fait avancer quelque chose crée le sien et le referme.
+- **Une ressource unique par (station, utilisateur) — la caisse — casse le
+  parallélisme.** Une station par projet Playwright, et `mode: 'serial'` dans
+  le fichier : les deux sont nécessaires, sinon l'échec tombe au hasard.
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
-  paie des dizaines de lignes plus loin.
-- **Leçon récurrente** : seize défauts d'interface (thème par défaut, sélecteur
+  paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite
+  n'a pas empêché la seconde.
+- **Leçon récurrente** : vingt défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale, actions sur deux lignes, deux mises en page pour la même liste, date
   au format américain, code ISO au lieu du symbole, erreur affichée nulle part,
   bouton sans effet sur formulaire invalide, station absente de la file,
   prestation sans tarif proposée quand même, « Démarrer » proposé sans employé,
   dossier resté en attente au démarrage du travail, opération démarrée par
-  erreur sans retour possible) ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
+  erreur sans retour possible, page qui défile sous une modale, deux boutons
+  « Fermer » dans la même modale, champ montant vidé au lieu de proposer le
+  reste, solde périmé derrière la modale) ont échappé aux tests et se sont vus
+  à l'écran. Sur un écran, une
   assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
   de la validation d'une phase d'interface.**
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).
@@ -244,6 +266,8 @@ Service Order, employés et opérations en place. Le cycle va de l'arrivée à
   Ils typent les jointures PostgREST ; leur absence produit un message
   trompeur. Quatre incidents — régénérer plutôt que compléter à la main ; en
   phase 9 les neuf tables concernées ont été comblées d'un coup.
+- Le jeu de démonstration a **deux stations** (Liberté 6, Ouakam) : les tests
+  de caisse en dépendent, et l'affichage multi-station aussi.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),
