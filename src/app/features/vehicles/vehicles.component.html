@@ -250,3 +250,13 @@
     </div>
   </div>
 }
+
+@if (aArchiver(); as vehicule) {
+  <vh-confirmation
+    titre="Archiver ce véhicule ?"
+    [texte]="texteArchivage(vehicule)"
+    action="Archiver"
+    (confirmer)="confirmerArchivage()"
+    (annuler)="aArchiver.set(null)"
+  />
+}

@@ -156,3 +156,90 @@ textarea {
 .vh-defilement-bloque {
   overflow: hidden;
 }
+
+/* --- Modale -------------------------------------------------------------
+   Une seule définition, ici, pour les dix écrans qui en ouvrent une.
+   Elle était recopiée dans chaque feuille de composant, et avait déjà divergé :
+   la croix tenait sa largeur dans six fichiers sur dix, le titre se coupait
+   dans cinq, les actions passaient à la ligne dans un seul. Même règle que pour
+   la hauteur de la barre basse : ce qui sert à plus d'un composant vit en un
+   seul endroit.
+
+   Les composants gardent leurs écarts réels (une modale en colonne, un texte
+   d'accompagnement) dans leur propre feuille. */
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  padding: var(--vh-space-3);
+}
+
+.modale__contenu {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: var(--vh-radius-modal);
+}
+
+.modale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  margin-bottom: var(--vh-space-4);
+}
+
+.modale__titre {
+  font-size: var(--vh-text-lg);
+  /* Un nom de prestation ou d'organisation peut être long : il se coupe plutôt
+     que de pousser la croix hors de l'écran. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.modale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.modale form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vh-space-3);
+  margin-top: var(--vh-space-2);
+  /* Deux boutons plus un libellé long tiennent mal sur un écran étroit. */
+  flex-wrap: wrap;
+}
+
+/* Sur un écran large, la modale se centre au lieu de coller au bas : au pouce
+   sur mobile, sous les yeux sur un bureau. Cette bascule était elle aussi
+   recopiée dans les dix feuilles. */
+@media (min-width: 640px) {
+  .modale {
+    align-items: center;
+  }
+}

@@ -165,3 +165,13 @@
     </div>
   </div>
 }
+
+@if (aDesactiver(); as station) {
+  <vh-confirmation
+    titre="Désactiver cette station ?"
+    [texte]="texteDesactivation(station)"
+    action="Désactiver"
+    (confirmer)="confirmerDesactivation()"
+    (annuler)="aDesactiver.set(null)"
+  />
+}

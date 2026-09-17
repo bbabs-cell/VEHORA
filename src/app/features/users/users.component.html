@@ -188,3 +188,13 @@
     </div>
   </div>
 }
+
+@if (aSuspendre(); as membre) {
+  <vh-confirmation
+    titre="Suspendre ce compte ?"
+    [texte]="texteSuspension(membre)"
+    action="Suspendre"
+    (confirmer)="confirmerSuspension()"
+    (annuler)="aSuspendre.set(null)"
+  />
+}

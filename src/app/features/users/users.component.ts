@@ -3,12 +3,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { MemberService, type Invitation, type Membre } from '../../core/members/member.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 
 @Component({
   selector: 'vh-users',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
+  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent, ConfirmationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './users.component.html',
   styleUrl: './users.component.css',
@@ -80,18 +81,30 @@ export class UsersComponent {
     this.erreurAction.set(erreur);
   }
 
+  /** Membre dont on s'apprête à suspendre le compte, le temps de confirmer. */
+  readonly aSuspendre = signal<Membre | null>(null);
+
+  texteSuspension(membre: Membre): string {
+    return (
+      `L’accès de ${membre.nom} sera coupé dans les minutes qui suivent. Son ` +
+      `historique de travail est conservé, et son compte peut être réactivé.`
+    );
+  }
+
   async basculerStatut(membre: Membre): Promise<void> {
-    const cible = membre.statut === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    if (
-      cible === 'SUSPENDED' &&
-      !confirm(
-        `Suspendre ${membre.nom} ? Son accès sera coupé dans les minutes qui ` +
-          `suivent. Son historique de travail est conservé.`,
-      )
-    ) {
+    if (membre.statut === 'ACTIVE') {
+      this.aSuspendre.set(membre);
       return;
     }
-    const erreur = await this.membres.changerStatut(membre.id, cible);
+    const erreur = await this.membres.changerStatut(membre.id, 'ACTIVE');
+    this.erreurAction.set(erreur);
+  }
+
+  async confirmerSuspension(): Promise<void> {
+    const membre = this.aSuspendre();
+    if (!membre) return;
+    const erreur = await this.membres.changerStatut(membre.id, 'SUSPENDED');
+    this.aSuspendre.set(null);
     this.erreurAction.set(erreur);
   }
 

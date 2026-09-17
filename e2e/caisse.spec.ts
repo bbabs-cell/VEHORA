@@ -119,9 +119,7 @@ test.describe('Encaissement', () => {
     await fermerMesCaisses(stationDuProjet(info.project.name));
   });
 
-  test('sans caisse ouverte, l’écran refuse les espèces avant le clic', async ({
-    page,
-  }, info) => {
+  test('sans caisse ouverte, l’écran refuse les espèces avant le clic', async ({ page }, info) => {
     let dossier: DossierDeTest | null = null;
     const station = stationDuProjet(info.project.name);
     try {
@@ -134,9 +132,7 @@ test.describe('Encaissement', () => {
       const modale = page.getByRole('dialog');
       await expect(modale).toBeVisible();
       await expect(modale).toContainText('Aucune caisse ouverte à cette station');
-      await expect(
-        modale.getByRole('button', { name: 'Enregistrer le paiement' }),
-      ).toBeDisabled();
+      await expect(modale.getByRole('button', { name: 'Enregistrer le paiement' })).toBeDisabled();
     } finally {
       await dossier?.nettoyer();
     }
@@ -173,9 +169,7 @@ test.describe('Encaissement', () => {
       // que l'écran connaît déjà.
       await expect(modale.getByLabel(/Montant reçu/)).toHaveValue('3000');
       // Et la carte derrière la modale n'affiche pas un solde périmé.
-      await expect(page.getByRole('list', { name: 'Dossiers — Prêt' })).toContainText(
-        'reste 3',
-      );
+      await expect(page.getByRole('list', { name: 'Dossiers — Prêt' })).toContainText('reste 3');
 
       await modale.getByRole('button', { name: 'Enregistrer le paiement' }).click();
       await expect(modale).toHaveText(/Reste à payer\s*0.F.CFA/, { timeout: 15_000 });
@@ -242,6 +236,55 @@ test.describe('Encaissement', () => {
       await expect(page.getByText(`N° ${dossier.numero}`)).toHaveCount(0);
     } finally {
       // Le dossier est restitué, donc terminal : rien à nettoyer.
+    }
+  });
+
+  test('un remboursement demande son motif dans un formulaire, pas dans une boîte du navigateur', async ({
+    page,
+  }, info) => {
+    const station = stationDuProjet(info.project.name);
+    let dossier: DossierDeTest | null = null;
+
+    try {
+      await fermerMesCaisses(station);
+      dossier = await creerDossierPret('Lavage complet', station);
+      await seConnecter(page);
+
+      // Une caisse ouverte, puis un encaissement : il faut un paiement pour
+      // pouvoir en rembourser un.
+      await page.goto('/caisse');
+      await choisirStation(page, info.project.name);
+      await page.getByLabel(/Fonds de caisse/).fill('0');
+      await page.getByRole('button', { name: 'Ouvrir la caisse' }).click();
+      await expect(page.getByRole('region', { name: 'Session de caisse ouverte' })).toBeVisible({
+        timeout: 15_000,
+      });
+
+      await page.goto('/file-attente');
+      await page.getByRole('button', { name: `Encaisser le dossier ${dossier.numero}` }).click();
+      const encaissement = page.getByRole('dialog');
+      await encaissement.getByLabel(/Montant reçu/).fill('1000');
+      await encaissement.getByRole('button', { name: 'Enregistrer le paiement' }).click();
+      await expect(encaissement).toContainText(/Reste à payer/, { timeout: 15_000 });
+
+      await encaissement
+        .getByRole('button', { name: /^Rembourser/ })
+        .first()
+        .click();
+
+      const remboursement = page.getByRole('dialog', { name: 'Rembourser un paiement' });
+      await expect(remboursement).toBeVisible();
+
+      // Sans motif, rien ne part : le message est attaché au champ.
+      await remboursement.getByRole('button', { name: 'Rembourser' }).click();
+      await expect(remboursement.getByRole('alert')).toContainText('motif');
+
+      await remboursement.getByLabel('Motif').fill('Test de parcours automatisé');
+      await remboursement.getByRole('button', { name: 'Rembourser' }).click();
+      await expect(remboursement).toBeHidden({ timeout: 20_000 });
+    } finally {
+      await fermerMesCaisses(station);
+      await dossier?.nettoyer();
     }
   });
 });

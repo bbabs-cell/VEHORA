@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { StationService, type Station } from '../../core/stations/station.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 
@@ -14,6 +15,7 @@ import { SkeletonComponent } from '../../shared/ui/skeleton.component';
     EmptyStateComponent,
     IconComponent,
     SkeletonComponent,
+    ConfirmationComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stations.component.html',
@@ -104,17 +106,28 @@ export class StationsComponent {
    * Désactiver plutôt que supprimer : une station porte un historique de
    * prestations et de caisse. La supprimer effacerait ce passé.
    */
+  /** Station dont on s'apprête à couper l'activité, le temps de confirmer. */
+  readonly aDesactiver = signal<Station | null>(null);
+
+  texteDesactivation(station: Station): string {
+    return (
+      `« ${station.name} » n’apparaîtra plus dans les écrans opérationnels. ` +
+      `Son historique de prestations et de caisse est conservé.`
+    );
+  }
+
   async basculerStatut(station: Station): Promise<void> {
-    const cible = station.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    if (
-      cible === 'INACTIVE' &&
-      !confirm(
-        `Désactiver « ${station.name} » ? Elle n’apparaîtra plus dans les écrans ` +
-          `opérationnels. Son historique est conservé.`,
-      )
-    ) {
+    if (station.status === 'ACTIVE') {
+      this.aDesactiver.set(station);
       return;
     }
-    await this.stations.changerStatut(station.id, cible);
+    await this.stations.changerStatut(station.id, 'ACTIVE');
+  }
+
+  async confirmerDesactivation(): Promise<void> {
+    const station = this.aDesactiver();
+    if (!station) return;
+    await this.stations.changerStatut(station.id, 'INACTIVE');
+    this.aDesactiver.set(null);
   }
 }

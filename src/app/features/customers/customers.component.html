@@ -196,3 +196,13 @@
     </div>
   </div>
 }
+
+@if (aArchiver(); as client) {
+  <vh-confirmation
+    titre="Archiver cette fiche client ?"
+    [texte]="texteArchivage(client)"
+    action="Archiver"
+    (confirmer)="confirmerArchivage()"
+    (annuler)="aArchiver.set(null)"
+  />
+}

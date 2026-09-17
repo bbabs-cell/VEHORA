@@ -85,78 +85,11 @@
   color: var(--vh-error);
 }
 
-/* ---------- Modale ---------- */
-
-.modale {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgb(0 0 0 / 0.6);
-  padding: var(--vh-space-3);
-}
-
-.modale__contenu {
-  width: 100%;
-  max-width: 480px;
-  max-height: 92dvh;
-  overflow-y: auto;
-  border-radius: var(--vh-radius-modal);
-}
-
-.modale__entete {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--vh-space-3);
-  margin-bottom: var(--vh-space-4);
-}
-
-.modale__titre {
-  font-size: var(--vh-text-lg);
-}
-
-.modale__fermer {
-  display: grid;
-  place-items: center;
-  width: var(--vh-touch-min);
-  height: var(--vh-touch-min);
-  background: none;
-  border: none;
-  color: var(--vh-text-muted);
-  border-radius: var(--vh-radius-control);
-  cursor: pointer;
-}
-
-.modale__fermer:hover {
-  background: var(--vh-surface-3);
-  color: var(--vh-text);
-}
-
-.modale form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
-}
-
-.modale__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--vh-space-3);
-  margin-top: var(--vh-space-2);
-}
-
 @media (min-width: 640px) {
   .carte {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-  }
-
-  .modale {
-    align-items: center;
   }
 }
 

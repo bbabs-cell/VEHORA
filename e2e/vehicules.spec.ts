@@ -126,8 +126,10 @@ test.describe('Véhicules — propriétaire', () => {
     await expect(carte).toBeVisible({ timeout: 15_000 });
     await expect(carte).toContainText('Cheikh Sy');
 
-    page.once('dialog', (d) => void d.accept());
     await carte.getByRole('button', { name: `Archiver ${plaque}` }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Archiver ce véhicule ?' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Archiver' }).click();
     await expect(carte).toHaveCount(0, { timeout: 15_000 });
   });
 
@@ -141,8 +143,10 @@ test.describe('Véhicules — propriétaire', () => {
     const carte = page.locator('.carte').filter({ hasText: plaque });
     await expect(carte).toContainText('Propriétaire non renseigné', { timeout: 15_000 });
 
-    page.once('dialog', (d) => void d.accept());
     await carte.getByRole('button', { name: `Archiver ${plaque}` }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Archiver ce véhicule ?' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Archiver' }).click();
     await expect(carte).toHaveCount(0, { timeout: 15_000 });
   });
 });

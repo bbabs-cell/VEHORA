@@ -140,7 +140,8 @@ export class FileAttenteComponent {
       this.dossierOuvert() !== null ||
       this.annulation() !== null ||
       this.encaissementOuvert() !== null ||
-      this.restitutionOuverte() !== null,
+      this.restitutionOuverte() !== null ||
+      this.remboursementOuvert() !== null,
   );
 
   constructor() {
@@ -481,18 +482,52 @@ export class FileAttenteComponent {
     if (frais) this.encaissementOuvert.set(frais);
   }
 
-  async rembourser(paiementId: string, montantMineur: number): Promise<void> {
-    const dossier = this.encaissementOuvert();
-    if (!dossier || this.enregistrement()) return;
+  /**
+   * Remboursement en cours de saisie. Le motif passait par `window.prompt()` :
+   * une boîte native, hors thème, hors langue du produit, qui bloque le fil
+   * d'exécution et qu'aucune assertion ne peut lire — sur le geste qui fait
+   * ressortir de l'argent du tiroir. Il a maintenant son formulaire, comme le
+   * reste.
+   */
+  readonly remboursementOuvert = signal<{ paiementId: string; montantMineur: number } | null>(
+    null,
+  );
 
-    const motif = window.prompt('Motif du remboursement (obligatoire)');
-    if (!motif || motif.trim().length < 3) return;
+  readonly formRemboursement = this.fb.nonNullable.group({
+    motif: ['', [Validators.required, Validators.minLength(3)]],
+  });
+
+  ouvrirRemboursement(paiementId: string, montantMineur: number): void {
+    this.erreurFormulaire.set(null);
+    this.formRemboursement.reset({ motif: '' });
+    this.remboursementOuvert.set({ paiementId, montantMineur });
+  }
+
+  fermerRemboursement(): void {
+    this.remboursementOuvert.set(null);
+  }
+
+  async rembourser(): Promise<void> {
+    const dossier = this.encaissementOuvert();
+    const demande = this.remboursementOuvert();
+    if (!dossier || !demande || this.enregistrement()) return;
+
+    if (this.formRemboursement.invalid) {
+      this.formRemboursement.markAllAsTouched();
+      return;
+    }
 
     this.enregistrement.set(true);
-    this.erreurFormulaire.set(
-      await this.paiements.rembourser(dossier.id, paiementId, montantMineur, motif.trim()),
+    const erreur = await this.paiements.rembourser(
+      dossier.id,
+      demande.paiementId,
+      demande.montantMineur,
+      this.formRemboursement.getRawValue().motif.trim(),
     );
     this.enregistrement.set(false);
+    this.erreurFormulaire.set(erreur);
+
+    if (!erreur) this.remboursementOuvert.set(null);
     await this.dossiers.chargerFile();
   }
 

@@ -56,8 +56,10 @@ test.describe('Stations — propriétaire', () => {
     await expect(carte).toContainText('Saint-Louis', { timeout: 15_000 });
 
     // Désactivation : on désactive, on ne supprime pas — l'historique compte.
-    page.once('dialog', (d) => void d.accept());
     await carte.getByRole('button', { name: `Désactiver ${nom}` }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Désactiver cette station ?' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Désactiver' }).click();
     await expect(carte).toContainText('Inactive', { timeout: 15_000 });
 
     // Nettoyage : la suppression n'existe pas dans l'interface, on passe par

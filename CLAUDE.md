@@ -138,10 +138,11 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 14 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
-rapports d'exploitation, abonnements et feature flags.
+**Phase 15 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+rapports, abonnements et feature flags, dette d'interface traitée (boîtes de
+dialogue du produit, styles de modale mutualisés).
 Prochaine étape au choix : facturation réelle (échéances, relances), historique
-des sessions de caisse, ou dette d'interface.
+des sessions de caisse, ou tableau de bord chiffré.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
 - 42 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
@@ -213,7 +214,16 @@ des sessions de caisse, ou dette d'interface.
 - **Restituer avec un solde** exige `payments.refund` + un motif, et c'est
   audité — sauf en `STRICT`, où c'est refusé. Un caissier ne l'accorde pas.
 - **Une modale fige la page derrière elle** (`ScrollLockService`) : sinon on
-  perd sa place dans la file en encaissant.
+  perd sa place dans la file en encaissant. `vh-confirmation` pose et lève le
+  verrou lui-même — l'appelant n'a rien à gérer.
+- **Jamais `confirm()`, `prompt()` ni `alert()`.** Une boîte native n'est ni
+  dans le thème ni dans la langue, bloque le fil d'exécution, et **aucune
+  assertion ne peut la lire** : quatre confirmations n'étaient testées par rien.
+  Utiliser `shared/ui/confirmation.component.ts`, dont le bouton porte l'action
+  (« Archiver », « Suspendre »), jamais « OK ».
+- **Les styles de modale vivent dans `src/styles/_base.css`**, une seule fois.
+  Recopiés dans dix feuilles, ils avaient déjà divergé sur trois propriétés.
+  Un composant n'y met que son écart réel.
 - **Deux contrôles ne portent jamais le même nom accessible** dans une même
   boîte de dialogue — la croix s'appelle déjà « Fermer ».
 - **Un employé n'est pas un utilisateur.** `employees.profile_id` est nullable
@@ -286,7 +296,7 @@ des sessions de caisse, ou dette d'interface.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **219 tests Playwright**,
+- Parcours connecté vérifié de bout en bout ; **225 tests Playwright**,
   **243 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
@@ -301,6 +311,8 @@ des sessions de caisse, ou dette d'interface.
   parallélisme.** Une station par projet Playwright, et `mode: 'serial'` dans
   le fichier : les deux sont nécessaires, sinon l'échec tombe au hasard. Même
   règle pour l'espace plateforme : une organisation de test par projet.
+  **`mode: 'serial'` ne sérialise qu'à l'intérieur d'un fichier** : un test qui
+  prend une ressource unique appartient au fichier qui la possède déjà.
 - **`scripts/validate-sql.sh` doit refléter Supabase, pas l'arranger.** Deux
   fois il a masqué un défaut : les `grant … on all tables` rejoués après les
   migrations (phase 12), et un `alter default privileges … grant execute … to
@@ -332,7 +344,8 @@ des sessions de caisse, ou dette d'interface.
 - **Pas de nombre magique partagé entre composants.** La hauteur de la barre
   basse était recopiée à deux endroits avec deux valeurs différentes : token
   `--vh-nav-basse`. Toute mesure utilisée par plus d'un composant devient un
-  token.
+  token. **Deuxième occurrence** : les styles de modale, recopiés dans dix
+  feuilles et divergents sur trois propriétés (phase 15).
 - **`database.types.ts` est annoté à la main**, malgré son en-tête. Le
   générateur actuel produit des types plus stricts (`RejectExcessProperties`,
   colonnes NOT NULL exigées à l'insertion même quand un trigger les remplit) :

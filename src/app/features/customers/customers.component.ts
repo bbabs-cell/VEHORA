@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { CustomerService, type Client } from '../../core/customers/customer.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 
@@ -46,7 +47,13 @@ const DELAI_RECHERCHE = 300;
 @Component({
   selector: 'vh-customers',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, IconComponent, SkeletonComponent],
+  imports: [
+    ReactiveFormsModule,
+    EmptyStateComponent,
+    IconComponent,
+    SkeletonComponent,
+    ConfirmationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.css',
@@ -137,16 +144,25 @@ export class CustomersComponent {
     this.formulaireOuvert.set(false);
   }
 
-  async archiver(client: Client): Promise<void> {
-    if (
-      !confirm(
-        `Archiver ${client.full_name} ? La fiche disparaît des listes, son ` +
-          `historique est conservé, et son numéro redevient disponible.`,
-      )
-    ) {
-      return;
-    }
+  /** Client dont on s'apprête à archiver la fiche, le temps de confirmer. */
+  readonly aArchiver = signal<Client | null>(null);
+
+  texteArchivage(client: Client): string {
+    return (
+      `La fiche de ${client.full_name} disparaît des listes. Son historique est ` +
+      `conservé, et son numéro redevient disponible pour une nouvelle fiche.`
+    );
+  }
+
+  archiver(client: Client): void {
+    this.aArchiver.set(client);
+  }
+
+  async confirmerArchivage(): Promise<void> {
+    const client = this.aArchiver();
+    if (!client) return;
     const erreur = await this.clients.archiver(client.id);
+    this.aArchiver.set(null);
     this.erreurFormulaire.set(erreur);
   }
 

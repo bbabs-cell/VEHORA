@@ -472,7 +472,7 @@
                 <button
                   class="paiement__rembourser"
                   type="button"
-                  (click)="rembourser(paiement.id, paiement.amount_minor)"
+                  (click)="ouvrirRemboursement(paiement.id, paiement.amount_minor)"
                   [disabled]="enregistrement()"
                   [attr.aria-label]="
                     'Rembourser ' +
@@ -626,6 +626,70 @@
           </button>
           <button class="vh-button" type="submit" [disabled]="enregistrement()">
             {{ enregistrement() ? 'Restitution…' : 'Restituer malgré le solde' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (remboursementOuvert(); as demande) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-remboursement">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-remboursement" class="modale__titre">Rembourser un paiement</h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerRemboursement()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form (submit)="$event.preventDefault(); rembourser()">
+        <p class="vh-muted">
+          Un remboursement ne modifie pas le paiement d’origine : il s’y ajoute, et
+          son motif reste au dossier.
+        </p>
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-remboursement">Motif</label>
+          <input
+            id="motif-remboursement"
+            class="vh-input"
+            type="text"
+            [formControl]="formRemboursement.controls.motif"
+            placeholder="Prestation annulée"
+          />
+          @if (
+            formRemboursement.controls.motif.touched && formRemboursement.controls.motif.invalid
+          ) {
+            <p class="vh-error" role="alert">
+              Un motif d’au moins trois caractères est obligatoire.
+            </p>
+          }
+        </div>
+
+        @if (erreurFormulaire(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button
+            class="vh-button vh-button--ghost"
+            type="button"
+            (click)="fermerRemboursement()"
+          >
+            Annuler
+          </button>
+          <button
+            class="vh-button vh-button--danger"
+            type="submit"
+            [disabled]="enregistrement()"
+          >
+            {{ enregistrement() ? 'Remboursement…' : 'Rembourser' }}
           </button>
         </div>
       </form>

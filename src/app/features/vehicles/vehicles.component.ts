@@ -12,6 +12,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CustomerService, type Client } from '../../core/customers/customer.service';
 import { VehicleService, type VehiculeListe } from '../../core/vehicles/vehicle.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 
@@ -26,6 +27,7 @@ const DELAI_RECHERCHE = 300;
     EmptyStateComponent,
     IconComponent,
     SkeletonComponent,
+    ConfirmationComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicles.component.html',
@@ -202,16 +204,25 @@ export class VehiclesComponent {
     this.formulaireOuvert.set(false);
   }
 
-  async archiver(vehicule: VehiculeListe): Promise<void> {
-    if (
-      !confirm(
-        `Archiver ${vehicule.plate ?? 'ce véhicule'} ? Il disparaît des listes, ` +
-          `son historique est conservé, et sa plaque redevient disponible.`,
-      )
-    ) {
-      return;
-    }
+  /** Véhicule dont on s'apprête à archiver la fiche, le temps de confirmer. */
+  readonly aArchiver = signal<VehiculeListe | null>(null);
+
+  texteArchivage(vehicule: VehiculeListe): string {
+    return (
+      `${vehicule.plate ?? 'Ce véhicule'} disparaît des listes. Son historique de ` +
+      `prestations est conservé, et sa plaque redevient disponible.`
+    );
+  }
+
+  archiver(vehicule: VehiculeListe): void {
+    this.aArchiver.set(vehicule);
+  }
+
+  async confirmerArchivage(): Promise<void> {
+    const vehicule = this.aArchiver();
+    if (!vehicule) return;
     const erreur = await this.vehicules.archiver(vehicule.id);
+    this.aArchiver.set(null);
     this.erreurFormulaire.set(erreur);
   }
 

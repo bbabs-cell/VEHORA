@@ -94,8 +94,12 @@ test.describe('Clients — propriétaire', () => {
     const carte = page.locator('.carte').filter({ hasText: nom });
     await expect(carte).toBeVisible({ timeout: 15_000 });
 
-    page.once('dialog', (d) => void d.accept());
     await carte.getByRole('button', { name: `Archiver ${nom}` }).click();
+    // La confirmation est une boîte de dialogue du produit, pas celle du
+    // navigateur : son bouton dit ce qu'il fait, et un test peut le lire.
+    const confirmation = page.getByRole('dialog', { name: 'Archiver cette fiche client ?' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Archiver' }).click();
     await expect(carte).toHaveCount(0, { timeout: 15_000 });
   });
 
