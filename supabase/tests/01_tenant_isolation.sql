@@ -1902,6 +1902,348 @@ select pg_temp.check('l''organisation B ne voit aucun état financier de A',
   (select count(*) from public.service_order_payment_state), 0);
 
 -- ===========================================================================
+-- Phase 13 — reçus et rapports
+-- ===========================================================================
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Un dossier restitué et soldé, pour lui émettre un reçu.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (id, station_id, vehicle_id)
+  values ('d0551e00-0000-0000-0000-000000000004',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');  -- 12 000
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'DONE'
+   where service_order_id = v_dossier;
+  perform public.transitionner_dossier(v_dossier, 'CONTROL');
+  perform public.transitionner_dossier(v_dossier, 'READY');
+
+  insert into public.cash_registers (id, station_id, opened_by, opening_float_minor)
+  values ('ca155e00-0000-0000-0000-000000000002',
+          'a1a1a1a1-0000-0000-0000-000000000001',
+          '11111111-1111-1111-1111-111111111111', 0);
+  insert into public.payments (service_order_id, method, amount_minor)
+  values (v_dossier, 'CASH', 12000);
+  perform public.transitionner_dossier(v_dossier, 'DELIVERED');
+  raise notice 'ok — un dossier soldé est restitué';
+end;
+$$;
+
+-- Émission : numéro, contenu figé, audit.
+do $$
+declare r public.receipts;
+begin
+  r := public.emettre_recu('d0551e00-0000-0000-0000-000000000004');
+
+  if r.number <> 1 then
+    raise exception 'ÉCHEC — premier reçu numéroté % au lieu de 1', r.number;
+  end if;
+  raise notice 'ok — le premier reçu porte le numéro 1';
+
+  if r.total_minor <> 12000 or r.paid_minor <> 12000 then
+    raise exception 'ÉCHEC — totaux du reçu incorrects (% / %)', r.total_minor, r.paid_minor;
+  end if;
+  raise notice 'ok — le reçu porte le total et l''encaissé';
+
+  if jsonb_array_length(r.contenu -> 'lignes') <> 1
+     or (r.contenu -> 'lignes' -> 0 ->> 'prestation') <> 'Polish carrosserie' then
+    raise exception 'ÉCHEC — lignes non recopiées dans le reçu';
+  end if;
+  raise notice 'ok — les lignes sont recopiées dans le reçu, pas référencées';
+
+  if jsonb_array_length(r.contenu -> 'paiements') <> 1 then
+    raise exception 'ÉCHEC — paiements absents du reçu';
+  end if;
+  raise notice 'ok — les paiements sont recopiés dans le reçu';
+
+  if not exists (select 1 from public.audit_logs where action = 'receipt.issue') then
+    raise exception 'ÉCHEC — émission de reçu non auditée';
+  end if;
+  raise notice 'ok — l''émission d''un reçu est auditée';
+end;
+$$;
+
+-- Le contenu figé survit au renommage de la prestation.
+do $$
+declare v_nom text;
+begin
+  update public.services set name = 'Prestation renommée'
+   where id = '5e000000-0000-0000-0000-000000000002';
+
+  select contenu -> 'lignes' -> 0 ->> 'prestation' into v_nom
+    from public.receipts where number = 1;
+
+  if v_nom <> 'Polish carrosserie' then
+    raise exception 'ÉCHEC — le reçu a suivi le renommage (%)', v_nom;
+  end if;
+  raise notice 'ok — un reçu ne suit pas le renommage d''une prestation';
+
+  update public.services set name = 'Polish carrosserie'
+   where id = '5e000000-0000-0000-0000-000000000002';
+end;
+$$;
+
+-- Un reçu ne se modifie ni ne se supprime, même en service_role.
+--
+-- Deux barrières, donc deux assertions. Sous RLS l'UPDATE ne lève rien : il n'y
+-- a pas de policy UPDATE, donc zéro ligne correspond et le trigger n'est jamais
+-- atteint. Affirmer l'exception ici prouverait autre chose que ce qu'on croit —
+-- c'est la quatrième occurrence du piège « un UPDATE refusé par RLS est
+-- silencieux » dans ce projet.
+do $$
+declare n integer; v_total bigint;
+begin
+  select total_minor into v_total from public.receipts where number = 1;
+  update public.receipts set total_minor = 1 where number = 1;
+  get diagnostics n = row_count;
+  if n <> 0 then
+    raise exception 'ÉCHEC — % ligne(s) de reçu modifiée(s) sous RLS', n;
+  end if;
+  if (select total_minor from public.receipts where number = 1) <> v_total then
+    raise exception 'ÉCHEC — total du reçu modifié';
+  end if;
+  raise notice 'ok — un reçu ne se modifie pas : aucune policy UPDATE';
+end;
+$$;
+
+-- Et quand la RLS est contournée, c'est le trigger qui refuse.
+do $$
+begin
+  set local role postgres;
+  update public.receipts set total_minor = 1 where number = 1;
+  raise exception 'ÉCHEC — reçu modifié en service_role';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un reçu ne se modifie pas, même en service_role';
+end;
+$$;
+
+do $$
+begin
+  set local role postgres;
+  delete from public.receipts where number = 1;
+  raise exception 'ÉCHEC — reçu supprimé en service_role';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un reçu ne se supprime pas, même en service_role';
+end;
+$$;
+
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- La numérotation est séquentielle et SANS TROU, même après un échec.
+do $$
+declare v_vehicule uuid; v_dossier uuid; r public.receipts; v_avant bigint;
+begin
+  -- Le compteur lui-même (`vehora.receipt_sequences`) n'est pas lisible depuis
+  -- l'API : on observe la numérotation par ce qui est visible, les reçus.
+  select coalesce(max(number), 0) into v_avant from public.receipts
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+  -- Une émission qui échoue ne doit pas brûler de numéro.
+  begin
+    perform public.emettre_recu('00000000-0000-0000-0000-000000000000');
+    raise exception 'ÉCHEC — reçu émis pour un dossier inexistant';
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (id, station_id, vehicle_id)
+  values ('d0551e00-0000-0000-0000-000000000005',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+
+  r := public.emettre_recu(v_dossier);
+  if r.number <> v_avant + 1 then
+    raise exception 'ÉCHEC — trou dans la numérotation : % après %', r.number, v_avant;
+  end if;
+  raise notice 'ok — la numérotation reste sans trou après un échec';
+end;
+$$;
+
+-- Un dossier sans prestation n'a rien à imprimer.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+
+  perform public.emettre_recu(v_dossier);
+  raise exception 'ÉCHEC — reçu émis pour un dossier sans ligne';
+exception
+  when check_violation then
+    raise notice 'ok — aucun reçu pour un dossier sans prestation';
+end;
+$$;
+
+-- Une correction référence l'ancien reçu, qui reste.
+do $$
+declare r public.receipts; n integer;
+begin
+  r := public.emettre_recu('d0551e00-0000-0000-0000-000000000004',
+                           (select id from public.receipts where number = 1));
+  if r.replaces_receipt_id is null then
+    raise exception 'ÉCHEC — le reçu correctif ne référence pas l''ancien';
+  end if;
+  raise notice 'ok — un reçu correctif référence celui qu''il remplace';
+
+  select count(*) into n from public.receipts where number = 1;
+  if n <> 1 then
+    raise exception 'ÉCHEC — le reçu d''origine a disparu';
+  end if;
+  raise notice 'ok — le reçu corrigé reste consultable';
+
+  begin
+    perform public.emettre_recu('d0551e00-0000-0000-0000-000000000004',
+                                (select id from public.receipts where number = 1));
+    raise exception 'ÉCHEC — double correction du même reçu';
+  exception
+    when check_violation then raise notice 'ok — un reçu ne se corrige qu''une fois';
+  end;
+end;
+$$;
+
+-- Un dossier annulé ne donne pas de reçu.
+do $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles limit 1;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+  perform public.transitionner_dossier(v_dossier, 'CANCELLED', 'Client reparti');
+
+  perform public.emettre_recu(v_dossier);
+  raise exception 'ÉCHEC — reçu émis pour un dossier annulé';
+exception
+  when check_violation then
+    raise notice 'ok — aucun reçu pour un dossier annulé';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Rapports
+-- ---------------------------------------------------------------------------
+do $$
+declare r record; n integer;
+begin
+  select count(*) into n from public.rapport_journalier(
+    current_date - 7, current_date);
+  if n = 0 then
+    raise exception 'ÉCHEC — le rapport journalier est vide malgré une restitution';
+  end if;
+  raise notice 'ok — le rapport journalier renvoie des lignes';
+
+  select * into r from public.rapport_journalier(current_date - 7, current_date)
+   where jour = current_date and dossiers_livres > 0 limit 1;
+
+  if r.encaisse_minor <= 0 or r.especes_minor <= 0 then
+    raise exception 'ÉCHEC — encaissements non ventilés (% / %)',
+      r.encaisse_minor, r.especes_minor;
+  end if;
+  raise notice 'ok — le rapport ventile les encaissements par moyen de paiement';
+
+  if r.panier_moyen_minor <= 0 then
+    raise exception 'ÉCHEC — panier moyen nul malgré des restitutions';
+  end if;
+  raise notice 'ok — le panier moyen est calculé';
+end;
+$$;
+
+do $$
+declare n integer;
+begin
+  select count(*) into n from public.rapport_prestations(current_date - 7, current_date);
+  if n = 0 then
+    raise exception 'ÉCHEC — le rapport des prestations est vide';
+  end if;
+  raise notice 'ok — le rapport des prestations renvoie des lignes';
+end;
+$$;
+
+-- Une période absurde ou trop longue est refusée.
+do $$
+begin
+  perform public.rapport_journalier(current_date, current_date - 1);
+  raise exception 'ÉCHEC — période inversée acceptée';
+exception
+  when check_violation then raise notice 'ok — une période inversée est refusée';
+end;
+$$;
+
+do $$
+begin
+  perform public.rapport_journalier(current_date - 400, current_date);
+  raise exception 'ÉCHEC — période de plus d''un an acceptée';
+exception
+  when check_violation then raise notice 'ok — une période trop longue est refusée';
+end;
+$$;
+
+-- Encaisser n'est pas savoir combien la station encaisse.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'RECEPTIONIST');
+do $$
+begin
+  perform public.rapport_journalier(current_date - 7, current_date);
+  raise exception 'ÉCHEC — un réceptionniste a lu le chiffre d''affaires';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le rapport exige reports.read, pas seulement payments.read';
+end;
+$$;
+
+-- Un caissier voit les reçus de sa station.
+-- On emprunte le profil rattaché à la station A1 : `pg_temp.login` construit
+-- `station_ids` depuis `station_users`, et un rôle de station sans station ne
+-- lirait rien — ce serait prouver l'inverse de ce qu'on veut ici.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+select pg_temp.check('un CASHIER lit les reçus de sa station',
+  (select count(*) > 0 from public.receipts)::int::bigint, 1);
+
+-- Une autre organisation ne voit ni reçu ni chiffre.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucun reçu de A',
+  (select count(*) from public.receipts), 0);
+select pg_temp.check('l''organisation B ne lit aucun chiffre de A',
+  (select count(*) from public.rapport_journalier(current_date - 7, current_date)), 0);
+
+do $$
+begin
+  perform public.emettre_recu('d0551e00-0000-0000-0000-000000000004');
+  raise exception 'ÉCHEC — reçu émis sur le dossier d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — émettre un reçu hors de son organisation est refusé';
+end;
+$$;
+
+-- ===========================================================================
 -- Phase 12 — espace Super Admin
 -- ===========================================================================
 set local role postgres;
