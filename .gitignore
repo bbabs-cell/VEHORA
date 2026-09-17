@@ -47,3 +47,8 @@ node_modules/
 npm-debug.log
 testem.log
 yarn-error.log
+
+# La négation doit venir APRÈS `.env.*`, sinon elle est écrasée : le dernier
+# motif qui correspond gagne. `.env.example` ne contient aucun secret, il donne
+# la forme attendue de `.env.local`.
+!.env.example
