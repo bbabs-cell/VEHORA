@@ -138,12 +138,13 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 12 validée.** Cycle métier complet, et espace Super Admin en place
-(liste des organisations, suspension/réactivation, journal de plateforme).
-Prochaine étape au choix : reçus et rapports, abonnements, ou dette d'interface.
+**Phase 13 validée.** Cycle métier complet, espace Super Admin en place, reçus
+immuables numérotés et rapports d'exploitation.
+Prochaine étape au choix : abonnements et feature flags, historique des
+sessions de caisse, ou dette d'interface.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 36 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+- 38 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
@@ -165,6 +166,25 @@ Prochaine étape au choix : reçus et rapports, abonnements, ou dette d'interfac
 - **L'espace de plateforme est un arbre de routes séparé** (`/plateforme`), avec
   sa coquille, sa navigation et ses gardes. Deux gardes symétriques : un client
   n'y entre pas, un compte de plateforme ne descend pas dans l'espace client.
+- **Un reçu est un constat, comme une inspection.** `receipts.contenu` porte une
+  copie figée du dossier (lignes, paiements, identités, totaux) : renommer une
+  prestation ne change aucun reçu émis. Aucune policy d'écriture ; l'émission
+  passe par `emettre_recu()`, un trigger refuse tout UPDATE et DELETE, et la
+  correction est un nouveau reçu qui référence l'ancien, une seule fois.
+- **La numérotation par UPSERT sur un compteur est sans trou** : le verrou de
+  ligne est pris dans la transaction qui écrit, un échec annule l'incrément.
+  Cela vaut pour les dossiers comme pour les reçus, et dément une note écrite en
+  phase 9. Un trou n'apparaîtrait que si le numéro était pris dans une
+  transaction séparée qui commite avant.
+- **Encaisser n'est pas savoir combien la station encaisse.** Les rapports sont
+  en SECURITY INVOKER *et* exigent `reports.read` — quatre rôles l'ont. Une
+  période inversée ou de plus de 366 jours est refusée avant toute requête.
+- **Ne jamais limiter une requête dont on filtrera le résultat côté client.**
+  Deux occurrences trouvées le même jour, toutes deux silencieuses : les vues
+  agrégées de la file lues en bloc `limit(200)` (le dossier le plus récent
+  tombait hors réponse et s'affichait « Impayé » alors qu'il était réglé), et
+  les opérations lues « les 200 plus anciennes » avant filtrage (l'écran se
+  vidait). On filtre sur le serveur, ou on lit pour les identifiants chargés.
 - **Paiement, mouvement de caisse et session de caisse sont trois choses.**
   Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
   un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
@@ -247,9 +267,10 @@ Prochaine étape au choix : reçus et rapports, abonnements, ou dette d'interfac
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **201 tests Playwright**,
-  **188 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-plateforme.mjs`, 20 assertions ;
+- Parcours connecté vérifié de bout en bout ; **211 tests Playwright**,
+  **213 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-recus.mjs`, 24 assertions ;
+  `scripts/intrusion-plateforme.mjs`, 20 ;
   `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
   `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
@@ -289,6 +310,12 @@ Prochaine étape au choix : reçus et rapports, abonnements, ou dette d'interfac
   basse était recopiée à deux endroits avec deux valeurs différentes : token
   `--vh-nav-basse`. Toute mesure utilisée par plus d'un composant devient un
   token.
+- **`database.types.ts` est annoté à la main**, malgré son en-tête. Le
+  générateur actuel produit des types plus stricts (`RejectExcessProperties`,
+  colonnes NOT NULL exigées à l'insertion même quand un trigger les remplit) :
+  adopter sa sortie telle quelle coûte vingt-et-une corrections sur huit
+  services. À faire dans une phase dédiée, pas au détour d'une autre. En
+  attendant, reprendre du générateur la forme exacte de ce qu'on ajoute.
 - **`database.types.ts` : les blocs `Relationships` ne sont pas décoratifs.**
   Ils typent les jointures PostgREST ; leur absence produit un message
   trompeur. Quatre incidents — régénérer plutôt que compléter à la main ; en

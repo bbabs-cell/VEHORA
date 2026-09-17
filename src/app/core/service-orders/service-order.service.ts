@@ -135,30 +135,53 @@ export class ServiceOrderService {
     this._chargement.set(true);
     this._erreur.set(null);
 
-    const [dossiers, totaux, soldes] = await Promise.all([
-      this.supabase.client
-        .from('service_orders')
-        .select(SELECT_DOSSIER)
-        .not('status', 'in', '("DELIVERED","CANCELLED")')
-        .order('arrived_at')
-        .limit(100),
-      this.supabase.client
-        .from('service_order_totals')
-        .select('service_order_id, total_amount_minor, currency, lignes')
-        .limit(200),
-      this.supabase.client
-        .from('service_order_payment_state')
-        .select('service_order_id, balance_minor, payment_status')
-        .limit(200),
+    const dossiers = await this.supabase.client
+      .from('service_orders')
+      .select(SELECT_DOSSIER)
+      .not('status', 'in', '("DELIVERED","CANCELLED")')
+      .order('arrived_at')
+      .limit(100);
+
+    if (identifiant !== this.requeteCourante) return;
+
+    const { data, error } = dossiers;
+    if (error) {
+      this._chargement.set(false);
+      this._erreur.set(message(error.code, error.message));
+      return;
+    }
+
+    /**
+     * Les deux vues agrégées se lisent POUR LES DOSSIERS CHARGÉS, pas en bloc.
+     * Les lire en bloc avec une limite était une bombe à retardement : passé
+     * ce nombre de dossiers dans l'organisation, la ligne du dossier le plus
+     * récent tombait hors de la réponse, et sa carte affichait « Impayé » sur
+     * un dossier réglé. Silencieux, et faux au pire endroit — c'est le montant
+     * que lit le caissier avant de laisser partir une voiture.
+     */
+    const identifiants = (data ?? []).map((d) => d.id);
+    const [totaux, soldes] = await Promise.all([
+      identifiants.length === 0
+        ? { data: [], error: null }
+        : this.supabase.client
+            .from('service_order_totals')
+            .select('service_order_id, total_amount_minor, currency, lignes')
+            .in('service_order_id', identifiants),
+      identifiants.length === 0
+        ? { data: [], error: null }
+        : this.supabase.client
+            .from('service_order_payment_state')
+            .select('service_order_id, balance_minor, payment_status')
+            .in('service_order_id', identifiants),
     ]);
 
     if (identifiant !== this.requeteCourante) return;
     this._chargement.set(false);
 
-    const { data, error } = dossiers;
-    if (error || totaux.error || soldes.error) {
-      const echec = error ?? totaux.error ?? soldes.error!;
-      this._erreur.set(message(echec.code, echec.message));
+    if (totaux.error || soldes.error) {
+      this._erreur.set(
+        message((totaux.error ?? soldes.error!).code, (totaux.error ?? soldes.error!).message),
+      );
       return;
     }
 

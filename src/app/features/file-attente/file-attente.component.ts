@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogueService } from '../../core/catalogue/catalogue.service';
 import { OrganizationService } from '../../core/organization/organization.service';
@@ -30,11 +30,8 @@ import {
   PaymentService,
   type MethodePaiement,
 } from '../../core/payments/payment.service';
-import {
-  formaterMontant,
-  symboleDevise,
-  versMontantMineur,
-} from '../../shared/format/montant';
+import { ReceiptService } from '../../core/receipts/receipt.service';
+import { formaterMontant, symboleDevise, versMontantMineur } from '../../shared/format/montant';
 
 /** Un groupe de la file : un statut et ses dossiers. */
 interface GroupeFile {
@@ -110,6 +107,9 @@ export class FileAttenteComponent {
   readonly paiements = inject(PaymentService);
   readonly encaissementOuvert = signal<DossierListe | null>(null);
   readonly restitutionOuverte = signal<DossierListe | null>(null);
+
+  readonly recus = inject(ReceiptService);
+  private readonly routeur = inject(Router);
 
   readonly peutEncaisser = computed(() => this.auth.hasPermission('payments.record'));
   readonly peutRembourser = computed(() => this.auth.hasPermission('payments.refund'));
@@ -354,6 +354,24 @@ export class FileAttenteComponent {
   // ---------------------------------------------------------------------
   // Transitions
   // ---------------------------------------------------------------------
+
+  /**
+   * Émet le reçu du dossier et l'ouvre. Le bouton n'apparaît que lorsque la
+   * base acceptera : un dossier annulé ou sans prestation n'a rien à imprimer,
+   * et l'afficher quand même serait un clic qui échoue.
+   */
+  async emettreRecu(dossier: DossierListe): Promise<void> {
+    if (this.enregistrement()) return;
+    this.enregistrement.set(true);
+    const resultat = await this.recus.emettre(dossier.id);
+    this.enregistrement.set(false);
+
+    if (typeof resultat === 'string') {
+      this.erreurFormulaire.set(resultat);
+      return;
+    }
+    await this.routeur.navigate(['/recus', resultat.id]);
+  }
 
   async avancer(dossier: DossierListe): Promise<void> {
     const suite = this.actionSuivante(dossier);

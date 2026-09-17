@@ -33,6 +33,7 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
   { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true },
   { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'payments.read', disponible: true },
+  { libelle: 'Rapports', chemin: '/rapports', icone: 'caisse', permission: 'reports.read', disponible: true },
   { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: false },
 ];
 

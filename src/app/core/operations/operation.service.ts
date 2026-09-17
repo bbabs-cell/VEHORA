@@ -46,9 +46,16 @@ function message(code: string | undefined, brut: string): string {
   return 'L’opération a échoué. Réessayez dans un instant.';
 }
 
+/**
+ * `!inner` n'est pas décoratif : il permet de filtrer sur le dossier depuis le
+ * serveur. Sans lui, le tri et la limite s'appliquaient à TOUTES les opérations
+ * de l'organisation, les plus anciennes d'abord, et le travail du jour sortait
+ * de la réponse dès la deux-centième opération — un écran d'exploitation vide
+ * alors que la station tourne.
+ */
 const SELECT_OPERATION = `
   *,
-  service_orders!service_order_operations_service_order_id_fkey (
+  service_orders!service_order_operations_service_order_id_fkey!inner (
     number, status, station_id,
     vehicles!service_orders_vehicle_id_fkey ( plate )
   )
@@ -80,6 +87,7 @@ export class OperationService {
     const { data, error } = await this.supabase.client
       .from('service_order_operations')
       .select(SELECT_OPERATION)
+      .not('service_orders.status', 'in', '("DELIVERED","CANCELLED")')
       .order('created_at')
       .limit(200);
 

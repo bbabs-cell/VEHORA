@@ -1,0 +1,117 @@
+<div class="page">
+  @if (chargement()) {
+    <p class="vh-muted" role="status">Chargement du reçu…</p>
+  } @else if (erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  } @else if (!recu()) {
+    <p class="vh-alert" role="alert">Ce reçu est introuvable, ou hors de votre périmètre.</p>
+  } @else {
+    <div class="actions">
+      <a class="vh-button vh-button--ghost" routerLink="/caisse">Retour à la caisse</a>
+      <button class="vh-button" type="button" (click)="imprimer()">Imprimer</button>
+    </div>
+
+    <article class="recu">
+      <header class="recu__entete">
+        <p class="recu__organisation">{{ contenu().organisation?.nom }}</p>
+        <p class="vh-muted recu__station">
+          {{ contenu().station?.nom }}
+          @if (contenu().station?.telephone) {
+            · {{ contenu().station?.telephone }}
+          }
+        </p>
+        <p class="recu__numero">Reçu n° {{ recu()?.number }}</p>
+        <p class="vh-muted recu__date">Émis le {{ instant(recu()?.issued_at) }}</p>
+        @if (recu()?.replaces_receipt_id) {
+          <p class="recu__correctif">Ce reçu corrige et remplace un reçu précédent.</p>
+        }
+      </header>
+
+      <dl class="recu__infos">
+        <div>
+          <dt class="vh-muted">Dossier</dt>
+          <dd>n° {{ contenu().dossier?.numero }}</dd>
+        </div>
+        <div>
+          <dt class="vh-muted">Véhicule</dt>
+          <dd>
+            {{ contenu().vehicule?.plaque || 'Sans plaque' }}
+            @if (contenu().vehicule?.marque) {
+              — {{ contenu().vehicule?.marque }} {{ contenu().vehicule?.modele }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="vh-muted">Client</dt>
+          <dd>{{ contenu().client?.nom || 'Client de passage' }}</dd>
+        </div>
+        <div>
+          <dt class="vh-muted">Restitué le</dt>
+          <dd>{{ instant(contenu().dossier?.restitue_le) }}</dd>
+        </div>
+      </dl>
+
+      <table class="recu__lignes">
+        <caption class="vh-sr-only">
+          Prestations facturées
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Prestation</th>
+            <th scope="col">Qté</th>
+            <th scope="col">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ligne of lignes(); track ligne.prestation) {
+            <tr>
+              <td>{{ ligne.prestation }}</td>
+              <td class="nombre">{{ ligne.quantite }}</td>
+              <td class="nombre">{{ montant(ligne.total_minor) }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="2">Total</th>
+            <td class="nombre total">{{ montant(contenu().totaux?.total_minor) }}</td>
+          </tr>
+          <tr>
+            <th scope="row" colspan="2">Encaissé</th>
+            <td class="nombre">{{ montant(contenu().totaux?.encaisse_minor) }}</td>
+          </tr>
+          @if (solde() !== 0) {
+            <tr>
+              <th scope="row" colspan="2">Reste à payer</th>
+              <td class="nombre solde">{{ montant(solde()) }}</td>
+            </tr>
+          }
+        </tfoot>
+      </table>
+
+      @if (paiements().length > 0) {
+        <section class="recu__paiements">
+          <h2 class="recu__section">Paiements</h2>
+          <ul class="paiements">
+            @for (p of paiements(); track p.le) {
+              <li class="paiement">
+                <span>
+                  {{ moyen(p.moyen) }}
+                  @if (p.sens === 'REFUND') {
+                    <span class="paiement__sens">remboursement</span>
+                  }
+                </span>
+                <span class="nombre">{{ montant(p.montant_minor) }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <footer class="recu__pied vh-muted">
+        <p>Merci de votre confiance.</p>
+        <p>Document non modifiable. Toute correction donne lieu à un nouveau reçu.</p>
+      </footer>
+    </article>
+  }
+</div>

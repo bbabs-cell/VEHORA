@@ -3,8 +3,8 @@
     <div>
       <h1 class="file__titre">File d’attente</h1>
       <p class="vh-muted file__sous-titre">
-        Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué
-        ou annulé sort de cet écran.
+        Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué ou annulé sort de
+        cet écran.
       </p>
     </div>
     @if (peutOuvrir()) {
@@ -130,6 +130,17 @@
                     [attr.aria-label]="'Encaisser le dossier ' + dossier.number"
                   >
                     Encaisser
+                  </button>
+                }
+                @if (peutEncaisser() && dossier.lignes > 0 && dossier.status !== 'CANCELLED') {
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="emettreRecu(dossier)"
+                    [disabled]="enregistrement()"
+                    [attr.aria-label]="'Émettre le reçu du dossier ' + dossier.number"
+                  >
+                    Reçu
                   </button>
                 }
                 @if (actionSuivante(dossier); as suite) {
@@ -283,8 +294,8 @@
 
       @if (dossiers.lignes().length === 0) {
         <p class="vh-muted">
-          Aucune prestation. Ajoutez ce qui a été convenu avec le client : le montant
-          annoncé vient de là.
+          Aucune prestation. Ajoutez ce qui a été convenu avec le client : le montant annoncé vient
+          de là.
         </p>
       } @else {
         <ul class="lignes" aria-label="Prestations du dossier">
@@ -353,7 +364,9 @@
   <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-annulation">
     <div class="modale__contenu vh-card">
       <header class="modale__entete">
-        <h2 id="titre-annulation" class="modale__titre">Annuler le dossier n° {{ dossier.number }}</h2>
+        <h2 id="titre-annulation" class="modale__titre">
+          Annuler le dossier n° {{ dossier.number }}
+        </h2>
         <button
           class="modale__fermer"
           type="button"
@@ -423,8 +436,14 @@
 
       @if (paiements.etat(); as etat) {
         <dl class="etat" aria-label="État financier du dossier">
-          <div><dt>Total</dt><dd>{{ formaterMinor(etat.total_amount_minor) }}</dd></div>
-          <div><dt>Encaissé</dt><dd>{{ formaterMinor(etat.paid_amount_minor) }}</dd></div>
+          <div>
+            <dt>Total</dt>
+            <dd>{{ formaterMinor(etat.total_amount_minor) }}</dd>
+          </div>
+          <div>
+            <dt>Encaissé</dt>
+            <dd>{{ formaterMinor(etat.paid_amount_minor) }}</dd>
+          </div>
           <div class="etat__solde">
             <dt>Reste à payer</dt>
             <dd>{{ formaterMinor(etat.balance_minor) }}</dd>
@@ -437,9 +456,8 @@
           @for (paiement of paiements.paiements(); track paiement.id) {
             <li class="paiement" [class.paiement--remboursement]="paiement.kind === 'REFUND'">
               <span class="paiement__montant">
-                {{ paiement.kind === 'REFUND' ? '−' : '' }}{{
-                  formaterMinor(paiement.amount_minor)
-                }}
+                {{ paiement.kind === 'REFUND' ? '−' : ''
+                }}{{ formaterMinor(paiement.amount_minor) }}
               </span>
               <span class="vh-muted paiement__methode">
                 {{ libelleMethode(paiement.method) }}
@@ -457,7 +475,9 @@
                   (click)="rembourser(paiement.id, paiement.amount_minor)"
                   [disabled]="enregistrement()"
                   [attr.aria-label]="
-                    'Rembourser ' + formaterMinor(paiement.amount_minor) + ' — ' +
+                    'Rembourser ' +
+                    formaterMinor(paiement.amount_minor) +
+                    ' — ' +
                     libelleMethode(paiement.method)
                   "
                 >
@@ -486,8 +506,8 @@
 
         @if (caisseRequiseManquante()) {
           <p class="vh-alert" role="alert">
-            Aucune caisse ouverte à cette station pour vous. Ouvrez-la depuis l’écran
-            Caisse avant d’encaisser en espèces.
+            Aucune caisse ouverte à cette station pour vous. Ouvrez-la depuis l’écran Caisse avant
+            d’encaisser en espèces.
           </p>
         }
 
@@ -574,8 +594,8 @@
 
       <form [formGroup]="formRestitution" (ngSubmit)="restituer()" novalidate>
         <p class="vh-alert" role="status">
-          Il reste <strong>{{ solde(dossier) }}</strong> à encaisser. Le véhicule part
-          avec une créance, tracée à votre nom.
+          Il reste <strong>{{ solde(dossier) }}</strong> à encaisser. Le véhicule part avec une
+          créance, tracée à votre nom.
         </p>
 
         <div class="vh-field">

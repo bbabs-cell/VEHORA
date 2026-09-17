@@ -1,0 +1,165 @@
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.actions {
+  display: flex;
+  gap: var(--vh-space-3);
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Un lien stylé en bouton ne garde pas le soulignement du lien. */
+.actions a.vh-button {
+  text-decoration: none;
+}
+
+.recu {
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.recu__entete {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-1);
+}
+
+.recu__organisation {
+  margin: 0;
+  font-size: var(--vh-text-lg);
+  font-weight: 600;
+}
+
+.recu__station,
+.recu__date {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.recu__numero {
+  margin: var(--vh-space-2) 0 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recu__correctif {
+  margin: var(--vh-space-2) 0 0;
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+}
+
+.recu__infos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-2) var(--vh-space-3);
+  margin: 0;
+}
+
+.recu__infos dt {
+  font-size: var(--vh-text-sm);
+}
+
+.recu__infos dd {
+  margin: 0;
+}
+
+.recu__lignes {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recu__lignes th,
+.recu__lignes td {
+  text-align: left;
+  padding: var(--vh-space-2) 0;
+  border-bottom: 1px solid var(--vh-border);
+}
+
+.recu__lignes tfoot th,
+.recu__lignes tfoot td {
+  border-bottom: none;
+  padding-top: var(--vh-space-2);
+}
+
+.nombre {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.total {
+  font-weight: 600;
+  font-size: var(--vh-text-lg);
+}
+
+.solde {
+  font-weight: 600;
+}
+
+.recu__section {
+  font-size: var(--vh-text-base);
+  margin: 0 0 var(--vh-space-2);
+}
+
+.paiements {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.paiement {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+}
+
+.paiement__sens {
+  font-size: var(--vh-text-sm);
+}
+
+.recu__pied {
+  text-align: center;
+  font-size: var(--vh-text-sm);
+}
+
+.recu__pied p {
+  margin: 0;
+}
+
+/**
+ * À l'impression, le reçu occupe la feuille seul : ni navigation, ni boutons,
+ * et des couleurs qui ne coûtent pas une cartouche. C'est le seul écran du
+ * produit destiné à sortir sur papier.
+ */
+@media print {
+  .actions {
+    display: none;
+  }
+  .page {
+    padding: 0;
+  }
+  .recu {
+    background: #fff;
+    color: #000;
+    border: none;
+  }
+  .recu__lignes th,
+  .recu__lignes td {
+    border-color: #999;
+  }
+}

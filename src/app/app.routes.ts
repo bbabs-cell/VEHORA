@@ -109,6 +109,22 @@ export const routes: Routes = [
           import('./features/caisse/caisse.component').then((m) => m.CaisseComponent),
       },
       {
+        path: 'rapports',
+        title: 'Rapports — VEHORA',
+        // Encaisser n'est pas savoir combien la station encaisse : les
+        // fonctions de rapport exigent `reports.read`, la garde évite
+        // simplement d'ouvrir un écran qui n'afficherait qu'un refus.
+        canActivate: [permissionGuard('reports.read')],
+        loadComponent: () =>
+          import('./features/rapports/rapports.component').then((m) => m.RapportsComponent),
+      },
+      {
+        path: 'recus/:id',
+        title: 'Reçu — VEHORA',
+        canActivate: [permissionGuard('payments.read')],
+        loadComponent: () => import('./features/recus/recu.component').then((m) => m.RecuComponent),
+      },
+      {
         path: 'clients',
         title: 'Clients — VEHORA',
         canActivate: [permissionGuard('customers.read')],
@@ -120,9 +136,7 @@ export const routes: Routes = [
         title: 'Inspection — VEHORA',
         canActivate: [permissionGuard('inspections.write')],
         loadComponent: () =>
-          import('./features/inspections/inspection.component').then(
-            (m) => m.InspectionComponent,
-          ),
+          import('./features/inspections/inspection.component').then((m) => m.InspectionComponent),
       },
       {
         path: 'vehicules',

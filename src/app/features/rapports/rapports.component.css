@@ -1,0 +1,151 @@
+.rapports {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.rapports__titre {
+  font-size: var(--vh-text-xl);
+  margin: 0;
+}
+
+.rapports__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.rapports__section {
+  font-size: var(--vh-text-lg);
+  margin: 0 0 var(--vh-space-3);
+}
+
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-3);
+  align-items: flex-end;
+}
+
+.filtres .vh-field {
+  flex: 1 1 10rem;
+}
+
+.periode {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.totaux {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-3);
+}
+
+.totaux__carte {
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.totaux__libelle {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.totaux__valeur {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.jour {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.jour__entete {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--vh-space-2);
+}
+
+.jour__date {
+  margin: 0;
+  font-weight: 600;
+}
+
+.jour__station {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.jour__chiffres {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-2) var(--vh-space-3);
+  margin: 0;
+}
+
+.jour__chiffres dt {
+  font-size: var(--vh-text-sm);
+}
+
+.jour__chiffres dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.jour__montant {
+  font-weight: 600;
+}
+
+.prestation {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--vh-space-1) var(--vh-space-3);
+  align-items: baseline;
+}
+
+.prestation__nom {
+  margin: 0;
+  font-weight: 600;
+}
+
+.prestation__quantite {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  grid-column: 1;
+}
+
+.prestation__montant {
+  margin: 0;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+@media (min-width: 40rem) {
+  .totaux {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .jour__chiffres {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

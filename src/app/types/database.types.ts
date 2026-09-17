@@ -8,13 +8,7 @@
 // (« could not find the relation between … »). Trois incidents sur ce projet.
 // Toute divergence avec la base se voit immédiatement : la compilation stricte
 // et les tests de parcours échouent.
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   __InternalSupabase: {
@@ -151,8 +145,20 @@ export type Database = {
       };
       inspection_zones: {
         Row: { code: string; id: string; is_active: boolean; label: string; sort_order: number };
-        Insert: { code: string; id?: string; is_active?: boolean; label: string; sort_order: number };
-        Update: { code?: string; id?: string; is_active?: boolean; label?: string; sort_order?: number };
+        Insert: {
+          code: string;
+          id?: string;
+          is_active?: boolean;
+          label: string;
+          sort_order: number;
+        };
+        Update: {
+          code?: string;
+          id?: string;
+          is_active?: boolean;
+          label?: string;
+          sort_order?: number;
+        };
         Relationships: [];
       };
       vehicle_inspections: {
@@ -1429,6 +1435,91 @@ export type Database = {
           },
         ];
       };
+      receipts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          station_id: string;
+          service_order_id: string;
+          number: number;
+          replaces_receipt_id: string | null;
+          contenu: Json;
+          currency: string;
+          total_minor: number;
+          paid_minor: number;
+          issued_by: string | null;
+          issued_at: string;
+        };
+        /** `Insert` et `Update` décrivent la table, pas ce qui est permis :
+         *  aucune policy n'autorise d'écrire ici. Un reçu s'émet par
+         *  `emettre_recu`, seule capable de prendre un numéro, et ne se corrige
+         *  que par un nouveau reçu qui référence l'ancien. */
+        Insert: {
+          id?: string;
+          organization_id: string;
+          station_id: string;
+          service_order_id: string;
+          number: number;
+          replaces_receipt_id?: string | null;
+          contenu: Json;
+          currency: string;
+          total_minor: number;
+          paid_minor: number;
+          issued_by?: string | null;
+          issued_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          station_id?: string;
+          service_order_id?: string;
+          number?: number;
+          replaces_receipt_id?: string | null;
+          contenu?: Json;
+          currency?: string;
+          total_minor?: number;
+          paid_minor?: number;
+          issued_by?: string | null;
+          issued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'receipts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'receipts_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'receipts_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'receipts_replaces_receipt_id_fkey';
+            columns: ['replaces_receipt_id'];
+            isOneToOne: false;
+            referencedRelation: 'receipts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'receipts_issued_by_fkey';
+            columns: ['issued_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       service_order_payment_state: {
@@ -1500,6 +1591,32 @@ export type Database = {
       };
     };
     Functions: {
+      emettre_recu: {
+        Args: { p_service_order_id: string; p_replaces_receipt_id?: string | null };
+        Returns: Database['public']['Tables']['receipts']['Row'];
+      };
+      rapport_journalier: {
+        Args: { p_debut: string; p_fin: string; p_station?: string | null };
+        Returns: {
+          jour: string;
+          station_id: string;
+          station_nom: string;
+          dossiers_livres: number;
+          encaisse_minor: number;
+          especes_minor: number;
+          mobile_minor: number;
+          autres_minor: number;
+          panier_moyen_minor: number;
+        }[];
+      };
+      rapport_prestations: {
+        Args: { p_debut: string; p_fin: string; p_station?: string | null };
+        Returns: {
+          prestation: string;
+          quantite: number;
+          montant_minor: number;
+        }[];
+      };
       suspendre_organisation: {
         Args: { p_organization_id: string; p_motif: string };
         Returns: Database['public']['Tables']['organizations']['Row'];
@@ -1606,8 +1723,7 @@ export type Database = {
 
 type DefaultSchema = Database['public'];
 
-export type Tables<T extends keyof DefaultSchema['Tables']> =
-  DefaultSchema['Tables'][T]['Row'];
+export type Tables<T extends keyof DefaultSchema['Tables']> = DefaultSchema['Tables'][T]['Row'];
 export type TablesInsert<T extends keyof DefaultSchema['Tables']> =
   DefaultSchema['Tables'][T]['Insert'];
 export type TablesUpdate<T extends keyof DefaultSchema['Tables']> =
