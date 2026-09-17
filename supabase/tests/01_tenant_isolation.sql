@@ -1901,6 +1901,332 @@ select pg_temp.check('l''organisation B ne voit aucun mouvement de caisse de A',
 select pg_temp.check('l''organisation B ne voit aucun état financier de A',
   (select count(*) from public.service_order_payment_state), 0);
 
+-- ===========================================================================
+-- Phase 12 — espace Super Admin
+-- ===========================================================================
+set local role postgres;
+
+-- Un compte de plateforme : adhésion SUPER_ADMIN à l'organisation VEHORA.
+insert into auth.users (id) values ('99999999-9999-9999-9999-999999999999');
+update public.profiles set full_name = 'Équipe VEHORA'
+ where id = '99999999-9999-9999-9999-999999999999';
+
+insert into public.organization_memberships (id, profile_id, organization_id, role_id)
+select 'ccc99999-0000-0000-0000-000000000009',
+       '99999999-9999-9999-9999-999999999999',
+       (select id from public.organizations where slug = 'vehora-platform'),
+       id from public.roles where code = 'SUPER_ADMIN';
+
+set local role authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Ce que le Super Admin NE VOIT PAS. C'est la propriété la plus importante de
+-- la fondation 3 : aucune policy `or is_platform_admin()` sur les données
+-- clientes. Si une seule apparaît un jour, ces assertions tombent.
+-- ---------------------------------------------------------------------------
+do $$
+declare v jsonb;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN',
+    'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v;
+  perform set_config('request.jwt.claims', v::text, true);
+end;
+$$;
+
+select pg_temp.check('le Super Admin ne voit aucun client',
+  (select count(*) from public.customers), 0);
+select pg_temp.check('le Super Admin ne voit aucun véhicule',
+  (select count(*) from public.vehicles), 0);
+select pg_temp.check('le Super Admin ne voit aucun dossier',
+  (select count(*) from public.service_orders), 0);
+select pg_temp.check('le Super Admin ne voit aucune ligne de dossier',
+  (select count(*) from public.service_order_items), 0);
+select pg_temp.check('le Super Admin ne voit aucun paiement',
+  (select count(*) from public.payments), 0);
+select pg_temp.check('le Super Admin ne voit aucune caisse',
+  (select count(*) from public.cash_registers), 0);
+select pg_temp.check('le Super Admin ne voit aucun mouvement de caisse',
+  (select count(*) from public.cash_transactions), 0);
+select pg_temp.check('le Super Admin ne voit aucun employé',
+  (select count(*) from public.employees), 0);
+select pg_temp.check('le Super Admin ne voit aucune inspection',
+  (select count(*) from public.vehicle_inspections), 0);
+select pg_temp.check('le Super Admin ne voit aucune opération',
+  (select count(*) from public.service_order_operations), 0);
+select pg_temp.check('le Super Admin ne voit aucun tarif',
+  (select count(*) from public.service_prices), 0);
+select pg_temp.check('le Super Admin ne voit aucune station cliente',
+  (select count(*) from public.stations), 0);
+
+-- Et il ne peut pas non plus écrire chez un client.
+do $$
+declare v_vehicule uuid;
+begin
+  set local role postgres;
+  select id into v_vehicule from public.vehicles limit 1;
+  set local role authenticated;
+
+  insert into public.service_orders (organization_id, station_id, vehicle_id)
+  values ('aaaaaaaa-0000-0000-0000-000000000001',
+          'a1a1a1a1-0000-0000-0000-000000000001', v_vehicule);
+  raise exception 'ÉCHEC — le Super Admin a ouvert un dossier chez un client';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le Super Admin n''écrit pas chez un client';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Ce qu'il voit : des agrégats, et l'organisation de plateforme exclue.
+-- ---------------------------------------------------------------------------
+do $$
+declare v_v jsonb; n integer; v_stations bigint; v_membres bigint;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN', 'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v_v;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  select count(*) into n from public.platform_organizations;
+  if n <> 2 then
+    raise exception 'ÉCHEC — % organisations clientes listées au lieu de 2', n;
+  end if;
+  raise notice 'ok — le Super Admin liste les organisations clientes';
+
+  if exists (select 1 from public.platform_organizations where slug = 'vehora-platform') then
+    raise exception 'ÉCHEC — l''organisation de plateforme apparaît dans la liste des clients';
+  end if;
+  raise notice 'ok — l''organisation de plateforme ne se compte pas comme un client';
+
+  -- Variables explicites plutôt qu'un `record` : un record non assigné lève
+  -- « record is not assigned yet » et masque ce qui manque réellement.
+  select p.stations, p.membres_actifs into v_stations, v_membres
+    from public.platform_organizations p
+   where p.id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+  if v_stations is null then
+    raise exception 'ÉCHEC — organisation A absente de la vue (ids vus : %)',
+      (select string_agg(id::text, ', ') from public.platform_organizations);
+  end if;
+  if v_stations < 2 or v_membres < 2 then
+    raise exception 'ÉCHEC — agrégats incorrects (% stations, % membres)',
+      v_stations, v_membres;
+  end if;
+  raise notice 'ok — les volumes sont agrégés par organisation';
+end;
+$$;
+
+-- La vue ne doit rien renvoyer à qui n'est pas de la plateforme.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+select pg_temp.check('un OWNER ne voit pas la vue de plateforme',
+  (select count(*) from public.platform_organizations), 0);
+select pg_temp.check('un OWNER ne voit pas le journal de plateforme',
+  (select count(*) from public.platform_audit_logs), 0);
+
+-- Et il ne peut pas suspendre qui que ce soit.
+do $$
+begin
+  perform public.suspendre_organisation('bbbbbbbb-0000-0000-0000-000000000002', 'Tentative');
+  raise exception 'ÉCHEC — un OWNER a suspendu une organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — suspendre est réservé à la plateforme';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Suspension : motif obligatoire, effet immédiat, audit.
+-- ---------------------------------------------------------------------------
+do $$
+declare v_v jsonb; o public.organizations; n integer;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN', 'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v_v;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  begin
+    perform public.suspendre_organisation('aaaaaaaa-0000-0000-0000-000000000001', '  ');
+    raise exception 'ÉCHEC — suspension sans motif acceptée';
+  exception
+    when check_violation then raise notice 'ok — suspendre exige un motif';
+  end;
+
+  -- L'organisation de plateforme ne se suspend pas elle-même.
+  begin
+    perform public.suspendre_organisation(
+      (select id from public.organizations where slug = 'vehora-platform'), 'Test');
+    raise exception 'ÉCHEC — l''organisation de plateforme a été suspendue';
+  exception
+    when check_violation then
+      raise notice 'ok — l''organisation de plateforme ne se suspend pas';
+  end;
+
+  o := public.suspendre_organisation('aaaaaaaa-0000-0000-0000-000000000001',
+                                     'Impayé depuis 60 jours');
+  if o.status <> 'SUSPENDED' then
+    raise exception 'ÉCHEC — statut non appliqué (%)', o.status;
+  end if;
+  raise notice 'ok — l''organisation est suspendue';
+
+  -- Vérification hors RLS : `session_revocations` n'est lisible que par
+  -- l'intéressé, y compris pour la plateforme. C'est voulu — mais le test doit
+  -- alors regarder la base, pas l'API.
+  set local role postgres;
+  select count(*) into n from public.session_revocations r
+    join public.organization_memberships m on m.profile_id = r.profile_id
+   where m.organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  set local role authenticated;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  if n = 0 then
+    raise exception 'ÉCHEC — aucune session révoquée : la suspension ne coupe rien';
+  end if;
+  raise notice 'ok — la suspension révoque immédiatement les sessions';
+
+  -- Par la vue de plateforme : `audit_logs` reste cloisonné par organisation,
+  -- y compris pour un Super Admin. C'est la vue qui lui donne SON journal.
+  if not exists (select 1 from public.platform_audit_logs
+                  where action = 'platform.organization.suspend'
+                    and reason = 'Impayé depuis 60 jours') then
+    raise exception 'ÉCHEC — suspension non auditée';
+  end if;
+  raise notice 'ok — la suspension est auditée avec son motif';
+
+  begin
+    perform public.suspendre_organisation('aaaaaaaa-0000-0000-0000-000000000001', 'Encore');
+    raise exception 'ÉCHEC — double suspension acceptée';
+  exception
+    when check_violation then raise notice 'ok — une organisation ne se suspend pas deux fois';
+  end;
+end;
+$$;
+
+-- Effet réel : un membre de l'organisation suspendue n'écrit plus.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+begin
+  insert into public.customers (full_name) values ('Client pendant suspension');
+  raise exception 'ÉCHEC — écriture acceptée malgré la suspension';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — plus aucune écriture pendant une suspension';
+end;
+$$;
+
+-- Le journal de plateforme ne montre que les actions de plateforme.
+do $$
+declare v_v jsonb; n integer;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN', 'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v_v;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  select count(*) into n from public.platform_audit_logs;
+  if n = 0 then
+    raise exception 'ÉCHEC — le journal de plateforme est vide';
+  end if;
+  raise notice 'ok — le journal de plateforme montre ses propres actions';
+
+  if exists (select 1 from public.platform_audit_logs where action not like 'platform.%') then
+    raise exception 'ÉCHEC — le journal de plateforme expose des actions métier de clients';
+  end if;
+  raise notice 'ok — le journal métier d''un client reste au client';
+end;
+$$;
+
+-- Réactivation : les révocations posées par la suspension tombent, les autres non.
+do $$
+declare v_v jsonb; o public.organizations; n integer;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN', 'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v_v;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  set local role postgres;
+  insert into public.session_revocations (profile_id, reason)
+  values ('33333333-3333-3333-3333-333333333333', 'Compte compromis')
+  on conflict (profile_id) do update set reason = 'Compte compromis';
+  set local role authenticated;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  o := public.reactiver_organisation('aaaaaaaa-0000-0000-0000-000000000001',
+                                     'Régularisation du paiement');
+  if o.status <> 'ACTIVE' then
+    raise exception 'ÉCHEC — réactivation sans effet (%)', o.status;
+  end if;
+  raise notice 'ok — l''organisation est réactivée';
+
+  set local role postgres;
+  select count(*) into n from public.session_revocations
+   where reason = 'Organisation suspendue';
+  if n <> 0 then
+    raise exception 'ÉCHEC — % révocations de suspension survivent', n;
+  end if;
+  raise notice 'ok — la réactivation lève les révocations de suspension';
+
+  if not exists (select 1 from public.session_revocations
+                  where profile_id = '33333333-3333-3333-3333-333333333333'
+                    and reason = 'Compte compromis') then
+    raise exception 'ÉCHEC — une révocation décidée pour une autre raison a été levée';
+  end if;
+  raise notice 'ok — une révocation pour compte compromis survit à la réactivation';
+  set local role authenticated;
+  perform set_config('request.jwt.claims', v_v::text, true);
+
+  if not exists (select 1 from public.platform_audit_logs
+                  where action = 'platform.organization.reactivate') then
+    raise exception 'ÉCHEC — réactivation non auditée';
+  end if;
+  raise notice 'ok — la réactivation est auditée';
+end;
+$$;
+
+set local role postgres;
+delete from public.session_revocations;
+set local role authenticated;
+
 set local role postgres;
 
 -- Un employé reste supprimable même après avoir travaillé sur un dossier clos :

@@ -1,0 +1,258 @@
+.organisations {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.organisations__entete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.organisations__titre {
+  font-size: var(--vh-text-xl);
+}
+
+.organisations__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* Le nombre de suspensions en cours est ce qu'un responsable de plateforme
+   regarde en premier : il ne doit pas se compter à la main. */
+.compteur-suspendues {
+  align-self: flex-start;
+  padding: var(--vh-space-1) var(--vh-space-3);
+  border-radius: 999px;
+  border: 1px solid var(--vh-warning);
+  color: var(--vh-warning);
+  font-size: var(--vh-text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recherche__champ {
+  width: 100%;
+  min-height: var(--vh-touch-primary);
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.organisation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+/* Une organisation suspendue se repère sans lire son étiquette. */
+.organisation--suspendue {
+  border-color: var(--vh-warning);
+}
+
+.organisation__nom {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.organisation__lieu {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.statut {
+  font-size: var(--vh-text-xs);
+  font-weight: 400;
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: 999px;
+  color: var(--vh-text-muted);
+  white-space: nowrap;
+}
+
+.statut--suspendu {
+  border-color: var(--vh-warning);
+  color: var(--vh-warning);
+}
+
+.statut--essai {
+  border-color: var(--vh-primary);
+  color: var(--vh-primary);
+}
+
+/* Les volumes : quatre chiffres lisibles d'un coup d'œil, alignés. */
+.organisation__volumes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-2) var(--vh-space-4);
+  margin: 0;
+}
+
+.organisation__volumes > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-2);
+}
+
+.organisation__volumes dt,
+.organisation__volumes dd {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* Un intitulé de colonne ne se coupe pas : « Dossiers 30 j » tronqué en
+   « Dossiers 30 j… » fait douter de ce qu'on lit. */
+.organisation__volumes dt {
+  white-space: nowrap;
+}
+
+.organisation__volumes dt {
+  color: var(--vh-text-muted);
+}
+
+.organisation__volumes dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.organisation__actions {
+  display: flex;
+  gap: var(--vh-space-2);
+  flex-wrap: wrap;
+}
+
+.organisation__actions .vh-button {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+.erreur-champ {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error);
+}
+
+/* ---------- Modale ---------- */
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  padding: var(--vh-space-3);
+}
+
+.modale__contenu {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: var(--vh-radius-modal);
+}
+
+.modale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  margin-bottom: var(--vh-space-4);
+}
+
+.modale__titre {
+  font-size: var(--vh-text-lg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--vh-text-muted);
+  border-radius: var(--vh-radius-control);
+  cursor: pointer;
+}
+
+.modale__fermer:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.modale form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.modale__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vh-space-3);
+  margin-top: var(--vh-space-2);
+}
+
+@media (min-width: 720px) {
+  .organisation {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    /* Les volumes passent à la ligne plutôt que d'écraser le bouton : mieux
+       vaut une carte plus haute qu'un intitulé illisible. */
+    flex-wrap: wrap;
+    gap: var(--vh-space-4);
+  }
+
+  .organisation__identite {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .organisation__volumes {
+    grid-template-columns: repeat(4, minmax(0, auto));
+    flex: 0 0 auto;
+  }
+
+  .organisation__volumes > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .organisations__entete {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modale {
+    align-items: center;
+  }
+}
+
+@media (min-width: 900px) {
+  .organisations {
+    padding: var(--vh-space-6);
+  }
+}

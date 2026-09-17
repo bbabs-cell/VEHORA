@@ -138,13 +138,33 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 11 validée.** Le cycle métier est complet : arrivée, inspection, file
-d'attente, travail, contrôle, prêt, paiement, restitution. Prochaine étape au
-choix : reçus et rapports, espace Super Admin, ou dette d'interface.
+**Phase 12 validée.** Cycle métier complet, et espace Super Admin en place
+(liste des organisations, suspension/réactivation, journal de plateforme).
+Prochaine étape au choix : reçus et rapports, abonnements, ou dette d'interface.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 34 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+- 36 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
+- **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
+  Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
+  les vues `platform_*` (agrégats et métadonnées) et des fonctions privilégiées
+  qui vérifient leur droit et auditent. Douze assertions le vérifient table par
+  table — elles doivent tomber si la règle est franchie.
+- **Les vues `platform_*` sont `SECURITY DEFINER` et portent leur garde-fou dans
+  leur corps** (`where vehora.is_platform_admin()`). C'est assumé : en
+  `security_invoker` elles ne renverraient rien. `supabase/tests/00_platform_views.sql`
+  échoue si le filtre disparaît ou si `anon` retrouve la lecture — ce test ne
+  doit jamais être désactivé.
+- **La plateforme ne voit pas le chiffre d'affaires des clients**, seulement des
+  volumes. Le CA appartient au client ; les revenus de VEHORA sont ses
+  abonnements, dans leurs propres tables. Ne jamais additionner les deux.
+- **Une suspension agit en deux temps** : `session_revocations` immédiatement
+  (les écritures s'arrêtent dans la seconde), puis le hook refuse d'émettre des
+  claims pour une organisation suspendue (les lectures s'arrêtent au
+  renouvellement du token). Écrire `status = 'SUSPENDED'` seul ne coupe rien.
+- **L'espace de plateforme est un arbre de routes séparé** (`/plateforme`), avec
+  sa coquille, sa navigation et ses gardes. Deux gardes symétriques : un client
+  n'y entre pas, un compte de plateforme ne descend pas dans l'espace client.
 - **Paiement, mouvement de caisse et session de caisse sont trois choses.**
   Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
   un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
@@ -227,9 +247,10 @@ choix : reçus et rapports, espace Super Admin, ou dette d'interface.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **185 tests Playwright**,
-  **154 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-caisse.mjs`, 25 assertions ;
+- Parcours connecté vérifié de bout en bout ; **201 tests Playwright**,
+  **188 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-plateforme.mjs`, 20 assertions ;
+  `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
   `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
 - **Un test ne doit pas modifier l'état que d'autres tests lisent**, ni épingler
@@ -237,12 +258,17 @@ choix : reçus et rapports, espace Super Admin, ou dette d'interface.
   chaque test qui fait avancer quelque chose crée le sien et le referme.
 - **Une ressource unique par (station, utilisateur) — la caisse — casse le
   parallélisme.** Une station par projet Playwright, et `mode: 'serial'` dans
-  le fichier : les deux sont nécessaires, sinon l'échec tombe au hasard.
+  le fichier : les deux sont nécessaires, sinon l'échec tombe au hasard. Même
+  règle pour l'espace plateforme : une organisation de test par projet.
+- **`scripts/validate-sql.sh` pose les privilèges par défaut AVANT les
+  migrations.** Les rejouer après défaisait tout `revoke` écrit par une
+  migration, et faisait passer pour ouvert ce qui était fermé. Ne pas remettre
+  les `grant … on all tables` en fin de script.
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite
   n'a pas empêché la seconde.
-- **Leçon récurrente** : vingt défauts d'interface (thème par défaut, sélecteur
+- **Leçon récurrente** : vingt-quatre défauts d'interface (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale, actions sur deux lignes, deux mises en page pour la même liste, date
   au format américain, code ISO au lieu du symbole, erreur affichée nulle part,
@@ -251,8 +277,9 @@ choix : reçus et rapports, espace Super Admin, ou dette d'interface.
   dossier resté en attente au démarrage du travail, opération démarrée par
   erreur sans retour possible, page qui défile sous une modale, deux boutons
   « Fermer » dans la même modale, champ montant vidé au lieu de proposer le
-  reste, solde périmé derrière la modale) ont échappé aux tests et se sont vus
-  à l'écran. Sur un écran, une
+  reste, solde périmé derrière la modale, « 0 personne perdront l'accès »,
+  navigation recouvrant le bandeau, intitulé de colonne tronqué, « dernière
+  activité aucune activité ») ont échappé aux tests et se sont vus à l'écran. Sur un écran, une
   assertion doit décrire ce que l'œil doit voir. **Capturer l'écran fait partie
   de la validation d'une phase d'interface.**
 - **Échec silencieux de formulaire** : deux occurrences (invitation, véhicule).
@@ -272,7 +299,10 @@ choix : reçus et rapports, espace Super Admin, ou dette d'interface.
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),
   `sansorg@vehora.test` (volontairement sans organisation — ne jamais le
-  rattacher, des tests en dépendent).
+  rattacher, des tests en dépendent),
+  `admin@vehora.test` (SUPER_ADMIN, adhésion à l'organisation technique
+  `vehora-platform`). Deux organisations `Test plateforme mobile|desktop`
+  servent aux tests de suspension — ne pas les supprimer.
 - Tests connectés : exporter `VEHORA_TEST_EMAIL` / `VEHORA_TEST_PASSWORD` et
   `VEHORA_TEST_EMAIL_CAISSIER` / `VEHORA_TEST_PASSWORD_CAISSIER`,
   sinon la suite est ignorée. En cloud, `e2e/relais-reseau.ts` rejoue les appels

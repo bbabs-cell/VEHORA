@@ -1,0 +1,197 @@
+<div class="organisations">
+  <header class="organisations__entete">
+    <div>
+      <h1 class="organisations__titre">Organisations</h1>
+      <p class="vh-muted organisations__sous-titre">
+        Les entreprises clientes de VEHORA. Cet écran montre des volumes, jamais
+        les données d’un client ni son chiffre d’affaires.
+      </p>
+    </div>
+    @if (suspendues() > 0) {
+      <span class="compteur-suspendues">
+        {{ suspendues() }} suspendue{{ suspendues() > 1 ? 's' : '' }}
+      </span>
+    }
+  </header>
+
+  <div class="recherche">
+    <label class="vh-sr-only" for="recherche-organisation">Rechercher une organisation</label>
+    <input
+      id="recherche-organisation"
+      class="vh-input recherche__champ"
+      type="search"
+      autocomplete="off"
+      placeholder="Nom, identifiant ou ville…"
+      (input)="surRecherche($event)"
+    />
+  </div>
+
+  @if (plateforme.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+  @if (erreur(); as message) {
+    @if (!decision()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
+
+  @if (plateforme.chargement() && plateforme.organisations().length === 0) {
+    <div class="liste">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+      }
+    </div>
+  } @else if (listees().length === 0) {
+    <div class="vh-card">
+      <vh-empty-state
+        [titre]="recherche() ? 'Aucun résultat' : 'Aucune organisation'"
+        texte="Les organisations apparaissent ici dès qu’une entreprise s’inscrit."
+      />
+    </div>
+  } @else {
+    <ul class="liste" aria-label="Organisations clientes">
+      @for (organisation of listees(); track organisation.id) {
+        <li class="vh-card organisation" [class.organisation--suspendue]="organisation.status === 'SUSPENDED'">
+          <div class="organisation__identite">
+            <p class="organisation__nom">
+              {{ organisation.name }}
+              <span
+                class="statut"
+                [class.statut--suspendu]="organisation.status === 'SUSPENDED'"
+                [class.statut--essai]="organisation.status === 'TRIAL'"
+              >
+                {{ libelleStatut(organisation) }}
+              </span>
+            </p>
+            <p class="vh-muted organisation__lieu">
+              @if (organisation.city) {
+                {{ organisation.city }} ·
+              }
+              {{ organisation.country_code }} · {{ activite(organisation) }}
+            </p>
+          </div>
+
+          <dl class="organisation__volumes" [attr.aria-label]="'Volumes de ' + organisation.name">
+            <div>
+              <dt>Stations</dt>
+              <dd>{{ organisation.stations }}</dd>
+            </div>
+            <div>
+              <dt>Membres</dt>
+              <dd>{{ organisation.membres_actifs }}</dd>
+            </div>
+            <div>
+              <dt>Véhicules</dt>
+              <dd>{{ organisation.vehicules }}</dd>
+            </div>
+            <div>
+              <dt>Dossiers 30 j</dt>
+              <dd>{{ organisation.dossiers_30j }}</dd>
+            </div>
+          </dl>
+
+          <div class="organisation__actions">
+            @if (organisation.status === 'SUSPENDED') {
+              <button
+                class="vh-button"
+                type="button"
+                (click)="ouvrirDecision(organisation, 'reactiver')"
+                [attr.aria-label]="'Réactiver ' + organisation.name"
+              >
+                Réactiver
+              </button>
+            } @else {
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                (click)="ouvrirDecision(organisation, 'suspendre')"
+                [attr.aria-label]="'Suspendre ' + organisation.name"
+              >
+                Suspendre
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (decision(); as decision) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-decision">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-decision" class="modale__titre">
+          {{ decision.sens === 'suspendre' ? 'Suspendre' : 'Réactiver' }}
+          {{ decision.organisation.name }}
+        </h2>
+        <button class="modale__fermer" type="button" (click)="fermerDecision()" aria-label="Fermer">
+          ✕
+        </button>
+      </header>
+
+      <form [formGroup]="formMotif" (ngSubmit)="confirmer()" novalidate>
+        @if (decision.sens === 'suspendre') {
+          <p class="vh-alert" role="status">
+            {{ consequenceSuspension(decision.organisation) }}
+            Aucune donnée n’est supprimée ni modifiée : la réactivation rend tout
+            tel quel.
+          </p>
+        } @else {
+          <p class="vh-muted">
+            L’accès est rendu aux membres de l’organisation. Les comptes révoqués
+            pour une autre raison le restent.
+          </p>
+        }
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-decision">Motif</label>
+          <input
+            id="motif-decision"
+            class="vh-input"
+            type="text"
+            formControlName="motif"
+            autocomplete="off"
+            [placeholder]="
+              decision.sens === 'suspendre'
+                ? 'Impayé depuis 60 jours'
+                : 'Régularisation du paiement'
+            "
+            [attr.aria-invalid]="
+              formMotif.controls.motif.touched && formMotif.controls.motif.invalid
+            "
+          />
+          @if (formMotif.controls.motif.touched && formMotif.controls.motif.invalid) {
+            <p class="erreur-champ">
+              Le motif est obligatoire : il rejoint le journal de plateforme.
+            </p>
+          }
+        </div>
+
+        @if (erreur(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerDecision()">
+            Annuler
+          </button>
+          <button
+            class="vh-button"
+            [class.vh-button--danger]="decision.sens === 'suspendre'"
+            type="submit"
+            [disabled]="enregistrement()"
+          >
+            {{
+              enregistrement()
+                ? 'Enregistrement…'
+                : decision.sens === 'suspendre'
+                  ? 'Suspendre'
+                  : 'Réactiver'
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

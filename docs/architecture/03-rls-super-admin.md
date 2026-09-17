@@ -92,6 +92,53 @@ devient invisible dans les journaux, puisqu'il emprunte le chemin normal.
 Le Super Admin n'a donc **aucune policy de lecture sur les tables métier des
 clients**. C'est la propriété la plus importante de cette fondation.
 
+### Amendement (phase 12) — comment les vues et les actions sont réalisées
+
+Deux précisions, apportées au moment de construire l'espace réellement.
+
+**Les vues de plateforme ne sont pas en `security_invoker`.** Une vue en
+`security_invoker` applique la RLS de l'appelant : comme le Super Admin n'a
+aucune policy sur les tables clientes, elle ne renverrait rien. Les vues
+`platform_*` s'exécutent donc avec les droits de leur propriétaire, et portent
+le garde-fou **dans leur corps** : `where vehora.is_platform_admin()`. La
+garantie tient à deux choses vérifiables : le filtre est écrit une fois, au même
+endroit que la requête, et ces vues ne renvoient que des **agrégats et des
+métadonnées** — jamais une ligne de dossier, de paiement ou de client.
+
+**Les actions sensibles sont des fonctions `SECURITY DEFINER`, pas des Edge
+Functions.** Le document prévoyait des Edge Functions en `service_role`. Une
+fonction PL/pgSQL `SECURITY DEFINER` offre les mêmes garanties — vérification
+explicite du droit, écriture obligatoire dans `audit_logs`, verrou de ligne —
+avec trois avantages concrets : elle est testée par la suite SQL existante
+(une Edge Function ne l'est pas), elle n'ajoute aucune surface de déploiement,
+et la clé `service_role` reste inutilisée. Si une action future demande un appel
+réseau sortant (facturation, e-mail), elle deviendra une Edge Function ; ce
+n'est le cas d'aucune action du périmètre MVP.
+
+### Ce que la plateforme ne voit pas, volontairement
+
+Les vues de plateforme exposent des **volumes** (stations, membres, véhicules,
+dossiers), pas le **chiffre d'affaires** des organisations. La plateforme a
+besoin de savoir si un client est vivant, pas combien il gagne. Le CA d'une
+organisation lui appartient ; les revenus de VEHORA sont ses abonnements, et
+vivront dans leurs propres tables.
+
+### Ce qu'une suspension doit réellement faire
+
+Écrire `status = 'SUSPENDED'` ne coupe rien par soi-même : aucune policy ne lit
+ce statut, et les policies ne doivent pas le lire (ce serait une sous-requête
+par ligne). La suspension agit donc sur deux temps :
+
+- **immédiatement**, elle écrit une ligne de `session_revocations` pour chaque
+  membre : `vehora.can_write()` la consulte déjà, donc toute écriture est
+  refusée dans la seconde ;
+- **au renouvellement du token** (15 minutes au plus), le *custom access token
+  hook* refuse d'émettre des claims pour une organisation suspendue : la lecture
+  s'arrête aussi.
+
+La réactivation efface ces lignes. C'est la mise en œuvre de la latence de
+révocation décrite plus haut, appliquée à son cas le plus important.
+
 ## Session d'assistance (impersonation) — reporté après le MVP
 
 Non implémentée dans le MVP (voir ADR-003 : trop risquée, trop peu urgente).

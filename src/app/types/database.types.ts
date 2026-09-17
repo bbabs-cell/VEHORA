@@ -567,6 +567,7 @@ export type Database = {
           status: Database['public']['Enums']['organization_status'];
           timezone: string;
           updated_at: string;
+          is_platform: boolean;
         };
         Insert: {
           address?: string | null;
@@ -1450,6 +1451,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          country_code: string;
+          city: string | null;
+          status: Database['public']['Enums']['organization_status'];
+          currency: string;
+          created_at: string;
+          stations: number;
+          membres_actifs: number;
+          vehicules: number;
+          dossiers: number;
+          dossiers_30j: number;
+          derniere_activite: string | null;
+        };
+        Relationships: [];
+      };
+      platform_audit_logs: {
+        Row: {
+          id: number;
+          occurred_at: string;
+          actor_label: string | null;
+          organization_id: string | null;
+          action: string;
+          resource_type: string;
+          resource_id: string | null;
+          old_value: Json | null;
+          new_value: Json | null;
+          reason: string | null;
+        };
+        Relationships: [];
+      };
       service_order_totals: {
         Row: {
           service_order_id: string;
@@ -1465,6 +1500,14 @@ export type Database = {
       };
     };
     Functions: {
+      suspendre_organisation: {
+        Args: { p_organization_id: string; p_motif: string };
+        Returns: Database['public']['Tables']['organizations']['Row'];
+      };
+      reactiver_organisation: {
+        Args: { p_organization_id: string; p_motif: string };
+        Returns: Database['public']['Tables']['organizations']['Row'];
+      };
       cloturer_caisse: {
         Args: {
           p_cash_register_id: string;

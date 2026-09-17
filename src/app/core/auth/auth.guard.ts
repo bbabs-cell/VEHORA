@@ -59,3 +59,37 @@ export function permissionGuard(permission: string): CanActivateFn {
     return router.createUrlTree(['/tableau-de-bord']);
   };
 }
+
+/**
+ * Réserve une route à l'espace de plateforme.
+ *
+ * L'espace Super Admin n'est pas un onglet de l'application cliente : c'est un
+ * arbre de routes séparé, avec sa coquille et sa navigation. Cette garde n'est
+ * qu'un aiguillage — la sécurité réelle tient au fait que la plateforme n'a
+ * aucune policy de lecture sur les données clientes, et que ses vues portent
+ * leur propre filtre `is_platform_admin()`.
+ */
+export const platformGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  await waitForAuth(auth);
+
+  if (!auth.isAuthenticated()) return router.createUrlTree(['/connexion']);
+  if (auth.isPlatformAdmin()) return true;
+
+  // Un compte client qui arrive ici se trompe d'espace : on le renvoie chez lui
+  // plutôt que de lui afficher un refus dont il ne peut rien faire.
+  return router.createUrlTree(['/tableau-de-bord']);
+};
+
+/** L'inverse : un compte de plateforme n'a rien à faire dans l'espace client. */
+export const nonPlatformGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  await waitForAuth(auth);
+
+  if (auth.isPlatformAdmin()) return router.createUrlTree(['/plateforme']);
+  return true;
+};

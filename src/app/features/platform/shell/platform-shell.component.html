@@ -1,0 +1,48 @@
+<div class="plateforme">
+  <!-- Bandeau permanent : on sait toujours qu'on est côté VEHORA, pas chez un
+       client. C'est la même exigence que pour une future session d'assistance. -->
+  <header class="plateforme__bandeau">
+    <div class="plateforme__identite">
+      <span class="plateforme__marque">VEHORA</span>
+      <span class="plateforme__espace">Espace plateforme</span>
+    </div>
+
+    <nav class="plateforme__nav" aria-label="Navigation de la plateforme">
+      <a
+        routerLink="/plateforme/organisations"
+        routerLinkActive="plateforme__lien--actif"
+        class="plateforme__lien"
+      >
+        Organisations
+      </a>
+      <a
+        routerLink="/plateforme/journal"
+        routerLinkActive="plateforme__lien--actif"
+        class="plateforme__lien"
+      >
+        Journal
+      </a>
+    </nav>
+
+    <div class="plateforme__compte">
+      <button
+        class="plateforme__theme"
+        type="button"
+        (click)="theme.basculer()"
+        [attr.aria-label]="
+          theme.themeApplique() === 'sombre' ? 'Passer en thème clair' : 'Passer en thème sombre'
+        "
+      >
+        {{ theme.themeApplique() === 'sombre' ? '☀' : '☾' }}
+      </button>
+      <span class="plateforme__email">{{ session()?.user?.email }}</span>
+      <button class="vh-button vh-button--ghost" type="button" (click)="seDeconnecter()">
+        Se déconnecter
+      </button>
+    </div>
+  </header>
+
+  <main class="plateforme__contenu" id="contenu">
+    <router-outlet />
+  </main>
+</div>

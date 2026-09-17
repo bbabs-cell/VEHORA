@@ -48,20 +48,35 @@ do $$ begin create role service_role;        exception when duplicate_object the
 do $$ begin create role supabase_auth_admin; exception when duplicate_object then null; end $$;
 SQL
 
+# Supabase accorde par défaut les privilèges de table aux rôles API ; la RLS est
+# ce qui filtre réellement. On reproduit ces GRANT pour tester les policies.
+#
+# Ils sont posés AVANT les migrations, et en `alter default privileges` : c'est
+# ainsi que Supabase procède (les droits suivent les tables créées ensuite).
+# Les rejouer après aurait défait les `revoke` écrits par une migration — ce qui
+# est arrivé, et faisait passer pour ouvert ce qui était fermé en réalité.
+# Le schéma `vehora` est créé par la première migration : les privilèges par
+# défaut qui le concernent se posent juste après elle.
+$PSQL <<'SQL'
+grant usage on schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public grant select on tables to anon;
+SQL
+
+premiere=true
 for f in supabase/migrations/*.sql; do
   echo "→ migration $(basename "$f")"
   $PSQL -f "$f"
-done
-
-# Supabase accorde par défaut les privilèges de table aux rôles API ; la RLS est
-# ce qui filtre réellement. On reproduit ces GRANT pour tester les policies.
-$PSQL <<'SQL'
-grant usage on schema public to anon, authenticated, service_role;
-grant select, insert, update, delete on all tables in schema public to authenticated;
-grant select on all tables in schema public to anon;
+  if $premiere; then
+    $PSQL <<'SQL'
 grant usage on schema vehora to anon, authenticated;
-grant execute on all functions in schema vehora to authenticated;
+alter default privileges in schema vehora grant execute on functions to authenticated;
 SQL
+    premiere=false
+  fi
+done
 
 for f in supabase/tests/*.sql; do
   echo "→ test $(basename "$f")"

@@ -1,5 +1,11 @@
 import type { Routes } from '@angular/router';
-import { authGuard, organizationGuard, permissionGuard } from './core/auth/auth.guard';
+import {
+  authGuard,
+  nonPlatformGuard,
+  organizationGuard,
+  permissionGuard,
+  platformGuard,
+} from './core/auth/auth.guard';
 
 /**
  * Les écrans authentifiés vivent dans la coquille applicative ; la connexion et
@@ -33,9 +39,41 @@ export const routes: Routes = [
         (m) => m.NoOrganizationComponent,
       ),
   },
+  /**
+   * Espace de plateforme : arbre de routes séparé, coquille séparée, garde
+   * séparée. Ce n'est pas un onglet de l'application cliente, et il ne doit
+   * jamais apparaître dans sa navigation.
+   */
+  {
+    path: 'plateforme',
+    canActivate: [platformGuard],
+    loadComponent: () =>
+      import('./features/platform/shell/platform-shell.component').then(
+        (m) => m.PlatformShellComponent,
+      ),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'organisations' },
+      {
+        path: 'organisations',
+        title: 'Organisations — VEHORA plateforme',
+        loadComponent: () =>
+          import('./features/platform/organisations/organisations.component').then(
+            (m) => m.PlatformOrganisationsComponent,
+          ),
+      },
+      {
+        path: 'journal',
+        title: 'Journal — VEHORA plateforme',
+        loadComponent: () =>
+          import('./features/platform/journal/journal.component').then(
+            (m) => m.PlatformJournalComponent,
+          ),
+      },
+    ],
+  },
   {
     path: '',
-    canActivate: [authGuard, organizationGuard],
+    canActivate: [authGuard, nonPlatformGuard, organizationGuard],
     loadComponent: () =>
       import('./layout/app-shell/app-shell.component').then((m) => m.AppShellComponent),
     children: [

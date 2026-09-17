@@ -1,0 +1,119 @@
+.plateforme {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vh-surface-1);
+}
+
+/* Le bandeau ne ressemble pas à l'en-tête client : la teinte d'accent et le mot
+   « plateforme » disent en permanence où l'on se trouve. */
+.plateforme__bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vh-space-3) var(--vh-space-5);
+  padding: var(--vh-space-3) var(--vh-space-4);
+  border-bottom: 2px solid var(--vh-primary);
+  background: var(--vh-surface-2);
+}
+
+.plateforme__identite {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plateforme__marque {
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--vh-primary);
+}
+
+.plateforme__espace {
+  font-size: var(--vh-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--vh-text-muted);
+}
+
+/* Sur mobile, la navigation prend sa propre ligne : sur la même que l'identité,
+   elle recouvrait « ESPACE PLATEFORME » — la mention qui dit justement où l'on
+   se trouve. */
+.plateforme__nav {
+  display: flex;
+  gap: var(--vh-space-2);
+  flex: 1 0 100%;
+  order: 3;
+}
+
+@media (min-width: 720px) {
+  .plateforme__nav {
+    flex: 1 1 auto;
+    order: 0;
+  }
+}
+
+.plateforme__lien {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  text-decoration: none;
+  font-size: var(--vh-text-sm);
+}
+
+.plateforme__lien:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.plateforme__lien--actif {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+  font-weight: 600;
+}
+
+.plateforme__compte {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.plateforme__email {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.plateforme__theme {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  background: none;
+  border: none;
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  cursor: pointer;
+}
+
+.plateforme__theme:hover {
+  background: var(--vh-surface-3);
+  color: var(--vh-text);
+}
+
+.plateforme__compte .vh-button {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+.plateforme__contenu {
+  flex: 1 1 auto;
+}
