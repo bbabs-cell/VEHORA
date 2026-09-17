@@ -138,11 +138,11 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 15 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
-rapports, abonnements et feature flags, dette d'interface traitée (boîtes de
-dialogue du produit, styles de modale mutualisés).
+**Phase 16 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+rapports, abonnements et feature flags, dette d'interface traitée, tableau de
+bord chiffré.
 Prochaine étape au choix : facturation réelle (échéances, relances), historique
-des sessions de caisse, ou tableau de bord chiffré.
+des sessions de caisse, ou export des rapports.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
 - 42 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
@@ -242,8 +242,15 @@ des sessions de caisse, ou tableau de bord chiffré.
   `organizations` en `ON DELETE SET NULL` : la cascade demande un UPDATE. Tester
   la suppression d'organisation avec des données réelles, journal compris.
 - **Une action que le serveur refusera ne s'affiche pas comme possible** :
-  bouton inerte et raison visible, jamais un clic qui échoue. Deux occurrences
-  (prestation sans tarif, opération non assignée).
+  bouton inerte et raison visible, jamais un clic qui échoue. Trois occurrences
+  (prestation sans tarif, opération non assignée, plan déjà en cours). De même,
+  **on ne lance pas une requête qu'on sait refusée** : le tableau de bord ne
+  demande le chiffre du jour que si la permission et la fonctionnalité sont là.
+- **Un total dont le détail ne fait pas la somme** fait douter du reste de
+  l'écran : afficher tous les statuts, ou ne pas afficher de total.
+- **Un écran qui promet une fonctionnalité doit être relu quand elle arrive.**
+  Le tableau de bord a annoncé pendant sept phases que les prestations
+  « seraient bientôt disponibles » alors qu'elles tournaient.
 - **Le statut d'un dossier ne se change que par `transitionner_dossier()`.** Un
   trigger rejette tout autre `UPDATE`, `service_role` compris. Le drapeau de
   transaction porte l'identifiant du dossier : un booléen aurait laissé une
@@ -296,7 +303,7 @@ des sessions de caisse, ou tableau de bord chiffré.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **225 tests Playwright**,
+- Parcours connecté vérifié de bout en bout ; **231 tests Playwright**,
   **243 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;

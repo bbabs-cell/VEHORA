@@ -84,20 +84,6 @@ a.action:hover {
   border-color: var(--vh-primary);
 }
 
-.action--bientot {
-  opacity: 0.45;
-  cursor: default;
-  font-weight: 400;
-}
-
-.action__bientot {
-  margin-left: auto;
-  font-size: var(--vh-text-xs);
-  padding: 2px var(--vh-space-2);
-  border: 1px solid var(--vh-border);
-  border-radius: 999px;
-}
-
 /* ---------- Tuiles ---------- */
 
 .tuiles {
@@ -110,4 +96,19 @@ a.action:hover {
   .actions {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
+}
+
+/* Rappel d'encaissement : un fait et son lien, pas une alerte clignotante. */
+.rappel {
+  margin: var(--vh-space-3) 0 0;
+  padding: var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-left: 3px solid var(--vh-warning);
+  border-radius: var(--vh-radius-card);
+  font-size: var(--vh-text-sm);
+}
+
+.rappel a {
+  white-space: nowrap;
 }

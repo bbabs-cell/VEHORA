@@ -6,31 +6,92 @@
     }
   </header>
 
+  <!-- ---------- Ce qui se passe maintenant ---------- -->
+  @if (peutVoirFile()) {
+    <section aria-labelledby="titre-maintenant">
+      <h2 id="titre-maintenant" class="tdb__section">En ce moment</h2>
+      <div class="tuiles">
+        <vh-stat-tile
+          libelle="Véhicules présents"
+          [valeur]="vehiculesPresents()"
+          [chargement]="dossiers.chargement()"
+          precision="Dossiers ouverts, toutes étapes confondues"
+          [accent]="true"
+        />
+        @for (ligne of parStatut(); track ligne.statut) {
+          <vh-stat-tile
+            [libelle]="ligne.libelle"
+            [valeur]="ligne.nombre"
+            [chargement]="dossiers.chargement()"
+          />
+        }
+      </div>
+
+      @if (impayesPrets() > 0) {
+        <p class="rappel" role="status">
+          <!-- Jamais la couleur seule : la phrase dit ce qu'il faut faire. -->
+          {{ montant(impayesPrets()) }} restent à encaisser sur des véhicules prêts à partir.
+          <a routerLink="/file-attente">Voir la file d’attente</a>
+        </p>
+      }
+    </section>
+  }
+
+  <!-- ---------- Le chiffre du jour, pour qui a le droit de le savoir ------ -->
+  @if (peutVoirChiffre()) {
+    <section aria-labelledby="titre-jour">
+      <h2 id="titre-jour" class="tdb__section">Aujourd’hui</h2>
+      <div class="tuiles">
+        <vh-stat-tile
+          libelle="Encaissé"
+          [valeur]="montant(encaisseDuJour())"
+          [chargement]="rapports.chargement()"
+          precision="Paiements reçus moins remboursements"
+          [accent]="true"
+        />
+        <vh-stat-tile
+          libelle="Véhicules restitués"
+          [valeur]="restitutionsDuJour()"
+          [chargement]="rapports.chargement()"
+        />
+      </div>
+      <p class="vh-muted tdb__note">
+        Le détail par jour et par station est sur l’écran
+        <a routerLink="/rapports">Rapports</a>.
+      </p>
+    </section>
+  }
+
   <!-- ---------- Actions rapides : ce qu'on fait le plus souvent ---------- -->
   <section aria-labelledby="titre-actions">
     <h2 id="titre-actions" class="tdb__section">Actions rapides</h2>
     <div class="actions">
-      @if (peutGererStations()) {
-        <a class="action" routerLink="/stations">
-          <vh-icon nom="accueil" [taille]="22" />
-          <span>Gérer les stations</span>
+      @if (peutVoirFile()) {
+        <a class="action" routerLink="/file-attente">
+          <vh-icon nom="file" [taille]="22" />
+          <span>File d’attente</span>
+        </a>
+        <a class="action" routerLink="/operations">
+          <vh-icon nom="prestation" [taille]="22" />
+          <span>Opérations</span>
         </a>
       }
-      <span class="action action--bientot" aria-disabled="true">
-        <vh-icon nom="prestation" [taille]="22" />
-        <span>Nouvelle prestation</span>
-        <span class="action__bientot">Bientôt</span>
-      </span>
       @if (peutVoirClients()) {
         <a class="action" routerLink="/clients">
           <vh-icon nom="client" [taille]="22" />
           <span>Clients</span>
         </a>
       }
+      @if (peutGererStations()) {
+        <a class="action" routerLink="/stations">
+          <vh-icon nom="accueil" [taille]="22" />
+          <span>Gérer les stations</span>
+        </a>
+      }
     </div>
   </section>
 
-  <!-- ---------- Indicateurs réellement calculables ---------- -->
+  <!-- ---------- Votre entreprise ---------- -->
   <section aria-labelledby="titre-chiffres">
     <h2 id="titre-chiffres" class="tdb__section">Votre entreprise</h2>
     <div class="tuiles">
@@ -43,7 +104,6 @@
             ? stations.stations().length - stationsActives() + ' inactive(s)'
             : null
         "
-        [accent]="true"
       />
       @if (peutGererUtilisateurs() && organisations.nombreMembres() !== null) {
         <vh-stat-tile
@@ -53,16 +113,6 @@
         />
       }
     </div>
-  </section>
-
-  <!-- ---------- Activité opérationnelle ---------- -->
-  <section class="vh-card" aria-labelledby="titre-activite">
-    <h2 id="titre-activite" class="tdb__section">Activité du jour</h2>
-    <vh-empty-state
-      titre="Aucune prestation pour l’instant"
-      texte="Les véhicules en attente, en cours et prêts s’afficheront ici, avec le
-             chiffre du jour, dès que la gestion des prestations sera disponible."
-    />
   </section>
 
   <section class="vh-card" aria-labelledby="titre-session">
@@ -78,8 +128,8 @@
       <dd>{{ claims().permissions.size }}</dd>
     </dl>
     <p class="vh-muted tdb__note">
-      Ces informations viennent de votre jeton de session. Elles adaptent
-      l’interface ; les accès réels sont contrôlés par la base de données.
+      Ces informations viennent de votre jeton de session. Elles adaptent l’interface ; les accès
+      réels sont contrôlés par la base de données.
     </p>
   </section>
 </div>
