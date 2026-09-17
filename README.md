@@ -38,5 +38,8 @@ npm run e2e
 commité. Sans identifiants, la suite connectée est **ignorée** — un
 « skipped » massif n'est pas un succès : vérifiez le nombre de tests exécutés.
 
-Le serveur de développement est démarré par Playwright lui-même ; inutile de
-lancer `npm start` à côté.
+Le serveur de développement est démarré par Playwright lui-même, sur le **port
+4280** — pas 4200. Vous pouvez donc garder `npm start` ouvert à côté : les tests
+ne s'y brancheront pas. C'est voulu : un serveur égaré sur 4200 (une version
+antérieure, une autre fenêtre) serait réutilisé sans rien dire, et la suite
+testerait la mauvaise application.

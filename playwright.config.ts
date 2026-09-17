@@ -90,13 +90,29 @@ const optionsLancement = {
  * Les parcours critiques sont testés au format téléphone d'abord : c'est
  * l'appareil réel des utilisateurs (skill vehora-west-africa).
  */
+/**
+ * Les tests servent l'application sur LEUR port, pas sur 4200.
+ *
+ * `reuseExistingServer` réutilise ce qui écoute déjà : si un autre serveur de
+ * développement traîne sur 4200 — une version antérieure du produit, lancée
+ * dans une autre fenêtre ou un autre dossier — Playwright teste cette
+ * application-là sans rien dire. C'est arrivé : trente-sept minutes de tests
+ * rouges sur une application qui n'était pas la nôtre, avec des routes et des
+ * messages d'une version d'il y a plusieurs phases.
+ *
+ * Un port dédié rend la confusion impossible, et laisse `npm start` tranquille
+ * sur 4200 pendant que les tests tournent.
+ */
+const port = Number(process.env['VEHORA_PORT'] ?? 4280);
+const baseURL = `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   fullyParallel: true,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -118,8 +134,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx ng serve --port 4200',
-    url: 'http://localhost:4200',
+    command: `npx ng serve --port ${port}`,
+    url: baseURL,
+    // La réutilisation reste utile entre deux exécutions de la suite, mais
+    // seulement sur ce port-ci, où rien d'autre n'a de raison d'écouter.
     reuseExistingServer: true,
     timeout: 120_000,
   },
