@@ -7,9 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   LIBELLES_STATUT_ORG,
   PlatformService,
+  type AbonnementPlateforme,
   type OrganisationPlateforme,
 } from '../../../core/platform/platform.service';
 import { ScrollLockService } from '../../../core/ui/scroll-lock.service';
@@ -43,9 +45,95 @@ export class PlatformOrganisationsComponent {
     motif: ['', [Validators.required, Validators.minLength(3)]],
   });
 
+  /** Organisation dont on ouvre l'abonnement (plan et fonctionnalités). */
+  readonly abonnementOuvert = signal<OrganisationPlateforme | null>(null);
+
+  readonly formPlan = this.fb.nonNullable.group({
+    plan: ['', Validators.required],
+    motif: ['', [Validators.required, Validators.minLength(3)]],
+  });
+
   constructor() {
-    effect(() => this.verrou.verrouiller(this.decision() !== null));
+    effect(() =>
+      this.verrou.verrouiller(this.decision() !== null || this.abonnementOuvert() !== null),
+    );
+
+    // La liste des plans arrive du réseau : tant qu'elle n'est pas là, le
+    // formulaire s'ouvrirait sur un choix vide et refuserait de valider sans
+    // rien expliquer. Le défaut est posé dès qu'elle arrive.
+    effect(() => {
+      const organisation = this.abonnementOuvert();
+      const plans = this.plateforme.plans();
+      if (!organisation || plans.length === 0) return;
+      const actuel = this.abonnementDe(organisation)?.plan_code ?? plans[0].code;
+      // Sans émission, le signal qui suit le champ resterait sur sa valeur
+      // initiale — et le garde-fou « c'est déjà le plan en cours » ne verrait
+      // jamais rien.
+      this.formPlan.patchValue({ plan: actuel });
+    });
+
     void this.plateforme.charger();
+  }
+
+  /** Le plan courant d'une organisation, tel que la vue de plateforme le rend. */
+  abonnementDe(organisation: OrganisationPlateforme): AbonnementPlateforme | undefined {
+    return this.plateforme.abonnements().find((a) => a.organization_id === organisation.id);
+  }
+
+  /** « 2 sur 10 », ou « 2 » quand le plan ne pose pas de limite. */
+  consommation(utilise: number, maximum: number | null): string {
+    return maximum === null ? `${utilise} (sans limite)` : `${utilise} sur ${maximum}`;
+  }
+
+  ouvrirAbonnement(organisation: OrganisationPlateforme): void {
+    this.erreur.set(null);
+    this.formPlan.reset({ plan: '', motif: '' });
+    this.abonnementOuvert.set(organisation);
+  }
+
+  fermerAbonnement(): void {
+    this.abonnementOuvert.set(null);
+  }
+
+  /** Tant que les plans ne sont pas chargés, on n'ouvre pas le formulaire. */
+  readonly pretAChangerDePlan = computed(() => this.plateforme.plans().length > 0);
+
+  /** Le plan choisi dans le formulaire, suivi comme un signal. */
+  private readonly planChoisi = toSignal(this.formPlan.controls.plan.valueChanges, {
+    initialValue: this.formPlan.controls.plan.value,
+  });
+
+  /**
+   * La base refuse de reposer le plan déjà en cours. Le bouton reste donc
+   * inerte, avec sa raison affichée, plutôt que de proposer un clic qui
+   * échouerait — le formulaire s'ouvre sur le plan actuel, c'est le cas le plus
+   * fréquent au moment où on l'ouvre.
+   */
+  readonly planInchange = computed(() => {
+    const organisation = this.abonnementOuvert();
+    if (!organisation) return false;
+    return this.planChoisi() === this.abonnementDe(organisation)?.plan_code;
+  });
+
+  async changerPlan(): Promise<void> {
+    const organisation = this.abonnementOuvert();
+    if (!organisation || this.enregistrement() || this.planInchange()) return;
+    if (this.formPlan.invalid) {
+      this.formPlan.markAllAsTouched();
+      return;
+    }
+
+    this.enregistrement.set(true);
+    this.erreur.set(null);
+    const v = this.formPlan.getRawValue();
+    const erreur = await this.plateforme.changerPlan(organisation.id, v.plan, v.motif.trim());
+    this.enregistrement.set(false);
+
+    if (erreur) {
+      this.erreur.set(erreur);
+      return;
+    }
+    this.abonnementOuvert.set(null);
   }
 
   readonly listees = computed(() => {
@@ -101,10 +189,7 @@ export class PlatformOrganisationsComponent {
     return `active il y a ${jours} jours`;
   }
 
-  ouvrirDecision(
-    organisation: OrganisationPlateforme,
-    sens: 'suspendre' | 'reactiver',
-  ): void {
+  ouvrirDecision(organisation: OrganisationPlateforme, sens: 'suspendre' | 'reactiver'): void {
     this.erreur.set(null);
     this.formMotif.reset({ motif: '' });
     this.decision.set({ organisation, sens });

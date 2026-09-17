@@ -26,6 +26,14 @@ insert into public.organization_settings (organization_id) values
   ('aaaaaaaa-0000-0000-0000-000000000001'),
   ('bbbbbbbb-0000-0000-0000-000000000002');
 
+-- Les deux organisations de test reçoivent un plan large : le déclencheur
+-- d'essai leur en a posé un d'une seule station, et ce n'est pas le quota qu'on
+-- teste ici. Les assertions sur les quotas ouvrent leur propre organisation.
+update public.subscriptions s
+   set plan_id = (select id from public.plans where code = 'PRO')
+ where s.organization_id in ('aaaaaaaa-0000-0000-0000-000000000001',
+                             'bbbbbbbb-0000-0000-0000-000000000002');
+
 insert into public.stations (id, organization_id, name) values
   ('a1a1a1a1-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Awa — Liberté 6'),
   ('a2a2a2a2-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Awa — Ouakam'),
@@ -2567,6 +2575,416 @@ $$;
 
 set local role postgres;
 delete from public.session_revocations;
+set local role authenticated;
+
+-- ===========================================================================
+-- Phase 14 — abonnements, quotas et feature flags
+-- ===========================================================================
+
+-- Le claim d'un Super Admin, reconstruit là où il est nécessaire.
+create or replace function pg_temp.login_plateforme() returns void
+language plpgsql as $$
+declare v jsonb;
+begin
+  select jsonb_build_object(
+    'sub', '99999999-9999-9999-9999-999999999999',
+    'org_id', (select id from public.organizations where slug = 'vehora-platform')::text,
+    'vehora_role', 'SUPER_ADMIN', 'role_scope', 'PLATFORM',
+    'station_ids', '[]'::jsonb,
+    'permissions', coalesce((select jsonb_agg(rp.permission_key)
+                               from public.role_permissions rp
+                               join public.roles r on r.id = rp.role_id
+                              where r.code = 'SUPER_ADMIN'), '[]'::jsonb),
+    'is_platform_admin', true) into v;
+  perform set_config('request.jwt.claims', v::text, true);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Ce qu'un client ne voit pas. La grille tarifaire, l'abonnement du voisin et
+-- les dérogations accordées ailleurs sont des données de plateforme.
+-- ---------------------------------------------------------------------------
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+select pg_temp.check('un propriétaire ne lit pas la grille tarifaire',
+  (select count(*) from public.plans), 0);
+select pg_temp.check('un propriétaire ne lit pas les abonnements',
+  (select count(*) from public.subscriptions), 0);
+select pg_temp.check('un propriétaire ne lit pas les dérogations',
+  (select count(*) from public.organization_feature_overrides), 0);
+
+-- Mais il sait où il en est, par une fonction qui ne parle que de lui.
+do $$
+declare r record; n integer;
+begin
+  select count(*) into n from public.mon_abonnement();
+  if n <> 1 then
+    raise exception 'ÉCHEC — mon_abonnement() rend % ligne(s)', n;
+  end if;
+
+  select * into r from public.mon_abonnement();
+  if r.plan_code <> 'PRO' then
+    raise exception 'ÉCHEC — plan inattendu : %', r.plan_code;
+  end if;
+  if r.stations_utilisees <> (select count(*) from public.stations
+                               where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001') then
+    raise exception 'ÉCHEC — consommation de stations fausse : %', r.stations_utilisees;
+  end if;
+  raise notice 'ok — une organisation lit son plan et sa consommation, rien d''autre';
+
+  select count(*) into n from public.mes_fonctionnalites() where actif;
+  if n = 0 then
+    raise exception 'ÉCHEC — aucune fonctionnalité résolue';
+  end if;
+  raise notice 'ok — les fonctionnalités sont résolues côté serveur';
+end;
+$$;
+
+-- Ni changer son plan, ni s'ouvrir une fonctionnalité.
+do $$
+begin
+  perform public.changer_plan('aaaaaaaa-0000-0000-0000-000000000001', 'SUR_MESURE', 'Tentative');
+  raise exception 'ÉCHEC — un client a changé son propre plan';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — changer de plan est réservé à la plateforme';
+end;
+$$;
+
+do $$
+begin
+  perform public.basculer_fonctionnalite(
+    'aaaaaaaa-0000-0000-0000-000000000001', 'rapports', true, 'Tentative');
+  raise exception 'ÉCHEC — un client s''est ouvert une fonctionnalité';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — ouvrir une fonctionnalité est réservé à la plateforme';
+end;
+$$;
+
+-- Ni écrire directement dans les tables : aucune policy d'écriture n'existe.
+do $$
+declare n integer;
+begin
+  begin
+    insert into public.subscriptions (organization_id, plan_id, status)
+    values ('aaaaaaaa-0000-0000-0000-000000000001',
+            (select id from public.plans limit 1), 'ACTIVE');
+    raise exception 'ÉCHEC — abonnement inséré depuis un compte client';
+  exception
+    when insufficient_privilege then null;
+    when others then
+      if sqlerrm like '%ÉCHEC%' then raise; end if;
+  end;
+  select count(*) into n from public.subscriptions;
+  raise notice 'ok — un client n''écrit pas d''abonnement';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Quotas. Une limite qui n'est vérifiée qu'à l'écran n'est pas une limite.
+-- ---------------------------------------------------------------------------
+set local role postgres;
+insert into auth.users (id) values ('77777777-7777-7777-7777-777777777777');
+insert into public.organizations (id, name, slug, country_code)
+values ('ccccdddd-0000-0000-0000-000000000003', 'Petite Station', 'petite-station', 'SN');
+insert into public.organization_settings (organization_id)
+values ('ccccdddd-0000-0000-0000-000000000003');
+insert into public.organization_memberships (id, profile_id, organization_id, role_id)
+select 'ccc77777-0000-0000-0000-000000000007', '77777777-7777-7777-7777-777777777777',
+       'ccccdddd-0000-0000-0000-000000000003', id from public.roles where code = 'OWNER';
+set local role authenticated;
+
+-- Une organisation créée reçoit son essai, sans que personne l'ait demandé.
+do $$
+declare r public.plans;
+begin
+  set local role postgres;
+  select * into r from vehora.plan_courant('ccccdddd-0000-0000-0000-000000000003');
+  set local role authenticated;
+  if r.code <> 'DECOUVERTE' then
+    raise exception 'ÉCHEC — plan d''essai absent : %', coalesce(r.code, 'aucun');
+  end if;
+  raise notice 'ok — une organisation naît avec son essai';
+end;
+$$;
+
+select pg_temp.login('77777777-7777-7777-7777-777777777777',
+                     'ccccdddd-0000-0000-0000-000000000003', 'OWNER');
+
+do $$
+begin
+  insert into public.stations (organization_id, name)
+  values ('ccccdddd-0000-0000-0000-000000000003', 'Première');
+  raise notice 'ok — la première station passe';
+
+  insert into public.stations (organization_id, name)
+  values ('ccccdddd-0000-0000-0000-000000000003', 'Deuxième');
+  raise exception 'ÉCHEC — station ouverte au-delà du quota du plan';
+exception
+  when check_violation then
+    raise notice 'ok — le quota de stations est appliqué par la base';
+end;
+$$;
+
+-- Le quota de comptes se compte sur les comptes ACTIFS, et un changement de
+-- rôle sur un membre déjà actif ne consomme pas un siège de plus.
+set local role postgres;
+insert into auth.users (id) values
+  ('7a000000-0000-0000-0000-00000000000a'),
+  ('7b000000-0000-0000-0000-00000000000b'),
+  ('7c000000-0000-0000-0000-00000000000c');
+do $$
+declare v_role uuid;
+begin
+  select id into v_role from public.roles where code = 'CASHIER';
+  insert into public.organization_memberships (profile_id, organization_id, role_id)
+  values ('7a000000-0000-0000-0000-00000000000a',
+          'ccccdddd-0000-0000-0000-000000000003', v_role);
+  insert into public.organization_memberships (profile_id, organization_id, role_id)
+  values ('7b000000-0000-0000-0000-00000000000b',
+          'ccccdddd-0000-0000-0000-000000000003', v_role);
+  -- Le propriétaire plus ces deux comptes font trois : le plan en autorise
+  -- trois, donc le quatrième doit tomber.
+  insert into public.organization_memberships (profile_id, organization_id, role_id)
+  values ('7c000000-0000-0000-0000-00000000000c',
+          'ccccdddd-0000-0000-0000-000000000003', v_role);
+  raise exception 'ÉCHEC — quatrième compte actif accepté sur un plan qui en autorise trois';
+exception
+  when check_violation then
+    raise notice 'ok — le quota de comptes actifs est appliqué par la base';
+end;
+$$;
+
+do $$
+begin
+  update public.organization_memberships
+     set role_id = (select id from public.roles where code = 'MANAGER')
+   where profile_id = '7a000000-0000-0000-0000-00000000000a';
+  raise notice 'ok — changer le rôle d''un membre actif ne consomme pas de siège';
+end;
+$$;
+set local role authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Ce que la plateforme peut, et à quelles conditions.
+-- ---------------------------------------------------------------------------
+select pg_temp.login_plateforme();
+
+select pg_temp.check('la plateforme voit les abonnements de ses clients',
+  (select count(*) > 0 from public.platform_subscriptions)::int::bigint, 1);
+
+do $$
+begin
+  perform public.changer_plan('ccccdddd-0000-0000-0000-000000000003', 'PRO', '   ');
+  raise exception 'ÉCHEC — changement de plan sans motif';
+exception
+  when check_violation then raise notice 'ok — changer un plan exige un motif';
+end;
+$$;
+
+do $$
+begin
+  perform public.changer_plan('ccccdddd-0000-0000-0000-000000000003', 'PLAN_QUI_NEXISTE_PAS',
+                              'Test');
+  raise exception 'ÉCHEC — plan inconnu accepté';
+exception
+  when check_violation then raise notice 'ok — un plan inconnu est refusé';
+end;
+$$;
+
+do $$
+declare s public.subscriptions; n integer;
+begin
+  s := public.changer_plan('ccccdddd-0000-0000-0000-000000000003', 'ESSENTIEL',
+                           'Passage au plan payant');
+  if s.status <> 'ACTIVE' then
+    raise exception 'ÉCHEC — nouvel abonnement non actif (%)', s.status;
+  end if;
+  raise notice 'ok — la plateforme change le plan d''une organisation';
+
+  set local role postgres;
+  select count(*) into n from public.subscriptions
+   where organization_id = 'ccccdddd-0000-0000-0000-000000000003'
+     and status in ('TRIAL', 'ACTIVE', 'PAST_DUE');
+  set local role authenticated;
+  perform pg_temp.login_plateforme();
+  if n <> 1 then
+    raise exception 'ÉCHEC — % abonnements en cours pour une organisation', n;
+  end if;
+  raise notice 'ok — un seul abonnement en cours, l''ancien est clos';
+
+  if not exists (select 1 from public.platform_audit_logs
+                  where action = 'platform.subscription.change'
+                    and reason = 'Passage au plan payant') then
+    raise exception 'ÉCHEC — changement de plan non audité';
+  end if;
+  raise notice 'ok — le changement de plan est audité avec son motif';
+
+  begin
+    perform public.changer_plan('ccccdddd-0000-0000-0000-000000000003', 'ESSENTIEL',
+                                'Deux fois le même');
+    raise exception 'ÉCHEC — replacement sur le plan déjà en cours';
+  exception
+    when check_violation then raise notice 'ok — reposer le même plan est refusé';
+  end;
+end;
+$$;
+
+-- Un plan plus étroit que l'usage réel est refusé : on ne coupe pas une station
+-- qui tourne parce qu'un tarif a changé.
+do $$
+begin
+  perform public.changer_plan('aaaaaaaa-0000-0000-0000-000000000001', 'DECOUVERTE',
+                              'Rétrogradation');
+  raise exception 'ÉCHEC — rétrogradation sous l''usage réel acceptée';
+exception
+  when check_violation then
+    raise notice 'ok — un plan plus étroit que l''usage réel est refusé';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Feature flags : organisation → plan → défaut.
+-- ---------------------------------------------------------------------------
+do $$
+declare v boolean;
+begin
+  -- `rapports` est ouvert par le plan PRO, fermé ailleurs.
+  set local role postgres;
+  if not vehora.flag_actif('rapports', 'aaaaaaaa-0000-0000-0000-000000000001') then
+    raise exception 'ÉCHEC — le plan PRO n''ouvre pas les rapports';
+  end if;
+  if vehora.flag_actif('rapports', 'ccccdddd-0000-0000-0000-000000000003') then
+    raise exception 'ÉCHEC — un plan sans rapports les ouvre quand même';
+  end if;
+  -- Une clé inconnue est fermée, jamais ouverte.
+  if vehora.flag_actif('cle_inventee', 'aaaaaaaa-0000-0000-0000-000000000001') then
+    raise exception 'ÉCHEC — une fonctionnalité inconnue est ouverte';
+  end if;
+  set local role authenticated;
+  perform pg_temp.login_plateforme();
+  raise notice 'ok — un flag suit le plan, et une clé inconnue reste fermée';
+end;
+$$;
+
+do $$
+declare v boolean;
+begin
+  begin
+    perform public.basculer_fonctionnalite('ccccdddd-0000-0000-0000-000000000003',
+                                           'inexistante', true, 'Test');
+    raise exception 'ÉCHEC — fonctionnalité inconnue acceptée';
+  exception
+    when check_violation then raise notice 'ok — une fonctionnalité inconnue est refusée';
+  end;
+
+  v := public.basculer_fonctionnalite('ccccdddd-0000-0000-0000-000000000003',
+                                      'rapports', true, 'Geste commercial');
+  if not v then
+    raise exception 'ÉCHEC — la dérogation n''ouvre pas la fonctionnalité';
+  end if;
+  raise notice 'ok — une dérogation d''organisation l''emporte sur le plan';
+
+  if not exists (select 1 from public.platform_audit_logs
+                  where action = 'platform.feature.toggle'
+                    and reason = 'Geste commercial') then
+    raise exception 'ÉCHEC — dérogation non auditée';
+  end if;
+  raise notice 'ok — la dérogation est auditée';
+
+  -- Retirer la dérogation rend la main au plan, sans deviner quelle valeur
+  -- « remettre ».
+  v := public.basculer_fonctionnalite('ccccdddd-0000-0000-0000-000000000003',
+                                      'rapports', null, 'Fin du geste commercial');
+  if v then
+    raise exception 'ÉCHEC — la fonctionnalité reste ouverte après retrait';
+  end if;
+  raise notice 'ok — retirer la dérogation rend la main au plan';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Un flag qui n'empêche rien n'est pas un flag : l'API est fermée, pas
+-- seulement l'écran.
+-- ---------------------------------------------------------------------------
+select pg_temp.login('77777777-7777-7777-7777-777777777777',
+                     'ccccdddd-0000-0000-0000-000000000003', 'OWNER');
+do $$
+begin
+  perform public.rapport_journalier(current_date - 7, current_date);
+  raise exception 'ÉCHEC — rapport rendu alors que le plan ne l''inclut pas';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un rapport hors plan est refusé par l''API, pas par l''écran';
+end;
+$$;
+
+-- Une fonction en droits d'appelant ne peut appeler que ce que l'appelant a le
+-- droit d'appeler. `flag_actif` prend une organisation en paramètre : elle reste
+-- fermée, pour qu'on ne sonde pas le voisin. C'est `fonctionnalite_active`, qui
+-- n'en prend pas, qui est ouverte.
+do $$
+begin
+  if has_function_privilege('authenticated', 'vehora.flag_actif(text, uuid)', 'execute') then
+    raise exception 'ÉCHEC — flag_actif est appelable : on peut sonder les fonctionnalités d''une autre organisation';
+  end if;
+  raise notice 'ok — flag_actif reste fermée à authenticated';
+
+  if not has_function_privilege('authenticated', 'public.fonctionnalite_active(text)', 'execute') then
+    raise exception 'ÉCHEC — fonctionnalite_active n''est pas appelable : les rapports tomberont sur un refus de droit';
+  end if;
+  raise notice 'ok — fonctionnalite_active est appelable, et ne parle que de mon organisation';
+end;
+$$;
+
+-- Et le propriétaire d'un plan qui l'inclut le lit toujours.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+declare n integer;
+begin
+  select count(*) into n from public.rapport_journalier(current_date - 7, current_date);
+  raise notice 'ok — le plan qui inclut les rapports les rend toujours (% ligne(s))', n;
+end;
+$$;
+
+-- Une organisation qui a une entrée de journal reste supprimable. Le journal
+-- référence l'organisation en `ON DELETE SET NULL` : la cascade demande un
+-- UPDATE, que le trigger d'immuabilité refusait. Troisième occurrence de
+-- « un trigger de protection doit se taire sur une cascade ».
+set local role postgres;
+do $$
+declare v_org uuid := 'ccccdddd-0000-0000-0000-000000000003'; n integer;
+begin
+  select count(*) into n from public.audit_logs where organization_id = v_org;
+  if n = 0 then
+    raise exception 'ÉCHEC — le test ne prouve rien : aucune entrée d''audit sur cette organisation';
+  end if;
+
+  delete from public.organizations where id = v_org;
+  raise notice 'ok — une organisation avec des entrées de journal reste supprimable';
+exception
+  when others then
+    if sqlerrm like '%VEHORA_AUDIT_IMMUTABLE%' then
+      raise exception 'ÉCHEC — l''immuabilité du journal bloque la suppression d''organisation';
+    else raise;
+    end if;
+end;
+$$;
+
+-- Et le contenu du journal, lui, n'a pas bougé d'un caractère : la cascade ne
+-- rouvre rien d'autre.
+do $$
+begin
+  update public.audit_logs set reason = 'réécrit' where action = 'platform.feature.toggle';
+  raise exception 'ÉCHEC CRITIQUE — le contenu du journal est redevenu modifiable';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le contenu du journal reste immuable, cascade ou non';
+end;
+$$;
 set local role authenticated;
 
 set local role postgres;

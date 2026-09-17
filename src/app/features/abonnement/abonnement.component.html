@@ -1,0 +1,73 @@
+<div class="abonnement">
+  <header>
+    <h1 class="abonnement__titre">Votre abonnement</h1>
+    <p class="vh-muted abonnement__sous-titre">
+      Ce que votre plan ouvre, et ce que vous en consommez. Pour en changer, contactez VEHORA.
+    </p>
+  </header>
+
+  @if (service.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (service.chargement() && !abonnement()) {
+    <p class="vh-muted" role="status">Chargement de votre abonnement…</p>
+  } @else if (abonnement(); as a) {
+    <section class="vh-card plan" aria-labelledby="titre-plan">
+      <div class="plan__entete">
+        <h2 id="titre-plan" class="plan__nom">{{ a.plan_label }}</h2>
+        <span class="etiquette">{{ statut(a) }}</span>
+      </div>
+
+      @if (a.statut === 'TRIAL' && a.essai_jusqu_au) {
+        <p class="plan__essai">Essai jusqu’au {{ finEssai(a.essai_jusqu_au) }}.</p>
+      }
+
+      <dl class="quotas">
+        <div class="quota">
+          <dt class="vh-muted">Stations</dt>
+          <dd>
+            {{ consommation(a.stations_utilisees, a.max_stations) }}
+            @if (part(a.stations_utilisees, a.max_stations); as p) {
+              <span class="jauge" role="img" [attr.aria-label]="p + ' % de vos stations utilisées'">
+                <span class="jauge__remplie" [style.width.%]="p"></span>
+              </span>
+            }
+          </dd>
+        </div>
+        <div class="quota">
+          <dt class="vh-muted">Comptes actifs</dt>
+          <dd>
+            {{ consommation(a.membres_actifs, a.max_users) }}
+            @if (part(a.membres_actifs, a.max_users); as p) {
+              <span class="jauge" role="img" [attr.aria-label]="p + ' % de vos comptes utilisés'">
+                <span class="jauge__remplie" [style.width.%]="p"></span>
+              </span>
+            }
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="titre-fonctionnalites">
+      <h2 id="titre-fonctionnalites" class="abonnement__section">Fonctionnalités</h2>
+      <ul class="liste">
+        @for (f of fonctionnalites(); track f.cle) {
+          <li class="vh-card fonctionnalite">
+            <span class="fonctionnalite__nom">{{ f.libelle }}</span>
+            <!-- Jamais la couleur seule : le mot dit l'état. -->
+            <span
+              class="etiquette"
+              [class.etiquette--ouverte]="f.actif"
+              [class.etiquette--fermee]="!f.actif"
+            >
+              {{ f.actif ? 'Incluse' : 'Non incluse' }}
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  } @else {
+    <p class="vh-muted">Aucun abonnement n’est rattaché à votre organisation.</p>
+  }
+</div>

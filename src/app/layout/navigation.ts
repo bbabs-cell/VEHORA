@@ -19,6 +19,11 @@ export interface EntreeNavigation {
   readonly chemin: string;
   readonly icone: string;
   readonly permission?: string;
+  /**
+   * Fonctionnalité dont dépend l'entrée (feature flag). Masquer l'entrée est un
+   * confort : l'API refuse de son côté si la fonctionnalité n'est pas ouverte.
+   */
+  readonly fonctionnalite?: string;
   readonly disponible: boolean;
 }
 
@@ -33,7 +38,8 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
   { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true },
   { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'payments.read', disponible: true },
-  { libelle: 'Rapports', chemin: '/rapports', icone: 'caisse', permission: 'reports.read', disponible: true },
+  { libelle: 'Rapports', chemin: '/rapports', icone: 'caisse', permission: 'reports.read', fonctionnalite: 'rapports', disponible: true },
+  { libelle: 'Abonnement', chemin: '/abonnement', icone: 'parametres', permission: 'organization.manage', disponible: true },
   { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: false },
 ];
 

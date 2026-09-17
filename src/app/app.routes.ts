@@ -109,6 +109,15 @@ export const routes: Routes = [
           import('./features/caisse/caisse.component').then((m) => m.CaisseComponent),
       },
       {
+        path: 'abonnement',
+        title: 'Abonnement — VEHORA',
+        // Lecture seule : changer de plan passe par VEHORA. La garde évite
+        // seulement d'ouvrir un écran qui ne concerne pas un opérateur.
+        canActivate: [permissionGuard('organization.manage')],
+        loadComponent: () =>
+          import('./features/abonnement/abonnement.component').then((m) => m.AbonnementComponent),
+      },
+      {
         path: 'rapports',
         title: 'Rapports — VEHORA',
         // Encaisser n'est pas savoir combien la station encaisse : les

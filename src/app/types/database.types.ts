@@ -1520,6 +1520,188 @@ export type Database = {
           },
         ];
       };
+      plans: {
+        Row: {
+          id: string;
+          code: string;
+          label: string;
+          description: string | null;
+          price_minor: number;
+          currency: string;
+          /** `null` veut dire « sans limite », jamais zéro. */
+          max_stations: number | null;
+          max_users: number | null;
+          is_public: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        /** Les écritures sont réservées à la plateforme : aucune policy
+         *  d'écriture n'existe, ces formes décrivent la table, pas un droit. */
+        Insert: {
+          id?: string;
+          code: string;
+          label: string;
+          description?: string | null;
+          price_minor?: number;
+          currency?: string;
+          max_stations?: number | null;
+          max_users?: number | null;
+          is_public?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          label?: string;
+          description?: string | null;
+          price_minor?: number;
+          currency?: string;
+          max_stations?: number | null;
+          max_users?: number | null;
+          is_public?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          plan_id: string;
+          status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+          started_at: string;
+          trial_ends_at: string | null;
+          ends_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          plan_id: string;
+          status?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+          started_at?: string;
+          trial_ends_at?: string | null;
+          ends_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          plan_id?: string;
+          status?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+          started_at?: string;
+          trial_ends_at?: string | null;
+          ends_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        /** Aucune écriture depuis le client : changer de plan passe par
+         *  `changer_plan()`, qui clôt l'ancien et ouvre le nouveau. */
+        Relationships: [
+          {
+            foreignKeyName: 'subscriptions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_plan_id_fkey';
+            columns: ['plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'plans';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      feature_flags: {
+        Row: {
+          key: string;
+          label: string;
+          description: string | null;
+          enabled_by_default: boolean;
+          created_at: string;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          description?: string | null;
+          enabled_by_default?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          key?: string;
+          label?: string;
+          description?: string | null;
+          enabled_by_default?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      plan_features: {
+        Row: { plan_id: string; flag_key: string; enabled: boolean };
+        Insert: { plan_id: string; flag_key: string; enabled: boolean };
+        Update: { plan_id?: string; flag_key?: string; enabled?: boolean };
+        Relationships: [
+          {
+            foreignKeyName: 'plan_features_plan_id_fkey';
+            columns: ['plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'plans';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'plan_features_flag_key_fkey';
+            columns: ['flag_key'];
+            isOneToOne: false;
+            referencedRelation: 'feature_flags';
+            referencedColumns: ['key'];
+          },
+        ];
+      };
+      organization_feature_overrides: {
+        Row: {
+          organization_id: string;
+          flag_key: string;
+          enabled: boolean;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          flag_key: string;
+          enabled: boolean;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          flag_key?: string;
+          enabled?: boolean;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_feature_overrides_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organization_feature_overrides_flag_key_fkey';
+            columns: ['flag_key'];
+            isOneToOne: false;
+            referencedRelation: 'feature_flags';
+            referencedColumns: ['key'];
+          },
+        ];
+      };
     };
     Views: {
       service_order_payment_state: {
@@ -1539,6 +1721,24 @@ export type Database = {
           organization_id: string;
           theoretical_minor: number;
           mouvements: number;
+        };
+        Relationships: [];
+      };
+      platform_subscriptions: {
+        Row: {
+          organization_id: string;
+          organisation: string;
+          plan_code: string;
+          plan_label: string;
+          price_minor: number;
+          currency: string;
+          max_stations: number | null;
+          max_users: number | null;
+          status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE';
+          started_at: string;
+          trial_ends_at: string | null;
+          stations_utilisees: number;
+          membres_actifs: number;
         };
         Relationships: [];
       };
@@ -1591,6 +1791,37 @@ export type Database = {
       };
     };
     Functions: {
+      mon_abonnement: {
+        Args: Record<string, never>;
+        Returns: {
+          plan_code: string;
+          plan_label: string;
+          statut: 'TRIAL' | 'ACTIVE' | 'PAST_DUE';
+          essai_jusqu_au: string | null;
+          max_stations: number | null;
+          max_users: number | null;
+          stations_utilisees: number;
+          membres_actifs: number;
+        }[];
+      };
+      mes_fonctionnalites: {
+        Args: Record<string, never>;
+        Returns: { cle: string; libelle: string; actif: boolean }[];
+      };
+      changer_plan: {
+        Args: { p_organization_id: string; p_plan_code: string; p_motif: string };
+        Returns: Database['public']['Tables']['subscriptions']['Row'];
+      };
+      basculer_fonctionnalite: {
+        Args: {
+          p_organization_id: string;
+          p_cle: string;
+          /** `null` retire la dérogation et rend la main au plan. */
+          p_actif: boolean | null;
+          p_motif: string;
+        };
+        Returns: boolean;
+      };
       emettre_recu: {
         Args: { p_service_order_id: string; p_replaces_receipt_id?: string | null };
         Returns: Database['public']['Tables']['receipts']['Row'];

@@ -256,3 +256,24 @@
     padding: var(--vh-space-6);
   }
 }
+
+.abonnement-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--vh-space-3);
+  margin: 0 0 var(--vh-space-3);
+}
+
+.abonnement-detail dt {
+  font-size: var(--vh-text-sm);
+}
+
+.abonnement-detail dd {
+  margin: var(--vh-space-1) 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.raison {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}

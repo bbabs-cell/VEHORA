@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrganizationService } from '../../core/organization/organization.service';
+import { SubscriptionService } from '../../core/subscription/subscription.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
@@ -28,14 +29,23 @@ export class AppShellComponent {
   private readonly router = inject(Router);
   readonly organisations = inject(OrganizationService);
   readonly theme = inject(ThemeService);
+  private readonly abonnement = inject(SubscriptionService);
 
   readonly menuOuvert = signal(false);
   readonly claims = this.auth.claims;
   readonly session = this.auth.session;
 
-  /** Entrées visibles : celles dont l'utilisateur a la permission. */
+  /**
+   * Entrées visibles : la permission de l'utilisateur, et la fonctionnalité
+   * ouverte pour son organisation. La résolution vient du serveur ; masquer une
+   * entrée n'est qu'un confort, l'API refuse de toute façon.
+   */
   readonly entrees = computed(() =>
-    NAVIGATION.filter((e) => !e.permission || this.auth.hasPermission(e.permission)),
+    NAVIGATION.filter(
+      (e) =>
+        (!e.permission || this.auth.hasPermission(e.permission)) &&
+        (!e.fonctionnalite || this.abonnement.actif(e.fonctionnalite)),
+    ),
   );
 
   readonly entreesMobile = computed(() =>
@@ -44,6 +54,7 @@ export class AppShellComponent {
 
   constructor() {
     void this.organisations.charger();
+    void this.abonnement.charger();
   }
 
   basculerMenu(): void {

@@ -138,13 +138,13 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 13 validée.** Cycle métier complet, espace Super Admin en place, reçus
-immuables numérotés et rapports d'exploitation.
-Prochaine étape au choix : abonnements et feature flags, historique des
-sessions de caisse, ou dette d'interface.
+**Phase 14 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+rapports d'exploitation, abonnements et feature flags.
+Prochaine étape au choix : facturation réelle (échéances, relances), historique
+des sessions de caisse, ou dette d'interface.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 38 migrations appliquées ; référentiel : 10 rôles, 36 permissions,
+- 42 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
@@ -185,6 +185,22 @@ sessions de caisse, ou dette d'interface.
   tombait hors réponse et s'affichait « Impayé » alors qu'il était réglé), et
   les opérations lues « les 200 plus anciennes » avant filtrage (l'écran se
   vidait). On filtre sur le serveur, ou on lit pour les identifiants chargés.
+- **Un feature flag se résout en base**, du plus précis au plus général :
+  organisation → plan → défaut. Une clé inconnue est fermée. Le frontend lit le
+  résultat et masque — **un flag qui n'empêche rien n'est pas un flag** : la
+  fonction serveur vérifie aussi (`fonctionnalite_active`).
+- **`flag_actif(cle, org)` reste fermée à `authenticated`** : elle prend une
+  organisation en paramètre, donc l'ouvrir laisserait sonder le voisin. Seule
+  `public.fonctionnalite_active(cle)`, qui n'en prend pas, est exposée. Une
+  fonction SECURITY INVOKER ne peut appeler que ce que l'appelant peut appeler.
+- **Les quotas de plan sont des déclencheurs**, pas des affichages. `null` =
+  sans limite, jamais zéro. Un plan plus étroit que l'usage réel est refusé : le
+  quota s'applique à ce qu'on ajoute, pas à ce qui tourne déjà. Les
+  organisations antérieures gardent un plan large ; les nouvelles naissent en
+  essai par un déclencheur sur `organizations`.
+- **Ni la grille tarifaire, ni les abonnements, ni les dérogations ne sont
+  lisibles par un client** : aucune policy pour `authenticated`. Il interroge
+  `mon_abonnement()` et `mes_fonctionnalites()`, qui ne parlent que de lui.
 - **Paiement, mouvement de caisse et session de caisse sont trois choses.**
   Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
   un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
@@ -209,9 +225,12 @@ sessions de caisse, ou dette d'interface.
   qui tranche. Règle générale pour toute table où deux droits se partagent une
   ligne.
 - **Un trigger de protection doit se taire quand l'écriture vient d'une
-  cascade.** Deux incidents (dernier propriétaire en phase 1, opérations en
-  phase 10) : à chaque fois l'invariant « une organisation reste supprimable »
-  était menacé. Tester la suppression d'organisation avec des données réelles.
+  cascade.** **Trois incidents** (dernier propriétaire en phase 1, opérations en
+  phase 10, immuabilité du journal d'audit en phase 14) : à chaque fois
+  l'invariant « une organisation reste supprimable » était menacé, et la règle
+  écrite n'a empêché ni la deuxième ni la troisième. `audit_logs` référence
+  `organizations` en `ON DELETE SET NULL` : la cascade demande un UPDATE. Tester
+  la suppression d'organisation avec des données réelles, journal compris.
 - **Une action que le serveur refusera ne s'affiche pas comme possible** :
   bouton inerte et raison visible, jamais un clic qui échoue. Deux occurrences
   (prestation sans tarif, opération non assignée).
@@ -267,9 +286,10 @@ sessions de caisse, ou dette d'interface.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **211 tests Playwright**,
-  **213 assertions SQL**, et des campagnes d'intrusion par l'API réelle
-  (`scripts/intrusion-recus.mjs`, 24 assertions ;
+- Parcours connecté vérifié de bout en bout ; **219 tests Playwright**,
+  **243 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
+  `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
   `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
@@ -281,10 +301,13 @@ sessions de caisse, ou dette d'interface.
   parallélisme.** Une station par projet Playwright, et `mode: 'serial'` dans
   le fichier : les deux sont nécessaires, sinon l'échec tombe au hasard. Même
   règle pour l'espace plateforme : une organisation de test par projet.
-- **`scripts/validate-sql.sh` pose les privilèges par défaut AVANT les
-  migrations.** Les rejouer après défaisait tout `revoke` écrit par une
-  migration, et faisait passer pour ouvert ce qui était fermé. Ne pas remettre
-  les `grant … on all tables` en fin de script.
+- **`scripts/validate-sql.sh` doit refléter Supabase, pas l'arranger.** Deux
+  fois il a masqué un défaut : les `grant … on all tables` rejoués après les
+  migrations (phase 12), et un `alter default privileges … grant execute … to
+  authenticated` dans le schéma `vehora` (phase 14) — Supabase n'en pose pas,
+  c'est le défaut PostgreSQL (`EXECUTE` à `PUBLIC`) qui ouvre ces fonctions, et
+  un droit explicite survit au `revoke … from public` d'une migration. Ne
+  remettre ni l'un ni l'autre.
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite

@@ -55,8 +55,13 @@ SQL
 # ainsi que Supabase procède (les droits suivent les tables créées ensuite).
 # Les rejouer après aurait défait les `revoke` écrits par une migration — ce qui
 # est arrivé, et faisait passer pour ouvert ce qui était fermé en réalité.
-# Le schéma `vehora` est créé par la première migration : les privilèges par
-# défaut qui le concernent se posent juste après elle.
+# Le schéma `vehora` est créé par la première migration : son USAGE se donne
+# juste après elle. On n'y pose AUCUN privilège par défaut sur les fonctions :
+# Supabase n'en pose pas non plus, c'est le défaut de PostgreSQL (EXECUTE à
+# PUBLIC) qui les rend appelables. Poser un `grant … to authenticated` ici
+# survivrait à un `revoke … from public` écrit par une migration, et ferait
+# passer pour ouvert ce qui est fermé en production — la phase 14 l'a vérifié
+# à ses dépens.
 $PSQL <<'SQL'
 grant usage on schema public to anon, authenticated, service_role;
 
@@ -72,7 +77,6 @@ for f in supabase/migrations/*.sql; do
   if $premiere; then
     $PSQL <<'SQL'
 grant usage on schema vehora to anon, authenticated;
-alter default privileges in schema vehora grant execute on functions to authenticated;
 SQL
     premiere=false
   fi

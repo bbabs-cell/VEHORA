@@ -3,8 +3,8 @@
     <div>
       <h1 class="organisations__titre">Organisations</h1>
       <p class="vh-muted organisations__sous-titre">
-        Les entreprises clientes de VEHORA. Cet écran montre des volumes, jamais
-        les données d’un client ni son chiffre d’affaires.
+        Les entreprises clientes de VEHORA. Cet écran montre des volumes, jamais les données d’un
+        client ni son chiffre d’affaires.
       </p>
     </div>
     @if (suspendues() > 0) {
@@ -51,7 +51,10 @@
   } @else {
     <ul class="liste" aria-label="Organisations clientes">
       @for (organisation of listees(); track organisation.id) {
-        <li class="vh-card organisation" [class.organisation--suspendue]="organisation.status === 'SUSPENDED'">
+        <li
+          class="vh-card organisation"
+          [class.organisation--suspendue]="organisation.status === 'SUSPENDED'"
+        >
           <div class="organisation__identite">
             <p class="organisation__nom">
               {{ organisation.name }}
@@ -88,9 +91,22 @@
               <dt>Dossiers 30 j</dt>
               <dd>{{ organisation.dossiers_30j }}</dd>
             </div>
+            <div>
+              <dt>Plan</dt>
+              <dd>{{ abonnementDe(organisation)?.plan_label ?? '—' }}</dd>
+            </div>
           </dl>
 
           <div class="organisation__actions">
+            <button
+              class="vh-button vh-button--ghost"
+              type="button"
+              (click)="ouvrirAbonnement(organisation)"
+              [disabled]="!pretAChangerDePlan()"
+              [attr.aria-label]="'Abonnement de ' + organisation.name"
+            >
+              Abonnement
+            </button>
             @if (organisation.status === 'SUSPENDED') {
               <button
                 class="vh-button"
@@ -134,13 +150,12 @@
         @if (decision.sens === 'suspendre') {
           <p class="vh-alert" role="status">
             {{ consequenceSuspension(decision.organisation) }}
-            Aucune donnée n’est supprimée ni modifiée : la réactivation rend tout
-            tel quel.
+            Aucune donnée n’est supprimée ni modifiée : la réactivation rend tout tel quel.
           </p>
         } @else {
           <p class="vh-muted">
-            L’accès est rendu aux membres de l’organisation. Les comptes révoqués
-            pour une autre raison le restent.
+            L’accès est rendu aux membres de l’organisation. Les comptes révoqués pour une autre
+            raison le restent.
           </p>
         }
 
@@ -189,6 +204,87 @@
                   ? 'Suspendre'
                   : 'Réactiver'
             }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (abonnementOuvert(); as organisation) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-abonnement">
+    <div class="modale__contenu vh-card">
+      <header class="modale__entete">
+        <h2 id="titre-abonnement" class="modale__titre">Abonnement de {{ organisation.name }}</h2>
+        <button
+          class="modale__fermer"
+          type="button"
+          (click)="fermerAbonnement()"
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+      </header>
+
+      @if (abonnementDe(organisation); as abo) {
+        <dl class="abonnement-detail">
+          <div>
+            <dt class="vh-muted">Plan en cours</dt>
+            <dd>{{ abo.plan_label }}</dd>
+          </div>
+          <div>
+            <dt class="vh-muted">Stations</dt>
+            <dd>{{ consommation(abo.stations_utilisees, abo.max_stations) }}</dd>
+          </div>
+          <div>
+            <dt class="vh-muted">Comptes actifs</dt>
+            <dd>{{ consommation(abo.membres_actifs, abo.max_users) }}</dd>
+          </div>
+        </dl>
+      }
+
+      <form class="modale__corps" (submit)="$event.preventDefault(); changerPlan()">
+        <div class="vh-field">
+          <label class="vh-label" for="plan-choisi">Nouveau plan</label>
+          <select id="plan-choisi" class="vh-input" [formControl]="formPlan.controls.plan">
+            @for (plan of plateforme.plans(); track plan.code) {
+              <option [value]="plan.code">{{ plan.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="vh-field">
+          <label class="vh-label" for="motif-plan">Motif</label>
+          <input
+            id="motif-plan"
+            class="vh-input"
+            type="text"
+            [formControl]="formPlan.controls.motif"
+            placeholder="Passage au plan payant"
+          />
+          @if (formPlan.controls.motif.touched && formPlan.controls.motif.invalid) {
+            <p class="vh-error" role="alert">
+              Un motif d’au moins trois caractères est obligatoire : il rejoint le journal.
+            </p>
+          }
+        </div>
+
+        @if (planInchange()) {
+          <p class="vh-muted raison" role="status">
+            C’est déjà le plan en cours : choisissez-en un autre pour pouvoir valider.
+          </p>
+        }
+
+        @if (erreur(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
+
+        <div class="modale__actions">
+          <button class="vh-button vh-button--ghost" type="button" (click)="fermerAbonnement()">
+            Annuler
+          </button>
+          <button class="vh-button" type="submit" [disabled]="enregistrement() || planInchange()">
+            {{ enregistrement() ? 'Enregistrement…' : 'Changer le plan' }}
           </button>
         </div>
       </form>
