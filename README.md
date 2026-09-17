@@ -25,3 +25,18 @@ Nécessite les binaires PostgreSQL 16 et un utilisateur non-root.
 ## État
 
 Phase 0 terminée — voir `docs/phases/phase-00.md`.
+
+## Lancer les tests de parcours (Playwright)
+
+```bash
+npx playwright install chromium   # une seule fois, en local
+cp .env.example .env.local        # puis renseignez les mots de passe
+npm run e2e
+```
+
+`.env.local` est lu automatiquement par `playwright.config.ts` et n'est jamais
+commité. Sans identifiants, la suite connectée est **ignorée** — un
+« skipped » massif n'est pas un succès : vérifiez le nombre de tests exécutés.
+
+Le serveur de développement est démarré par Playwright lui-même ; inutile de
+lancer `npm start` à côté.
