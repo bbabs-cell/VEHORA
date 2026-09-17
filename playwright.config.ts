@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -5,17 +6,55 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Sans elles, la suite connectée est ignorée (« skipped ») — ce qui ressemble à
  * un succès et n'en est pas. Les poser à la main est pénible et diffère selon
- * le terminal (`export` sous Unix, `set` ou `$env:` sous Windows) : un fichier
- * local, ignoré par Git, évite la question.
+ * le terminal (`export`, `set`, `$env:`) : un fichier local, ignoré par Git,
+ * évite la question.
  *
- * `.env.local` n'est jamais commité (`.env.*` est dans `.gitignore`) et ne doit
- * contenir que des identifiants de démonstration.
+ * On lit le fichier soi-même plutôt qu'avec `process.loadEnvFile()` pour une
+ * raison précise : Windows PowerShell 5 écrit un BOM en tête de fichier avec
+ * `Set-Content -Encoding utf8`. `loadEnvFile` le prend alors pour le début du
+ * premier nom de variable, qui devient `\uFEFFVEHORA_TEST_EMAIL` — invisible à
+ * l'œil, et la moitié de la suite s'ignore sans rien expliquer. C'est arrivé.
+ *
+ * Une variable déjà posée dans l'environnement l'emporte : le fichier sert au
+ * poste de travail, pas à écraser une configuration d'intégration continue.
  */
-try {
-  process.loadEnvFile('.env.local');
-} catch {
-  // Pas de fichier : les variables viennent de l'environnement, ou la suite
-  // connectée s'ignorera d'elle-même.
+function chargerEnvLocal(fichier: string): void {
+  let contenu: string;
+  try {
+    contenu = readFileSync(fichier, 'utf8');
+  } catch {
+    return; // Pas de fichier : les variables viennent de l'environnement.
+  }
+
+  for (const ligne of contenu.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    const texte = ligne.trim();
+    if (texte === '' || texte.startsWith('#')) continue;
+
+    const separateur = texte.indexOf('=');
+    if (separateur <= 0) continue;
+
+    const cle = texte.slice(0, separateur).trim();
+    let valeur = texte.slice(separateur + 1).trim();
+    if (
+      (valeur.startsWith('"') && valeur.endsWith('"')) ||
+      (valeur.startsWith("'") && valeur.endsWith("'"))
+    ) {
+      valeur = valeur.slice(1, -1);
+    }
+
+    if (process.env[cle] === undefined) process.env[cle] = valeur;
+  }
+}
+
+chargerEnvLocal('.env.local');
+
+// Un « skipped » massif ressemble à un succès : on le dit tout de suite.
+if (!process.env['VEHORA_TEST_EMAIL'] || !process.env['VEHORA_TEST_PASSWORD']) {
+  console.warn(
+    '\n⚠️  VEHORA_TEST_EMAIL / VEHORA_TEST_PASSWORD absents : la suite connectée ' +
+      'sera IGNORÉE.\n   Copiez `.env.example` en `.env.local` et renseignez-le ' +
+      '(voir README).\n',
+  );
 }
 
 /**
