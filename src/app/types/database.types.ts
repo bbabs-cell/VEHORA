@@ -88,6 +88,7 @@ export type Database = {
       };
       customers: {
         Row: {
+          accepte_notifications: boolean;
           archived_at: string | null;
           created_at: string;
           created_by: string | null;
@@ -101,6 +102,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          accepte_notifications?: boolean;
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -114,6 +116,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          accepte_notifications?: boolean;
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -1747,6 +1750,114 @@ export type Database = {
           },
         ];
       };
+      notifications: {
+        Row: {
+          attempts: number;
+          body: string;
+          cancel_reason: string | null;
+          created_at: string;
+          customer_id: string | null;
+          destination: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          organization_id: string;
+          sent_at: string | null;
+          service_order_id: string;
+          station_id: string;
+          status: Database['public']['Enums']['notification_status'];
+        };
+        Insert: {
+          attempts?: number;
+          body: string;
+          cancel_reason?: string | null;
+          created_at?: string;
+          customer_id?: string | null;
+          destination: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          organization_id?: string;
+          sent_at?: string | null;
+          service_order_id: string;
+          station_id: string;
+          status?: Database['public']['Enums']['notification_status'];
+        };
+        Update: {
+          attempts?: number;
+          body?: string;
+          cancel_reason?: string | null;
+          created_at?: string;
+          customer_id?: string | null;
+          destination?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          organization_id?: string;
+          sent_at?: string | null;
+          service_order_id?: string;
+          station_id?: string;
+          status?: Database['public']['Enums']['notification_status'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'platform_organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'platform_subscriptions';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'notifications_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_order_payment_state';
+            referencedColumns: ['service_order_id'];
+          },
+          {
+            foreignKeyName: 'notifications_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_order_totals';
+            referencedColumns: ['service_order_id'];
+          },
+          {
+            foreignKeyName: 'notifications_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organization_feature_overrides: {
         Row: {
           organization_id: string;
@@ -1801,72 +1912,72 @@ export type Database = {
       };
       cash_register_history: {
         Row: {
-          cash_register_id: string | null
-          closed_at: string | null
-          closed_by: string | null
-          closed_by_name: string | null
-          closing_note: string | null
-          currency: string | null
-          declared_closing_minor: number | null
-          entrees_minor: number | null
-          mouvements: number | null
-          opened_at: string | null
-          opened_by: string | null
-          opened_by_name: string | null
-          opening_float_minor: number | null
-          organization_id: string | null
-          sorties_minor: number | null
-          station_id: string | null
-          station_name: string | null
-          status: Database["public"]["Enums"]["cash_register_status"] | null
-          theoretical_minor: number | null
-          variance_minor: number | null
-        }
+          cash_register_id: string | null;
+          closed_at: string | null;
+          closed_by: string | null;
+          closed_by_name: string | null;
+          closing_note: string | null;
+          currency: string | null;
+          declared_closing_minor: number | null;
+          entrees_minor: number | null;
+          mouvements: number | null;
+          opened_at: string | null;
+          opened_by: string | null;
+          opened_by_name: string | null;
+          opening_float_minor: number | null;
+          organization_id: string | null;
+          sorties_minor: number | null;
+          station_id: string | null;
+          station_name: string | null;
+          status: Database['public']['Enums']['cash_register_status'] | null;
+          theoretical_minor: number | null;
+          variance_minor: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "cash_registers_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: 'cash_registers_closed_by_fkey';
+            columns: ['closed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "cash_registers_opened_by_fkey"
-            columns: ["opened_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: 'cash_registers_opened_by_fkey';
+            columns: ['opened_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "cash_registers_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'cash_registers_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "cash_registers_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "platform_organizations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'cash_registers_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'platform_organizations';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "cash_registers_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "platform_subscriptions"
-            referencedColumns: ["organization_id"]
+            foreignKeyName: 'cash_registers_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'platform_subscriptions';
+            referencedColumns: ['organization_id'];
           },
           {
-            foreignKeyName: "cash_registers_station_id_fkey"
-            columns: ["station_id"]
-            isOneToOne: false
-            referencedRelation: "stations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'cash_registers_station_id_fkey';
+            columns: ['station_id'];
+            isOneToOne: false;
+            referencedRelation: 'stations';
+            referencedColumns: ['id'];
           },
-        ]
-      }
+        ];
+      };
       cash_register_state: {
         Row: {
           cash_register_id: string;
@@ -2023,6 +2134,10 @@ export type Database = {
           statut: string;
         }[];
       };
+      annuler_notification: {
+        Args: { p_motif: string; p_notification_id: string };
+        Returns: Database['public']['Tables']['notifications']['Row'];
+      };
       changer_plan: {
         Args: { p_organization_id: string; p_plan_code: string; p_motif: string };
         Returns: Database['public']['Tables']['subscriptions']['Row'];
@@ -2144,6 +2259,7 @@ export type Database = {
       payment_method: 'CASH' | 'MOBILE_MONEY' | 'CARD' | 'BANK_TRANSFER' | 'OTHER';
       payment_status: 'PENDING' | 'COMPLETED' | 'FAILED';
       employee_status: 'ACTIVE' | 'INACTIVE';
+      notification_status: 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED';
       operation_status: 'PENDING' | 'IN_PROGRESS' | 'DONE';
       inspection_condition: 'OK' | 'ANOMALY';
       invitation_status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';

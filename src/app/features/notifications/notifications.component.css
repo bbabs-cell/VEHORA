@@ -1,0 +1,120 @@
+.messages {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.messages__titre {
+  font-size: var(--vh-text-xl);
+  margin: 0;
+}
+
+.messages__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* Une information, pas une erreur : un bandeau rouge dirait que quelque chose
+   est cassé, alors que c'est le comportement voulu tant que le fournisseur
+   d'envoi n'est pas choisi. */
+.avertissement {
+  margin: 0;
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-left: 3px solid var(--vh-accent);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-3);
+  align-items: flex-end;
+}
+
+.filtres .vh-field {
+  flex: 1 1 11rem;
+}
+
+.compte {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.carte {
+  background: var(--vh-surface-1);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.carte__tete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.carte__etape {
+  margin: 0;
+  font-weight: 600;
+}
+
+.carte__quand,
+.carte__note {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.carte__texte {
+  margin: var(--vh-space-3) 0 0;
+  font-style: italic;
+}
+
+.carte button {
+  margin-top: var(--vh-space-3);
+}
+
+/* Jamais la couleur seule : le mot dit l'état, la couleur le confirme. */
+.etat {
+  border-radius: var(--vh-radius-control);
+  padding: 0.125rem var(--vh-space-2);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etat--attente {
+  background: color-mix(in srgb, var(--vh-warning) 18%, transparent);
+  color: var(--vh-warning);
+}
+
+.etat--envoye {
+  background: color-mix(in srgb, var(--vh-success) 18%, transparent);
+  color: var(--vh-success);
+}
+
+.etat--echec {
+  background: color-mix(in srgb, var(--vh-error) 18%, transparent);
+  color: var(--vh-error);
+}
+
+.etat--annule {
+  background: var(--vh-surface-3);
+  color: var(--vh-text-muted);
+}

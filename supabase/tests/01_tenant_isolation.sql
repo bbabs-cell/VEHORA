@@ -2951,6 +2951,277 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Phase 21 — Notifications au client : la file
+--
+-- Rien ne part de cette file. Ce qui se vérifie ici, c'est à qui on aurait le
+-- droit d'écrire, ce qu'on écrirait, et combien de fois.
+-- ---------------------------------------------------------------------------
+-- Outillage de la phase : monter un dossier jusqu'à READY. La chaîne complète
+-- (lignes, inspection, opérations) est nécessaire — les garde-fous du cycle de
+-- vie s'appliquent aussi aux tests, et c'est voulu.
+create or replace function pg_temp.dossier_pret(p_client uuid)
+returns uuid language plpgsql as $$
+declare v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_vehicule from public.vehicles
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001' limit 1;
+
+  insert into public.service_orders (station_id, vehicle_id, customer_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule, p_client)
+  returning id into v_dossier;
+
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+
+  perform public.transitionner_dossier(v_dossier, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier);
+  perform public.transitionner_dossier(v_dossier, 'WAITING');
+
+  update public.service_order_operations
+     set employee_id = 'e0000000-0000-0000-0000-000000000001'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where service_order_id = v_dossier;
+  update public.service_order_operations set status = 'DONE'
+   where service_order_id = v_dossier;
+
+  perform public.transitionner_dossier(v_dossier, 'CONTROL');
+  perform public.transitionner_dossier(v_dossier, 'READY');
+  return v_dossier;
+end;
+$$;
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Le drapeau est fermé par défaut : tant que le fournisseur d'envoi n'est pas
+-- choisi, rien ne se met en file. On le vérifie avant de l'ouvrir.
+do $$
+declare v_dossier uuid; n integer;
+begin
+  v_dossier := pg_temp.dossier_pret(
+    (select id from public.customers
+      where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+        and phone_digits is not null limit 1));
+
+  select count(*) into n from public.notifications where service_order_id = v_dossier;
+  if n <> 0 then
+    raise exception 'ÉCHEC — une notification a été mise en file alors que le drapeau est fermé';
+  end if;
+  raise notice 'ok — drapeau fermé : rien ne se met en file';
+end;
+$$;
+
+-- On ouvre le drapeau pour cette organisation, hors de tout bloc qui attend un
+-- échec : une exception attrapée annulerait cette préparation.
+set local role postgres;
+insert into public.organization_feature_overrides (organization_id, flag_key, enabled)
+values ('aaaaaaaa-0000-0000-0000-000000000001', 'notifications', true)
+on conflict (organization_id, flag_key) do update set enabled = true;
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Un dossier avec un client joignable : une notification, une seule, et son
+-- destinataire figé.
+do $$
+declare v_client uuid; v_dossier uuid; v_notif public.notifications; n integer;
+begin
+  select id into v_client from public.customers
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+     and phone_digits is not null and accepte_notifications limit 1;
+
+  v_dossier := pg_temp.dossier_pret(v_client);
+
+  select * into v_notif from public.notifications
+   where service_order_id = v_dossier and kind = 'READY';
+  if not found then raise exception 'ÉCHEC — aucune notification mise en file'; end if;
+  raise notice 'ok — passer un dossier en READY met un message en file';
+
+  if v_notif.status <> 'PENDING' or v_notif.sent_at is not null then
+    raise exception 'ÉCHEC — la notification n''est pas en attente (% / %)',
+      v_notif.status, v_notif.sent_at;
+  end if;
+  raise notice 'ok — elle reste en attente : rien ne part de cette file';
+
+  if v_notif.destination is distinct from
+     (select phone_digits from public.customers where id = v_client) then
+    raise exception 'ÉCHEC — le destinataire ne correspond pas au client';
+  end if;
+  raise notice 'ok — le destinataire est figé dans la ligne';
+
+  -- Le texte est composé par la base : il porte le nom de l'organisation et le
+  -- numéro du dossier, et rien qu'un utilisateur ait saisi.
+  if v_notif.body not like '%vehicule est pret%' then
+    raise exception 'ÉCHEC — message inattendu : %', v_notif.body;
+  end if;
+  raise notice 'ok — le message est composé par la base';
+
+  select count(*) into n from public.notifications
+   where service_order_id = v_dossier and kind = 'READY';
+  if n <> 1 then
+    raise exception 'ÉCHEC — % notification(s) pour une seule étape', n;
+  end if;
+  raise notice 'ok — une étape, un seul message en file';
+end;
+$$;
+
+-- La garantie « un seul message par étape » tient à l'index, pas à la matrice
+-- des transitions : celle-ci ne permet pas de revenir de READY à CONTROL
+-- aujourd'hui, mais ouvrir une transition est une ligne à insérer, et
+-- l'invariant ne doit pas dépendre de ce qu'on n'a pas encore ouvert.
+set local role postgres;
+do $$
+declare v_n public.notifications;
+begin
+  select * into v_n from public.notifications where kind = 'READY' limit 1;
+  insert into public.notifications
+    (organization_id, station_id, service_order_id, customer_id, kind,
+     destination, body)
+  values (v_n.organization_id, v_n.station_id, v_n.service_order_id,
+          v_n.customer_id, 'READY', v_n.destination, 'Deuxième message');
+  raise exception 'ÉCHEC — deux messages en file pour la même étape';
+exception
+  when unique_violation then
+    raise notice 'ok — l''index refuse un second message pour la même étape';
+end;
+$$;
+set local role authenticated;
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- Un refus se respecte : rien n'est mis en file pour qui a dit non.
+do $$
+declare v_client uuid; v_dossier uuid; n integer;
+begin
+  insert into public.customers (full_name, phone, accepte_notifications)
+  values ('Client qui refuse', '+221 77 000 00 11', false)
+  returning id into v_client;
+
+  v_dossier := pg_temp.dossier_pret(v_client);
+
+  select count(*) into n from public.notifications where service_order_id = v_dossier;
+  if n <> 0 then raise exception 'ÉCHEC — un client ayant refusé a été mis en file'; end if;
+  raise notice 'ok — un refus de notification est respecté par la base';
+end;
+$$;
+
+-- Sans numéro, rien non plus — et sans client, rien du tout.
+do $$
+declare v_client uuid; v_dossier uuid; n integer;
+begin
+  insert into public.customers (full_name) values ('Client sans numéro')
+  returning id into v_client;
+
+  v_dossier := pg_temp.dossier_pret(v_client);
+
+  select count(*) into n from public.notifications where service_order_id = v_dossier;
+  if n <> 0 then raise exception 'ÉCHEC — un client sans numéro a été mis en file'; end if;
+  raise notice 'ok — sans numéro, rien n''est mis en file';
+end;
+$$;
+
+-- Personne n'écrit dans cette file : pouvoir y insérer, c'est pouvoir envoyer
+-- un message au nom de la station, avec le texte de son choix.
+do $$
+declare v_dossier uuid;
+begin
+  select service_order_id into v_dossier from public.notifications limit 1;
+  insert into public.notifications
+    (station_id, service_order_id, kind, destination, body)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_dossier, 'READY',
+          '221770000000', 'Envoyez 50 000 F au 77 000 00 00 pour recuperer votre vehicule');
+  raise exception 'ÉCHEC CRITIQUE — un message a été mis en file par un utilisateur';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — personne n''insère dans la file de notifications';
+end;
+$$;
+
+-- Ni ne la réécrit : ni le texte, ni le destinataire, ni le statut.
+do $$
+declare v_id uuid; n integer;
+begin
+  select id into v_id from public.notifications where status = 'PENDING' limit 1;
+  update public.notifications
+     set body = 'Texte remplacé', destination = '221770000000', status = 'SENT'
+   where id = v_id;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC — une notification a été réécrite'; end if;
+  if exists (select 1 from public.notifications
+              where id = v_id and (body = 'Texte remplacé' or status = 'SENT')) then
+    raise exception 'ÉCHEC — la réécriture a pris effet';
+  end if;
+  raise notice 'ok — une notification en file ne se réécrit pas';
+end;
+$$;
+
+-- Annuler : un motif, une permission, et seulement en attente.
+do $$
+declare v_id uuid; v_n public.notifications;
+begin
+  select id into v_id from public.notifications where status = 'PENDING' limit 1;
+
+  begin
+    perform public.annuler_notification(v_id, ' ');
+    raise exception 'ÉCHEC — annulation sans motif acceptée';
+  exception
+    when others then
+      if sqlerrm like '%VEHORA_MOTIF_REQUIS%'
+      then raise notice 'ok — annuler une notification exige son motif';
+      else raise; end if;
+  end;
+
+  v_n := public.annuler_notification(v_id, 'Le client est venu entre-temps');
+  if v_n.status <> 'CANCELLED' or v_n.cancel_reason is null then
+    raise exception 'ÉCHEC — la notification n''est pas annulée';
+  end if;
+  raise notice 'ok — une notification en attente s''annule, avec son motif';
+
+  begin
+    perform public.annuler_notification(v_id, 'Deuxième fois');
+    raise exception 'ÉCHEC — une notification annulée a été annulée deux fois';
+  exception
+    when others then
+      if sqlerrm like '%VEHORA_NOTIFICATION_PARTIE%'
+      then raise notice 'ok — seule une notification en attente s''annule';
+      else raise; end if;
+  end;
+end;
+$$;
+
+-- Un rôle sans `service_orders.write` n'annule rien.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OPERATOR');
+do $$
+declare v_id uuid;
+begin
+  select id into v_id from public.notifications where status = 'PENDING' limit 1;
+  if v_id is null then
+    raise notice 'ok — (aucune notification en attente : permission d''annulation non couverte)';
+  else
+    begin
+      perform public.annuler_notification(v_id, 'Je décide seul');
+      raise exception 'ÉCHEC — un rôle sans service_orders.write a annulé une notification';
+    exception
+      when insufficient_privilege then
+        raise notice 'ok — annuler une notification exige service_orders.write';
+    end;
+  end if;
+end;
+$$;
+
+-- Une autre organisation ne voit rien de cette file.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucune notification de A',
+  (select count(*) from public.notifications), 0);
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- ---------------------------------------------------------------------------
 -- Phase 20 — Facturation des abonnements
 --
 -- Une facture est un constat : elle fige ce qu'elle facture, ne se modifie pas,

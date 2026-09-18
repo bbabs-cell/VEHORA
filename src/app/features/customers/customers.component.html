@@ -180,6 +180,17 @@
           <input id="notes-client" class="vh-input" type="text" formControlName="notes" />
         </div>
 
+        <!-- Le consentement est une case, pas un réglage caché : la base ne met
+             rien en file pour qui a refusé, et l'écran doit le dire. -->
+        <div class="vh-field consentement">
+          <label class="consentement__ligne">
+            <input type="checkbox" formControlName="accepte_notifications" />
+            <span>Accepte d’être prévenu par message</span>
+          </label>
+          <p class="vh-muted consentement__aide">
+            Sans numéro de téléphone, aucun message ne part de toute façon.
+        </div>
+
         @if (erreurFormulaire(); as message) {
           <p class="vh-alert" role="alert">{{ message }}</p>
         }

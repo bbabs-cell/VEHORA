@@ -115,3 +115,21 @@
   margin: 0;
   font-size: var(--vh-text-xs);
 }
+
+.consentement__ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  cursor: pointer;
+}
+
+.consentement__ligne input {
+  /* Une case cochable au pouce, dehors, sur un téléphone d'entrée de gamme. */
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.consentement__aide {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-xs);
+}

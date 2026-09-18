@@ -77,6 +77,7 @@ export class CustomersComponent {
     phone: [''],
     email: ['', Validators.email],
     notes: [''],
+    accepte_notifications: [true],
   });
 
   constructor() {
@@ -93,7 +94,13 @@ export class CustomersComponent {
   ouvrirCreation(): void {
     this.enEdition.set(null);
     this.erreurFormulaire.set(null);
-    this.form.reset({ full_name: '', phone: '', email: '', notes: '' });
+    this.form.reset({
+      full_name: '',
+      phone: '',
+      email: '',
+      notes: '',
+      accepte_notifications: true,
+    });
     this.formulaireOuvert.set(true);
   }
 
@@ -105,6 +112,7 @@ export class CustomersComponent {
       phone: client.phone ?? '',
       email: client.email ?? '',
       notes: client.notes ?? '',
+      accepte_notifications: client.accepte_notifications,
     });
     this.formulaireOuvert.set(true);
   }
@@ -125,6 +133,7 @@ export class CustomersComponent {
       phone: v.phone.trim() || null,
       email: v.email.trim() || null,
       notes: v.notes.trim() || null,
+      accepte_notifications: v.accepte_notifications,
     };
 
     this.enregistrement.set(true);

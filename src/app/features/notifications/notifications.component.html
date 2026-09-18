@@ -1,0 +1,133 @@
+<div class="messages">
+  <header class="messages__entete">
+    <h1 class="messages__titre">Messages aux clients</h1>
+    <p class="vh-muted messages__sous-titre">
+      Ce que la station enverrait à ses clients quand leur véhicule est prêt.
+    </p>
+  </header>
+
+  <!-- Rien ne part de cette file, et le dire vaut mieux que laisser chercher
+       pourquoi les clients ne reçoivent rien. -->
+  <p class="avertissement" role="status">
+    <strong>Aucun message n’est envoyé pour l’instant.</strong> Les messages sont
+    préparés et conservés ici ; l’envoi demande un fournisseur de SMS, qui n’est pas
+    encore branché.
+  </p>
+
+  @if (!active()) {
+    <vh-empty-state
+      titre="Les notifications ne sont pas activées"
+      texte="Votre plan ne les inclut pas encore : aucun message n’est préparé, et cette liste reste donc vide."
+    />
+  } @else {
+    <div class="filtres">
+      @if (stations().length > 1) {
+        <div class="vh-field">
+          <label class="vh-label" for="station-messages">Station</label>
+          <select id="station-messages" class="vh-input" (change)="surStation($event)">
+            <option value="">Toutes les stations</option>
+            @for (s of stations(); track s.id) {
+              <option [value]="s.id" [selected]="station() === s.id">{{ s.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="vh-field">
+        <label class="vh-label" for="statut-messages">État</label>
+        <select id="statut-messages" class="vh-input" (change)="surStatut($event)">
+          <option value="">Tous</option>
+          <option value="PENDING">En attente</option>
+          <option value="SENT">Envoyés</option>
+          <option value="FAILED">Échecs</option>
+          <option value="CANCELLED">Annulés</option>
+        </select>
+      </div>
+    </div>
+
+    @if (message(); as texte) {
+      <p class="vh-alert" role="status">{{ texte }}</p>
+    }
+    @if (service.erreur(); as erreur) {
+      <p class="vh-alert" role="alert">{{ erreur }}</p>
+    }
+
+    @if (service.chargement()) {
+      <p class="vh-muted" role="status">Chargement des messages…</p>
+    } @else if (service.messages().length === 0) {
+      <vh-empty-state
+        titre="Aucun message"
+        texte="Un message est préparé quand un dossier passe à « prêt », pour un client qui a un numéro et qui accepte d’être prévenu."
+      />
+    } @else {
+      <p class="vh-muted compte" aria-live="polite">
+        {{ service.messages().length }} message(s), dont {{ enAttente() }} en attente.
+      </p>
+
+      <ul class="liste" aria-label="Messages aux clients">
+        @for (m of service.messages(); track m.id) {
+          <li class="carte">
+            <div class="carte__tete">
+              <div>
+                <p class="carte__etape">{{ etape(m) }}</p>
+                <p class="vh-muted carte__quand">
+                  Préparé le {{ quand(m.created_at) }} · vers {{ destinataire(m) }}
+                </p>
+              </div>
+              <span [class]="classeStatut(m)">{{ statutLisible(m) }}</span>
+            </div>
+
+            <!-- Le texte exact, tel qu'il partirait : c'est ce qu'on relit
+                 quand un client appelle en disant qu'il n'a rien compris. -->
+            <p class="carte__texte">« {{ m.body }} »</p>
+
+            @if (m.cancel_reason) {
+              <p class="vh-muted carte__note">Annulé : « {{ m.cancel_reason }} »</p>
+            }
+            @if (m.last_error) {
+              <p class="vh-muted carte__note">Échec : {{ m.last_error }}</p>
+            }
+
+            @if (m.status === 'PENDING') {
+              <button
+                class="vh-button vh-button--ghost"
+                type="button"
+                [disabled]="enCours()"
+                (click)="demanderAnnulation(m)"
+              >
+                Ne pas envoyer
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+
+  @if (aAnnuler(); as m) {
+    <vh-confirmation
+      titre="Ne pas envoyer ce message ?"
+      texte="Il restera dans la liste, marqué comme annulé : savoir qu’on a décidé de ne pas prévenir quelqu’un fait partie de l’histoire du dossier."
+      action="Ne pas envoyer"
+      [enCours]="enCours()"
+      [desactive]="motifTropCourt()"
+      (confirmer)="confirmerAnnulation()"
+      (annuler)="aAnnuler.set(null)"
+    >
+      <div class="vh-field">
+        <label class="vh-label" for="motif-message">Motif</label>
+        <input
+          id="motif-message"
+          class="vh-input"
+          type="text"
+          autocomplete="off"
+          [value]="motif()"
+          (input)="surMotif($event)"
+          placeholder="Le client est venu entre-temps…"
+        />
+        @if (motifTropCourt()) {
+          <p class="erreur-champ">Le motif est obligatoire.</p>
+        }
+      </div>
+    </vh-confirmation>
+  }
+</div>

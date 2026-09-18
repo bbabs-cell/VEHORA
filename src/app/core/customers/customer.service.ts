@@ -8,6 +8,11 @@ export interface ClientSaisi {
   readonly phone: string | null;
   readonly email: string | null;
   readonly notes: string | null;
+  /**
+   * Le client accepte d'être prévenu par message. Un refus est respecté par la
+   * base — aucune notification n'est mise en file —, pas seulement par l'écran.
+   */
+  readonly accepte_notifications: boolean;
 }
 
 /** Taille de page : assez pour remplir un écran, assez peu pour un réseau lent. */

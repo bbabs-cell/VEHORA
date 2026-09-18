@@ -139,6 +139,18 @@ export const routes: Routes = [
           import('./features/abonnement/abonnement.component').then((m) => m.AbonnementComponent),
       },
       {
+        path: 'messages',
+        title: 'Messages aux clients — VEHORA',
+        // La garde n'ouvre que l'écran. Ce qui s'y trouve dépend de la policy
+        // de `notifications` (lecture par `service_orders.read` sur la station)
+        // et du drapeau, résolu en base.
+        canActivate: [permissionGuard('service_orders.read')],
+        loadComponent: () =>
+          import('./features/notifications/notifications.component').then(
+            (m) => m.NotificationsComponent,
+          ),
+      },
+      {
         path: 'rapports',
         title: 'Rapports — VEHORA',
         // Encaisser n'est pas savoir combien la station encaisse : les

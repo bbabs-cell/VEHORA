@@ -139,16 +139,17 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 20 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 21 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
 caisse, export CSV des rapports et des sessions, facturation des abonnements
-(échéances, relances, annulation).
-Prochaine étape : notifications au client (« votre véhicule est prêt ») —
-suppose un fournisseur SMS, donc une décision et un budget.
+(échéances, relances, annulation), file des notifications au client.
+**Prochaine étape bloquée par une décision** : choisir un fournisseur de SMS.
+Tout le reste des notifications est fait ; il ne manque que l'envoi
+(`docs/notifications.md`).
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 46 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
+- 47 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
@@ -209,6 +210,28 @@ suppose un fournisseur SMS, donc une décision et un budget.
   Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
   un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
   écrire l'un sans l'autre, c'est pouvoir faire disparaître de l'argent.
+- **La file de notifications est prête ; rien n'est envoyé.** Le drapeau
+  `notifications` est fermé par défaut et pour tous les plans, et l'écran
+  `/messages` le dit en toutes lettres — un écran qui ne s'explique pas fait
+  douter du reste. `docs/notifications.md` dit ce qui reste à brancher.
+- **Le message est composé par la base, jamais par un utilisateur.** Un SMS
+  partant au nom de la station avec un texte choisi par quelqu'un, c'est un
+  canal d'hameçonnage offert (« Envoyez 50 000 F au 77… pour récupérer votre
+  véhicule », signé du lavage). Le texte ne porte que le nom de l'organisation
+  et le numéro du dossier. Aucune policy d'insertion ni de mise à jour sur
+  `notifications` : la base met en file, `annuler_notification()` renonce avec
+  motif et audit, et une notification annulée reste dans la liste.
+- **Le destinataire est figé dans la ligne** au moment de la mise en file : si
+  le client change de numéro, on sait où le message est parti.
+- **Un refus de notification se respecte dans le trigger**, pas à l'écran :
+  `customers.accepte_notifications`, et rien n'est mis en file pour qui a refusé
+  ou n'a pas de numéro.
+- **Une étape ne notifie qu'une fois, et c'est l'index qui le garantit** — pas
+  la matrice des transitions. Ouvrir une transition est une ligne à insérer :
+  un invariant ne doit pas dépendre de ce qu'on n'a pas encore ouvert.
+- **Un bandeau rouge dit que quelque chose est cassé.** « Aucun message n'est
+  envoyé » est une information, pas une erreur : elle a d'abord été affichée en
+  rouge, et l'état vide répétait la même phrase juste en dessous.
 - **Une facture est un constat, et elle appartient à la plateforme.** Elle fige
   le nom de l'organisation, le code du plan et le montant : renommer une
   organisation ou changer un tarif ne modifie aucune facture émise. Aucune
@@ -368,8 +391,8 @@ suppose un fournisseur SMS, donc une décision et un budget.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **249 tests Playwright** (4,3 min),
-  **271 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+- Parcours connecté vérifié de bout en bout ; **257 tests Playwright** (4,5 min),
+  **287 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
@@ -377,7 +400,8 @@ suppose un fournisseur SMS, donc une décision et un budget.
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
   `scripts/intrusion-catalogue.mjs`, 21 ;
   `scripts/intrusion-historique-caisse.mjs`, 11 ;
-  `scripts/intrusion-facturation.mjs`, 24 ; 14 sur le stockage).
+  `scripts/intrusion-facturation.mjs`, 24 ;
+  `scripts/intrusion-notifications.mjs`, 12 ; 14 sur le stockage).
 - **Une connexion par rôle, pas une par test.** `e2e/global-setup.ts` se connecte
   une fois par rôle et enregistre l'état (`storageState`) dans `e2e/.etats/`,
   effacé à chaque exécution et ignoré par Git. La suite est passée de 10,3 à
