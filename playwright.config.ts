@@ -108,7 +108,13 @@ const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
+  /**
+   * 45 s plutôt que 30 : la toute première navigation attend la compilation des
+   * lots différés par le serveur de développement, ce qui dépasse 30 s sur un
+   * poste modeste. Les deux premiers tests de la suite échouaient pour cette
+   * seule raison, avec un message qui ne parlait que de délai dépassé.
+   */
+  timeout: 45_000,
   fullyParallel: true,
   reporter: [['list']],
   use: {

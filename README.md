@@ -38,6 +38,13 @@ npm run e2e
 commité. Sans identifiants, la suite connectée est **ignorée** — un
 « skipped » massif n'est pas un succès : vérifiez le nombre de tests exécutés.
 
+### Si la suite échoue sur « Request rate limit reached »
+
+Supabase limite les authentifications par adresse IP. La suite se connecte des
+dizaines de fois ; depuis un poste unique, la limite peut être atteinte.
+Relancez quelques minutes plus tard, ou relevez le plafond dans le tableau de
+bord Supabase (Authentication → Rate Limits → *Sign in / Sign up*).
+
 Le serveur de développement est démarré par Playwright lui-même, sur le **port
 4280** — pas 4200. Vous pouvez donc garder `npm start` ouvert à côté : les tests
 ne s'y brancheront pas. C'est voulu : un serveur égaré sur 4200 (une version

@@ -12,17 +12,41 @@ import type { Database } from '../src/app/types/database.types';
  * Le montage passe par l'API réelle, avec les mêmes règles que l'application :
  * si une règle change, le montage casse — ce qui est exactement ce qu'on veut.
  */
-export async function connecterApi(): Promise<SupabaseClient<Database>> {
-  const client = createClient<Database>(
-    environment.supabaseUrl,
-    environment.supabasePublishableKey,
-  );
-  const { error } = await client.auth.signInWithPassword({
-    email: process.env['VEHORA_TEST_EMAIL']!,
-    password: process.env['VEHORA_TEST_PASSWORD']!,
-  });
-  if (error) throw new Error(`connexion API : ${error.message}`);
-  return client;
+/**
+ * Un seul client par processus de test.
+ *
+ * Chaque appel ouvrait auparavant sa propre session : une soixantaine de
+ * connexions pour une suite complète, qui s'ajoutaient aux connexions par
+ * l'interface. Supabase limite les authentifications par adresse IP — depuis un
+ * poste de travail unique, la suite finissait par recevoir « Request rate limit
+ * reached », et l'échec tombait sur un test au hasard, jamais sur le vrai
+ * problème.
+ *
+ * La session est donc montée une fois et partagée. Le client Supabase
+ * rafraîchit son jeton tout seul ; rien d'autre ne change pour les tests.
+ */
+let clientPartage: Promise<SupabaseClient<Database>> | null = null;
+
+export function connecterApi(): Promise<SupabaseClient<Database>> {
+  clientPartage ??= (async () => {
+    const client = createClient<Database>(
+      environment.supabaseUrl,
+      environment.supabasePublishableKey,
+    );
+    const { error } = await client.auth.signInWithPassword({
+      email: process.env['VEHORA_TEST_EMAIL']!,
+      password: process.env['VEHORA_TEST_PASSWORD']!,
+    });
+    if (error) {
+      // Une connexion ratée ne doit pas rester en cache : le test suivant
+      // hériterait d'une promesse rejetée sans jamais réessayer.
+      clientPartage = null;
+      throw new Error(`connexion API : ${error.message}`);
+    }
+    return client;
+  })();
+
+  return clientPartage;
 }
 
 /**
