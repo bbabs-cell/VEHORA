@@ -24,3 +24,13 @@
     padding: var(--vh-space-6);
   }
 }
+
+/* L'en-tête porte maintenant une action : le titre à gauche, le lien à droite,
+   et les deux passent l'un sous l'autre sur un téléphone tenu d'une main. */
+.caisse__entete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}

@@ -109,6 +109,19 @@ export const routes: Routes = [
           import('./features/caisse/caisse.component').then((m) => m.CaisseComponent),
       },
       {
+        path: 'caisse/historique',
+        title: 'Historique de caisse — VEHORA',
+        // La garde n'ouvre que l'écran : ce qu'il montre est décidé par la
+        // policy de `cash_registers` — ses propres sessions, ou toutes avec
+        // `cash.reconcile`. Un caissier y trouve donc les siennes, et rien
+        // d'autre.
+        canActivate: [permissionGuard('payments.read')],
+        loadComponent: () =>
+          import('./features/caisse-historique/caisse-historique.component').then(
+            (m) => m.CaisseHistoriqueComponent,
+          ),
+      },
+      {
         path: 'abonnement',
         title: 'Abonnement — VEHORA',
         // Lecture seule : changer de plan passe par VEHORA. La garde évite

@@ -1715,6 +1715,74 @@ export type Database = {
         };
         Relationships: [];
       };
+      cash_register_history: {
+        Row: {
+          cash_register_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_name: string | null
+          closing_note: string | null
+          currency: string | null
+          declared_closing_minor: number | null
+          entrees_minor: number | null
+          mouvements: number | null
+          opened_at: string | null
+          opened_by: string | null
+          opened_by_name: string | null
+          opening_float_minor: number | null
+          organization_id: string | null
+          sorties_minor: number | null
+          station_id: string | null
+          station_name: string | null
+          status: Database["public"]["Enums"]["cash_register_status"] | null
+          theoretical_minor: number | null
+          variance_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_registers_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_subscriptions"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "cash_registers_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_register_state: {
         Row: {
           cash_register_id: string;
@@ -1959,4 +2027,5 @@ export type TablesInsert<T extends keyof DefaultSchema['Tables']> =
   DefaultSchema['Tables'][T]['Insert'];
 export type TablesUpdate<T extends keyof DefaultSchema['Tables']> =
   DefaultSchema['Tables'][T]['Update'];
+export type Views<T extends keyof DefaultSchema['Views']> = DefaultSchema['Views'][T]['Row'];
 export type Enums<T extends keyof DefaultSchema['Enums']> = DefaultSchema['Enums'][T];

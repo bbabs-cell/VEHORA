@@ -138,14 +138,15 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 17 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 18 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
-bord chiffré, dette d'outillage de test traitée.
-Prochaine étape au choix : facturation réelle (échéances, relances), historique
-des sessions de caisse, ou export des rapports.
+bord chiffré, dette d'outillage de test traitée, historique des sessions de
+caisse.
+Prochaine étape au choix : facturation réelle (échéances, relances) ou export
+des rapports.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 42 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
+- 44 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
@@ -209,6 +210,13 @@ des sessions de caisse, ou export des rapports.
 - **Aucun paiement ne se modifie ni ne se supprime** : la correction est un
   remboursement qui le référence, avec motif, plafonné au montant reçu, et de
   la même méthode.
+- **L'écart de caisse d'une personne ne regarde pas son collègue.** La lecture
+  d'une session est personnelle : la sienne, ou toutes avec `cash.reconcile`
+  (« valider un écart »), que le rôle CASHIER n'a pas. Même règle sur
+  `cash_transactions` — les mouvements portent les mêmes montants, session par
+  session, et la porte de derrière vaut la porte d'entrée.
+  `public.cash_register_history` est en SECURITY INVOKER : elle ne rend que ce
+  que cette policy laisse voir.
 - **L'écart de caisse est calculé, jamais saisi** (`déclaré − théorique`), la
   clôture passe par `cloturer_caisse()`, et une session clôturée est immuable.
 - **Restituer avec un solde** exige `payments.refund` + un motif, et c'est
@@ -246,6 +254,15 @@ des sessions de caisse, ou export des rapports.
   (prestation sans tarif, opération non assignée, plan déjà en cours). De même,
   **on ne lance pas une requête qu'on sait refusée** : le tableau de bord ne
   demande le chiffre du jour que si la permission et la fonctionnalité sont là.
+- **Un total qui vaut la taille de la page n'est pas un total.** L'historique de
+  caisse a annoncé « 200 sessions clôturées » alors que la période en contenait
+  davantage : c'était la limite de la requête, présentée comme un décompte.
+  Quand la page est pleine, le dire et pourquoi.
+- **`formaterDate` accepte un jour ou un horodatage.** Elle n'acceptait que
+  `AAAA-MM-JJ` et rendait la chaîne d'origine sinon : l'historique de caisse a
+  affiché `2026-09-18T18:10:21.262904+00:00` à l'écran. Rendre l'entrée telle
+  quelle évite une page cassée, mais ne doit jamais devenir une sortie
+  silencieuse.
 - **Un total dont le détail ne fait pas la somme** fait douter du reste de
   l'écran : afficher tous les statuts, ou ne pas afficher de total.
 - **Un écran qui promet une fonctionnalité doit être relu quand elle arrive.**
@@ -303,14 +320,15 @@ des sessions de caisse, ou export des rapports.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **231 tests Playwright** (3,4 min),
-  **243 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+- Parcours connecté vérifié de bout en bout ; **235 tests Playwright** (4,3 min),
+  **253 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
   `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
-  `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
+  `scripts/intrusion-catalogue.mjs`, 21 ;
+  `scripts/intrusion-historique-caisse.mjs`, 11 ; 14 sur le stockage).
 - **Une connexion par rôle, pas une par test.** `e2e/global-setup.ts` se connecte
   une fois par rôle et enregistre l'état (`storageState`) dans `e2e/.etats/`,
   effacé à chaque exécution et ignoré par Git. La suite est passée de 10,3 à

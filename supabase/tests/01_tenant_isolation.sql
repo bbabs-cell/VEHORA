@@ -2950,6 +2950,79 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Phase 18 — Historique des sessions de caisse
+--
+-- L'écart d'un collègue ne regarde pas un caissier : la lecture d'une session
+-- est personnelle, sauf `cash.reconcile` (« valider un écart de caisse »), que
+-- le rôle CASHIER n'a pas.
+-- ---------------------------------------------------------------------------
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+select pg_temp.check('avec cash.reconcile, l''historique montre les sessions',
+  (select count(*) > 0 from public.cash_register_history)::int::bigint, 1);
+
+-- La vue porte les noms : l'écran ne fait pas une seconde requête pour eux.
+do $$
+declare h record;
+begin
+  select * into h from public.cash_register_history
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000001';
+  if h.station_name is null or h.opened_by_name is null then
+    raise exception 'ÉCHEC — l''historique ne porte pas les noms (station %, ouvreur %)',
+      h.station_name, h.opened_by_name;
+  end if;
+  if h.mouvements is null or h.entrees_minor is null then
+    raise exception 'ÉCHEC — l''historique ne compte pas les mouvements';
+  end if;
+  raise notice 'ok — l''historique porte les noms et les comptes (% mouvement(s))', h.mouvements;
+end;
+$$;
+
+-- Un caissier de la même station ne voit pas la session de quelqu'un d'autre.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+
+select pg_temp.check('un caissier ne voit pas la caisse d''un autre',
+  (select count(*) from public.cash_registers
+    where id = 'ca155e00-0000-0000-0000-000000000001'), 0);
+
+select pg_temp.check('ni son historique',
+  (select count(*) from public.cash_register_history
+    where cash_register_id = 'ca155e00-0000-0000-0000-000000000001'), 0);
+
+-- Et l'information ne repasse pas par les mouvements : ils portent les montants
+-- encaissés session par session.
+select pg_temp.check('ni les mouvements de cette caisse',
+  (select count(*) from public.cash_transactions
+    where cash_register_id = 'ca155e00-0000-0000-0000-000000000001'), 0);
+
+-- Sa propre session, en revanche, lui appartient. Ouverte hors du bloc qui
+-- vérifie : une exception attrapée annulerait l'ouverture avec le reste.
+insert into public.cash_registers (id, station_id, opened_by, opening_float_minor)
+values ('ca155e18-0000-0000-0000-000000000018',
+        'a1a1a1a1-0000-0000-0000-000000000001',
+        '33333333-3333-3333-3333-333333333333', 2000);
+
+select pg_temp.check('un caissier lit sa propre session',
+  (select count(*) from public.cash_register_history
+    where cash_register_id = 'ca155e18-0000-0000-0000-000000000018'), 1);
+
+-- Une autre organisation ne voit aucune des deux.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucune caisse de A',
+  (select count(*) from public.cash_register_history), 0);
+
+-- La vue reste fermée à `anon` : `security_invoker` ne protège que si personne
+-- ne lui a accordé le droit de lecture.
+select pg_temp.check('la vue d''historique est fermée à anon',
+  (select has_table_privilege('anon', 'public.cash_register_history', 'select'))::int::bigint, 0);
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
 -- Une organisation qui a une entrée de journal reste supprimable. Le journal
 -- référence l'organisation en `ON DELETE SET NULL` : la cascade demande un
 -- UPDATE, que le trigger d'immuabilité refusait. Troisième occurrence de

@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrganizationService } from '../../core/organization/organization.service';
@@ -29,7 +30,7 @@ const LIBELLES_MOUVEMENT: Readonly<Record<string, string>> = {
 @Component({
   selector: 'vh-caisse',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent],
+  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './caisse.component.html',
   styleUrl: './caisse.component.css',

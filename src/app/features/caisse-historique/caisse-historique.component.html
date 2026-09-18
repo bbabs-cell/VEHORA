@@ -1,0 +1,137 @@
+<div class="historique">
+  <header class="historique__entete">
+    <h1 class="historique__titre">Historique de caisse</h1>
+    <p class="vh-muted historique__sous-titre">
+      Les sessions clôturées, {{ periodeLisible() }}. Vous voyez les vôtres, et celles de
+      la station si vous validez les écarts.
+    </p>
+  </header>
+
+  <form class="filtres" (submit)="$event.preventDefault(); actualiser()">
+    <div class="vh-field">
+      <label class="vh-label" for="hist-debut">Début</label>
+      <input
+        id="hist-debut"
+        class="vh-input"
+        type="date"
+        [value]="debut()"
+        (change)="surDebut($event)"
+      />
+    </div>
+    <div class="vh-field">
+      <label class="vh-label" for="hist-fin">Fin</label>
+      <input
+        id="hist-fin"
+        class="vh-input"
+        type="date"
+        [value]="fin()"
+        (change)="surFin($event)"
+      />
+    </div>
+    @if (stations().length > 1) {
+      <div class="vh-field">
+        <label class="vh-label" for="hist-station">Station</label>
+        <select id="hist-station" class="vh-input" (change)="surStation($event)">
+          <option value="">Toutes les stations</option>
+          @for (s of stations(); track s.id) {
+            <option [value]="s.id" [selected]="station() === s.id">{{ s.name }}</option>
+          }
+        </select>
+      </div>
+    }
+    <button class="vh-button" type="submit" [disabled]="raisonInvalide() !== null">
+      Actualiser
+    </button>
+  </form>
+
+  <p class="vh-muted periode" aria-live="polite">Période retenue : {{ periodeLisible() }}.</p>
+
+  @if (raisonInvalide(); as raison) {
+    <p class="vh-alert" role="alert">{{ raison }}</p>
+  }
+  @if (paiements.erreur(); as message) {
+    <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (paiements.chargement()) {
+    <p class="vh-muted" role="status">Chargement des sessions…</p>
+  } @else if (sessions().length === 0) {
+    <vh-empty-state
+      titre="Aucune session clôturée sur cette période"
+      texte="Une session apparaît ici une fois comptée et clôturée. Élargissez la période."
+    />
+  } @else {
+    <section class="resume" aria-label="Résumé de la période">
+      <p class="resume__ligne">
+        <strong>{{ sessions().length }}</strong>
+        {{ sessions().length > 1 ? 'sessions clôturées' : 'session clôturée' }}, dont
+        <strong>{{ sessionsAvecEcart() }}</strong> avec un écart.
+      </p>
+      <p class="resume__ligne">
+        Écart cumulé{{ paiements.historiqueTronque() ? ' sur ces sessions' : '' }} :
+        <strong>{{ ecartCumuleLisible() }}</strong>
+      </p>
+      @if (paiements.historiqueTronque()) {
+        <!-- Annoncer « 200 sessions » quand il y en a mille ferait douter du
+             reste de l'écran : on dit que la liste s'arrête, et pourquoi. -->
+        <p class="resume__ligne vh-muted" role="status">
+          La période en contient davantage : seules les {{ sessions().length }} plus récentes
+          sont affichées. Resserrez les dates ou choisissez une station.
+        </p>
+      }
+    </section>
+
+    <ul class="liste" aria-label="Sessions de caisse clôturées">
+      @for (s of sessions(); track s.cash_register_id) {
+        <li class="carte">
+          <div class="carte__tete">
+            <div>
+              <p class="carte__quand">
+                {{ quand(s.closed_at) }} à {{ heure(s.closed_at) }}
+              </p>
+              <p class="vh-muted carte__qui">
+                {{ s.station_name }} · ouverte par {{ s.opened_by_name ?? 'compte supprimé' }}
+              </p>
+            </div>
+            <span [class]="classeEcart(s)">{{ ecartLisible(s) }}</span>
+          </div>
+
+          <dl class="chiffres">
+            <div class="chiffre">
+              <dt class="vh-muted">Fonds d’ouverture</dt>
+              <dd>{{ montant(s.opening_float_minor) }}</dd>
+            </div>
+            <div class="chiffre">
+              <dt class="vh-muted">Entrées</dt>
+              <dd>{{ montant(s.entrees_minor) }}</dd>
+            </div>
+            <div class="chiffre">
+              <dt class="vh-muted">Sorties</dt>
+              <dd>{{ montant(s.sorties_minor) }}</dd>
+            </div>
+            <div class="chiffre">
+              <dt class="vh-muted">Théorique</dt>
+              <dd>{{ montant(s.theoretical_minor) }}</dd>
+            </div>
+            <div class="chiffre">
+              <dt class="vh-muted">Compté</dt>
+              <dd>{{ montant(s.declared_closing_minor) }}</dd>
+            </div>
+            <div class="chiffre">
+              <dt class="vh-muted">Mouvements</dt>
+              <dd>{{ s.mouvements }}</dd>
+            </div>
+          </dl>
+
+          @if (s.closing_note) {
+            <p class="note">« {{ s.closing_note }} »</p>
+          }
+          <p class="vh-muted carte__pied">
+            Ouverte le {{ quand(s.opened_at) }} à {{ heure(s.opened_at) }} · clôturée par
+            {{ s.closed_by_name ?? 'compte supprimé' }}
+          </p>
+        </li>
+      }
+    </ul>
+  }
+</div>

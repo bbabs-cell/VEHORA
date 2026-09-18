@@ -103,6 +103,70 @@ test.describe('Caisse', () => {
     // L'écart est calculé par le serveur et affiché tel quel.
     await expect(page.getByRole('status')).toHaveText(/Écart constaté.*-1.000.F.CFA/);
   });
+
+  // --- Historique (phase 18) ---------------------------------------------
+  // Ces tests vivent ici parce que la caisse est une ressource unique par
+  // (station, utilisateur) : le fichier qui la possède est celui qui la prend.
+
+  test('une session clôturée se retrouve dans l’historique, avec son écart', async ({
+    page,
+  }, info) => {
+    // Les deux projets tournent en parallèle sur deux stations : « la première
+    // carte » désignerait au hasard la session de l'autre. On repère la sienne
+    // par sa remarque, unique à cette exécution.
+    const remarque = `Billet manquant ${info.project.name} ${Date.now()}`;
+
+    await page.getByLabel(/Fonds de caisse/).fill('10000');
+    await page.getByRole('button', { name: 'Ouvrir la caisse' }).click();
+    await expect(page.getByRole('region', { name: 'Session de caisse ouverte' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByRole('button', { name: 'Clôturer la caisse' }).click();
+    const modale = page.getByRole('dialog');
+    await modale.getByLabel(/Montant compté/).fill('9000');
+    await modale.getByLabel(/Remarque/).fill(remarque);
+    await modale.getByRole('button', { name: 'Clôturer' }).click();
+    await expect(modale).toBeHidden({ timeout: 15_000 });
+
+    await page.getByRole('link', { name: 'Historique des sessions' }).click();
+    await expect(page).toHaveURL(/caisse\/historique/);
+
+    const liste = page.getByRole('list', { name: 'Sessions de caisse clôturées' });
+    await expect(liste).toBeVisible({ timeout: 20_000 });
+
+    // Ce que l'œil doit voir : un manque, dit en toutes lettres, pas un signe.
+    const carte = liste.locator('.carte').filter({ hasText: remarque });
+    await expect(carte).toBeVisible({ timeout: 20_000 });
+    await expect(carte).toHaveText(/Manque\s*1.000.F.CFA/);
+    // Le symbole, jamais le code ISO.
+    await expect(carte).not.toContainText('XOF');
+    // Théorique et compté sont tous deux affichés : un écart sans ses deux
+    // termes n'explique rien.
+    await expect(carte).toContainText('Théorique');
+    await expect(carte).toContainText('Compté');
+  });
+
+  test('une période inversée n’envoie aucune requête', async ({ page }) => {
+    let appel = false;
+    page.on('request', (r) => {
+      if (r.url().includes('cash_register_history')) appel = true;
+    });
+
+    await page.goto('/caisse/historique');
+    await expect(page.getByRole('heading', { name: 'Historique de caisse' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    appel = false;
+    await page.getByLabel('Début').fill('2026-12-31');
+    await page.getByLabel('Fin').fill('2026-01-01');
+
+    // Une action que le serveur refusera ne s'affiche pas comme possible.
+    await expect(page.getByRole('button', { name: 'Actualiser' })).toBeDisabled();
+    await expect(page.getByRole('alert')).toContainText('précède son début');
+    expect(appel).toBe(false);
+  });
 });
 
 test.describe('Encaissement', () => {

@@ -64,10 +64,20 @@ export function symboleDevise(devise: string): string {
   }
 }
 
-/** « 13 septembre 2026 » — lève l'ambiguïté d'un champ date rendu par le
- *  navigateur dans sa propre locale (09/13 ou 13/09 selon l'appareil). */
+/**
+ * « 13 septembre 2026 » — lève l'ambiguïté d'un champ date rendu par le
+ * navigateur dans sa propre locale (09/13 ou 13/09 selon l'appareil).
+ *
+ * Accepte aussi bien un jour (`2026-09-13`) qu'un horodatage complet
+ * (`2026-09-13T18:10:21+00:00`). La première version n'acceptait que le jour et
+ * rendait l'horodatage **tel quel** : l'historique de caisse a affiché
+ * `2026-09-18T18:10:21.262904+00:00` à l'écran. Rendre la chaîne d'origine
+ * quand on n'a pas su la lire évite une page cassée, mais ne doit pas devenir
+ * une porte de sortie silencieuse.
+ */
 export function formaterDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
+  const jourSeul = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = new Date(jourSeul ? `${iso}T00:00:00` : iso);
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(d);
 }

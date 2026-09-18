@@ -1,0 +1,133 @@
+.historique {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.historique__titre {
+  font-size: var(--vh-text-xl);
+  margin: 0;
+}
+
+.historique__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-3);
+  align-items: flex-end;
+}
+
+.filtres .vh-field {
+  flex: 1 1 10rem;
+}
+
+.periode {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.resume {
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.resume__ligne {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.resume__ligne + .resume__ligne {
+  margin-top: var(--vh-space-1);
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.carte {
+  background: var(--vh-surface-1);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.carte__tete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.carte__quand {
+  margin: 0;
+  font-weight: 600;
+}
+
+.carte__qui,
+.carte__pied {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* L'écart est le premier chiffre qu'on cherche : il porte sa couleur. */
+.ecart {
+  border-radius: var(--vh-radius-control);
+  padding: 0.125rem var(--vh-space-2);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ecart--juste {
+  background: color-mix(in srgb, var(--vh-success) 18%, transparent);
+  color: var(--vh-success);
+}
+
+.ecart--manque {
+  background: color-mix(in srgb, var(--vh-error) 18%, transparent);
+  color: var(--vh-error);
+}
+
+.ecart--excedent {
+  background: color-mix(in srgb, var(--vh-warning) 18%, transparent);
+  color: var(--vh-warning);
+}
+
+.chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--vh-space-2);
+  margin: var(--vh-space-3) 0 0;
+}
+
+.chiffre dt {
+  font-size: var(--vh-text-xs);
+  margin: 0;
+}
+
+.chiffre dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.note {
+  margin: var(--vh-space-3) 0 0;
+  font-size: var(--vh-text-sm);
+  font-style: italic;
+}
