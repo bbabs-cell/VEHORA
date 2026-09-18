@@ -3,7 +3,8 @@ import { OrganizationService } from '../../core/organization/organization.servic
 import { ReceiptService } from '../../core/receipts/receipt.service';
 import { StationService } from '../../core/stations/station.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
-import { formaterDate, formaterMontant } from '../../shared/format/montant';
+import { formaterDate, formaterMontant, versSaisie } from '../../shared/format/montant';
+import { nomFichierCsv, nombreCsv, telechargerCsv, versCsv } from '../../shared/export/csv';
 
 /** `2026-09-17`, dans le fuseau de l'appareil — pas en UTC. */
 function jourLocal(decalageJours = 0): string {
@@ -90,6 +91,47 @@ export class RapportsComponent {
 
   surStation(evenement: Event): void {
     this.station.set((evenement.target as HTMLSelectElement).value);
+  }
+
+  /**
+   * Les montants partent en unité principale, avec une colonne « Devise ».
+   * Exporter des unités mineures obligerait le comptable à diviser — et à
+   * savoir par combien, ce qui dépend de la devise.
+   */
+  private montantCsv(mineur: number): string {
+    return versSaisie(mineur, this.devise());
+  }
+
+  exporterJournalier(): void {
+    const contenu = versCsv(
+      ['Jour', 'Station', 'Dossiers restitués', 'Encaissé', 'Espèces', 'Mobile Money',
+       'Autres', 'Panier moyen', 'Devise'],
+      this.rapports.journalier().map((l) => [
+        l.jour,
+        l.station_nom,
+        nombreCsv(l.dossiers_livres),
+        this.montantCsv(l.encaisse_minor),
+        this.montantCsv(l.especes_minor),
+        this.montantCsv(l.mobile_minor),
+        this.montantCsv(l.autres_minor),
+        this.montantCsv(l.panier_moyen_minor),
+        this.devise(),
+      ]),
+    );
+    telechargerCsv(nomFichierCsv('rapport-journalier', this.debut(), this.fin()), contenu);
+  }
+
+  exporterPrestations(): void {
+    const contenu = versCsv(
+      ['Prestation', 'Quantité', 'Montant', 'Devise'],
+      this.rapports.prestations().map((p) => [
+        p.prestation,
+        nombreCsv(p.quantite),
+        this.montantCsv(p.montant_minor),
+        this.devise(),
+      ]),
+    );
+    telechargerCsv(nomFichierCsv('rapport-prestations', this.debut(), this.fin()), contenu);
   }
 
   async actualiser(): Promise<void> {

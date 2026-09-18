@@ -35,6 +35,10 @@ jobs:
         # Les fichiers de test ne sont pas dans `tsconfig.app.json` : sans cette
         # étape, une erreur de type dans `e2e/` ne se voit qu'à l'exécution.
         run: npx tsc -p tsconfig.spec.json --noEmit
+      - name: Assertions unitaires
+        # La fabrique de CSV : elle ne touche ni au réseau ni au DOM, elle se
+        # vérifie donc sans navigateur ni base, en quelques millisecondes.
+        run: npm run test:unit
       - name: Build de production
         # Les budgets de taille sont appliqués ici : un écran qui fait grossir
         # le bundle au-delà du seuil échoue, et c'est voulu — l'application

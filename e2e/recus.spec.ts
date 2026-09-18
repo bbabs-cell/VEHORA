@@ -111,4 +111,33 @@ test.describe('Rapports', () => {
     });
     await expect(page.getByText('Encaissé', { exact: true }).first()).toBeVisible();
   });
+
+  test('l’export produit un fichier lisible par un tableur', async ({ page }) => {
+    await expect(page.getByRole('region', { name: 'Totaux de la période' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    const [fichier] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Exporter (CSV)' }).first().click(),
+    ]);
+
+    expect(fichier.suggestedFilename()).toMatch(/^vehora-rapport-journalier-.*\.csv$/);
+
+    const flux = await fichier.createReadStream();
+    const morceaux: Buffer[] = [];
+    for await (const m of flux) morceaux.push(Buffer.from(m));
+    const contenu = Buffer.concat(morceaux).toString('utf8');
+
+    // Le BOM : sans lui, Excel lit l'UTF-8 comme du Latin-1 et « Liberté 6 »
+    // devient « Libert? 6 ». C'est le seul endroit du projet où on en écrit un.
+    expect(contenu.charCodeAt(0)).toBe(0xfeff);
+    // Point-virgule : avec une virgule, Excel en français met toute la ligne
+    // dans une seule colonne et l'utilisateur conclut que l'export est cassé.
+    expect(contenu).toContain('"Jour";"Station"');
+    expect(contenu).toContain('"Devise"');
+    // Les montants partent en unité principale, avec leur devise en colonne :
+    // pas d'unité mineure que le comptable devrait diviser.
+    expect(contenu).toContain('"XOF"');
+  });
 });

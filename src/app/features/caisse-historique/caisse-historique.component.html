@@ -81,6 +81,13 @@
       }
     </section>
 
+    <div class="rapports__tete-section">
+      <h2 class="historique__section">Sessions</h2>
+      <button class="vh-button vh-button--ghost" type="button" (click)="exporter()">
+        Exporter (CSV)
+      </button>
+    </div>
+
     <ul class="liste" aria-label="Sessions de caisse clôturées">
       @for (s of sessions(); track s.cash_register_id) {
         <li class="carte">

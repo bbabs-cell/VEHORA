@@ -3,7 +3,8 @@ import { OrganizationService } from '../../core/organization/organization.servic
 import { PaymentService, type SessionCaisse } from '../../core/payments/payment.service';
 import { StationService } from '../../core/stations/station.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
-import { formaterDate, formaterMontant } from '../../shared/format/montant';
+import { formaterDate, formaterMontant, versSaisie } from '../../shared/format/montant';
+import { nomFichierCsv, nombreCsv, telechargerCsv, versCsv } from '../../shared/export/csv';
 
 /** `2026-09-18`, dans le fuseau de l'appareil — pas en UTC. */
 function jourLocal(decalageJours = 0): string {
@@ -102,6 +103,34 @@ export class CaisseHistoriqueComponent {
   heure(iso: string | null): string {
     if (!iso) return '';
     return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /**
+   * L'export porte l'écart en clair, dans sa colonne, avec son signe : c'est la
+   * colonne qu'on trie en premier quand on cherche d'où vient un manque.
+   */
+  exporter(): void {
+    const contenu = versCsv(
+      ['Clôturée le', 'Station', 'Ouverte par', 'Clôturée par', 'Fonds d’ouverture',
+       'Entrées', 'Sorties', 'Théorique', 'Compté', 'Écart', 'Mouvements', 'Remarque',
+       'Devise'],
+      this.sessions().map((s) => [
+        s.closed_at ?? '',
+        s.station_name ?? '',
+        s.opened_by_name ?? '',
+        s.closed_by_name ?? '',
+        versSaisie(s.opening_float_minor ?? 0, this.devise()),
+        versSaisie(s.entrees_minor ?? 0, this.devise()),
+        versSaisie(s.sorties_minor ?? 0, this.devise()),
+        versSaisie(s.theoretical_minor ?? 0, this.devise()),
+        versSaisie(s.declared_closing_minor ?? 0, this.devise()),
+        versSaisie(s.variance_minor ?? 0, this.devise()),
+        nombreCsv(s.mouvements ?? 0),
+        s.closing_note ?? '',
+        s.currency ?? this.devise(),
+      ]),
+    );
+    telechargerCsv(nomFichierCsv('sessions-caisse', this.debut(), this.fin()), contenu);
   }
 
   surDebut(evenement: Event): void {

@@ -149,3 +149,17 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Le titre de section et son action d'export : côte à côte quand la place le
+   permet, l'un sous l'autre sur un téléphone. */
+.rapports__tete-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.rapports__tete-section .rapports__section {
+  margin-bottom: 0;
+}

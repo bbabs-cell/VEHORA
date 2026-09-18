@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:unit": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-csv.mjs",
     "e2e": "node scripts/e2e.mjs",
     "validate:sql": "bash scripts/validate-sql.sh",
     "types:check": "tsc -p tsconfig.app.json --noEmit"

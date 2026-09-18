@@ -128,6 +128,7 @@ Chaque fonctionnalité est testée sous trois angles :
 | Build de production (budgets appliqués) | `npm run build` |
 | Migrations + tests de sécurité SQL | `npm run validate:sql` |
 | Tests de parcours | `npm run e2e` |
+| Assertions unitaires | `npm run test:unit` |
 | Vérification des types | `npm run types:check` |
 
 **Node ≥ 22.22.3 requis** par Angular 22. En environnement cloud, le hook
@@ -138,12 +139,12 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 18 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 19 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
-caisse.
-Prochaine étape au choix : facturation réelle (échéances, relances) ou export
-des rapports.
+caisse, export CSV des rapports et des sessions.
+Prochaine étape au choix : facturation réelle (échéances, relances) ou
+notifications au client (« votre véhicule est prêt »).
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
 - 44 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
@@ -316,6 +317,19 @@ des rapports.
   le permettent : le client ne l'envoie pas, donc ne peut pas le falsifier.
   Appliquer le même principe à chaque nouvelle table métier.
 - Custom access token hook **activé** sur `vehora.custom_access_token_hook`.
+- **Un tableur exécute une cellule qui commence par `=`, `+`, `-`, `@`, une
+  tabulation ou un retour chariot.** Un nom de prestation est saisi par un
+  utilisateur : `=HYPERLINK(…)` partirait dans l'export et s'exécuterait chez le
+  comptable. Ce n'est pas une faille de la base — la RLS a fait son travail —
+  c'est une faille du fichier produit, et aucune assertion SQL ne la voit.
+  `shared/export/csv.ts` désamorce ; ne jamais fabriquer un CSV ailleurs.
+  Séparateur `;` et décimale à la virgule (Excel français), BOM UTF-8 (sinon
+  « Libert� 6 ») — le seul BOM volontaire du projet. Les montants partent en
+  unité principale avec une colonne « Devise » : dans un fichier qu'on trie et
+  qu'on additionne, le code ISO est le bon choix, contrairement à l'écran.
+- **Premier test unitaire** : `npm run test:unit` (`scripts/verifier-csv.mjs`,
+  16 assertions). Node exécute le TypeScript tel quel depuis la 23.6 : un module
+  sans réseau ni DOM se vérifie sans navigateur, en quelques millisecondes.
 - **Intégration continue** : `.github/workflows/verification.yml` rejoue types
   (app **et** tests), build avec budgets, migrations et assertions SQL, et
   parcours Playwright, à chaque poussée. Trois travaux séparés : un échec de
@@ -333,7 +347,7 @@ des rapports.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **235 tests Playwright** (4,3 min),
+- Parcours connecté vérifié de bout en bout ; **237 tests Playwright** (4,1 min),
   **253 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;

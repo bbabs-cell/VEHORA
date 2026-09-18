@@ -131,3 +131,16 @@
   font-size: var(--vh-text-sm);
   font-style: italic;
 }
+
+.rapports__tete-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.historique__section {
+  font-size: var(--vh-text-lg);
+  margin: 0;
+}

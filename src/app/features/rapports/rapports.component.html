@@ -80,7 +80,12 @@
     </section>
 
     <section aria-labelledby="titre-journalier">
-      <h2 id="titre-journalier" class="rapports__section">Jour par jour</h2>
+      <div class="rapports__tete-section">
+        <h2 id="titre-journalier" class="rapports__section">Jour par jour</h2>
+        <button class="vh-button vh-button--ghost" type="button" (click)="exporterJournalier()">
+          Exporter (CSV)
+        </button>
+      </div>
       <ul class="liste">
         @for (ligne of rapports.journalier(); track ligne.jour + ligne.station_id) {
           <li class="vh-card jour">
@@ -120,7 +125,14 @@
     </section>
 
     <section aria-labelledby="titre-prestations">
-      <h2 id="titre-prestations" class="rapports__section">Ce qui se vend</h2>
+      <div class="rapports__tete-section">
+        <h2 id="titre-prestations" class="rapports__section">Ce qui se vend</h2>
+        @if (rapports.prestations().length > 0) {
+          <button class="vh-button vh-button--ghost" type="button" (click)="exporterPrestations()">
+            Exporter (CSV)
+          </button>
+        }
+      </div>
       @if (rapports.prestations().length === 0) {
         <p class="vh-muted">Aucune prestation restituée sur la période.</p>
       } @else {
