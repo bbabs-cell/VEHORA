@@ -1,11 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
-import type { Enums, Tables, Views } from '../../types/database.types';
+import type { Database, Enums, Tables, TablesInsert } from '../../types/database.types';
+import { rempliParLaBase, uneLigneDeVue } from '../../types/frontiere';
 
 export type Paiement = Tables<'payments'>;
 export type Caisse = Tables<'cash_registers'>;
 export type MouvementCaisse = Tables<'cash_transactions'>;
-export type SessionCaisse = Views<'cash_register_history'>;
+export type SessionCaisse = Database['public']['Views']['cash_register_history']['Row'];
 export type MethodePaiement = Enums<'payment_method'>;
 
 /** État financier d'un dossier, calculé par la base. Jamais additionné ici. */
@@ -142,7 +143,7 @@ export class PaymentService {
     }
 
     this._paiements.set(paiements.data ?? []);
-    this._etat.set(etat.data);
+    this._etat.set(uneLigneDeVue<EtatFinancier>(etat.data));
   }
 
   /**
@@ -246,11 +247,15 @@ export class PaymentService {
     const profil = session.session?.user.id;
     if (!profil) return 'Votre session a expiré. Reconnectez-vous.';
 
-    const { error } = await this.supabase.client.from('cash_registers').insert({
-      station_id: stationId,
-      opened_by: profil,
-      opening_float_minor: fondsMineur,
-    });
+    // `currency` et `organization_id` viennent de la base : les envoyer d'ici
+    // les rendrait falsifiables.
+    const { error } = await this.supabase.client.from('cash_registers').insert(
+      rempliParLaBase<TablesInsert<'cash_registers'>>({
+        station_id: stationId,
+        opened_by: profil,
+        opening_float_minor: fondsMineur,
+      }),
+    );
 
     if (error) return message(error.code, error.message);
     await this.chargerMaCaisse(stationId);
@@ -270,7 +275,7 @@ export class PaymentService {
     const { data, error } = await this.supabase.client.rpc('cloturer_caisse', {
       p_cash_register_id: caisseId,
       p_declared_minor: compteMineur,
-      p_note: note,
+      p_note: note ?? undefined,
     });
 
     if (error) return { ecart: null, erreur: message(error.code, error.message) };
@@ -288,13 +293,17 @@ export class PaymentService {
     fournisseur: string | null,
     reference: string | null,
   ): Promise<string | null> {
-    const { error } = await this.supabase.client.from('payments').insert({
-      service_order_id: dossierId,
-      method: methode,
-      amount_minor: montantMineur,
-      provider_name: fournisseur,
-      external_ref: reference,
-    });
+    // Ni la devise, ni la station, ni la caisse ne sont envoyées : la base les
+    // détermine. Le client n'envoie jamais un montant *et* sa devise.
+    const { error } = await this.supabase.client.from('payments').insert(
+      rempliParLaBase<TablesInsert<'payments'>>({
+        service_order_id: dossierId,
+        method: methode,
+        amount_minor: montantMineur,
+        provider_name: fournisseur,
+        external_ref: reference,
+      }),
+    );
 
     if (error) return message(error.code, error.message);
     await this.chargerDossier(dossierId);
@@ -308,14 +317,16 @@ export class PaymentService {
     montantMineur: number,
     motif: string,
   ): Promise<string | null> {
-    const { error } = await this.supabase.client.from('payments').insert({
-      service_order_id: dossierId,
-      kind: 'REFUND',
-      method: 'CASH', // écrasée par la base : celle du paiement d'origine.
-      amount_minor: montantMineur,
-      reverses_payment_id: paiementId,
-      reason: motif,
-    });
+    const { error } = await this.supabase.client.from('payments').insert(
+      rempliParLaBase<TablesInsert<'payments'>>({
+        service_order_id: dossierId,
+        kind: 'REFUND',
+        method: 'CASH', // écrasée par la base : celle du paiement d'origine.
+        amount_minor: montantMineur,
+        reverses_payment_id: paiementId,
+        reason: motif,
+      }),
+    );
 
     if (error) return message(error.code, error.message);
     await this.chargerDossier(dossierId);
@@ -329,12 +340,14 @@ export class PaymentService {
     montantMineur: number,
     motif: string,
   ): Promise<string | null> {
-    const { error } = await this.supabase.client.from('cash_transactions').insert({
-      cash_register_id: caisseId,
-      kind: sens,
-      amount_minor: sens === 'CASH_OUT' ? -montantMineur : montantMineur,
-      reason: motif,
-    });
+    const { error } = await this.supabase.client.from('cash_transactions').insert(
+      rempliParLaBase<TablesInsert<'cash_transactions'>>({
+        cash_register_id: caisseId,
+        kind: sens,
+        amount_minor: sens === 'CASH_OUT' ? -montantMineur : montantMineur,
+        reason: motif,
+      }),
+    );
 
     if (error) return message(error.code, error.message);
     await this.chargerCaisse(caisseId);

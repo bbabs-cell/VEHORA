@@ -46,8 +46,8 @@ export class ProvisioningService {
     const { error } = await this.supabase.client.rpc('provisionner_organisation', {
       p_nom: entree.nom,
       p_pays: entree.pays,
-      p_ville: entree.ville ?? null,
-      p_nom_station: entree.nomStation ?? null,
+      p_ville: entree.ville ?? undefined,
+      p_nom_station: entree.nomStation ?? undefined,
     });
 
     if (error) return this.message(error);

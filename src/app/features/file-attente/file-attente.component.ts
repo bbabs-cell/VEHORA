@@ -329,7 +329,9 @@ export class FileAttenteComponent {
   });
 
   readonly totalDossier = computed(() =>
-    this.dossiers.lignes().reduce((somme, l) => somme + l.line_total_minor, 0),
+    // `line_total_minor` est une colonne calculée : NOT NULL en base, mais le
+    // générateur la rend nullable faute de le savoir.
+    this.dossiers.lignes().reduce((somme, l) => somme + (l.line_total_minor ?? 0), 0),
   );
 
   formaterMontantLigne(montant: number, devise: string): string {

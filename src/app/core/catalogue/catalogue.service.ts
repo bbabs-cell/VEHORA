@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
-import type { Tables } from '../../types/database.types';
+import type { Tables, TablesInsert } from '../../types/database.types';
+import { rempliParLaBase, uneLigneDeVue } from '../../types/frontiere';
 
 export type CategorieService = Tables<'service_categories'>;
 export type PrestationService = Tables<'services'>;
@@ -130,7 +131,9 @@ export class CatalogueService {
    * l'organisation. Un client ne choisit pas la devise dans laquelle il facture.
    */
   async creerTarif(tarif: TarifSaisi): Promise<string | null> {
-    const { error } = await this.supabase.client.from('service_prices').insert(tarif);
+    const { error } = await this.supabase.client
+      .from('service_prices')
+      .insert(rempliParLaBase<TablesInsert<'service_prices'>>(tarif));
     if (error) return message(error.code, error.message);
     await this.charger();
     return null;
@@ -200,10 +203,14 @@ export class CatalogueService {
   ): Promise<PrixResolu | null> {
     const { data, error } = await this.supabase.client.rpc('resoudre_prix', {
       p_service_id: serviceId,
-      p_vehicle_type_id: vehicleTypeId,
-      p_station_id: stationId,
+      // Omettre l'argument laisse la fonction appliquer son défaut, qui est
+      // `null` : c'est la même chose, dit dans le langage du générateur.
+      p_vehicle_type_id: vehicleTypeId ?? undefined,
+      p_station_id: stationId ?? undefined,
     });
     if (error || !data || data.length === 0) return null;
-    return data[0];
+    // `specificite` est un `text` côté serveur : la fonction ne peut pas le
+    // typer plus finement, l'écran si.
+    return uneLigneDeVue<PrixResolu>(data[0]);
   }
 }

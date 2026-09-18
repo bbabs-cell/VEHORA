@@ -139,11 +139,12 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 21 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 22 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
 caisse, export CSV des rapports et des sessions, facturation des abonnements
-(échéances, relances, annulation), file des notifications au client.
+(échéances, relances, annulation), file des notifications au client, types de
+base régénérés.
 **Prochaine étape bloquée par une décision** : choisir un fournisseur de SMS.
 Tout le reste des notifications est fait ; il ne manque que l'envoi
 (`docs/notifications.md`).
@@ -463,16 +464,28 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   `--vh-nav-basse`. Toute mesure utilisée par plus d'un composant devient un
   token. **Deuxième occurrence** : les styles de modale, recopiés dans dix
   feuilles et divergents sur trois propriétés (phase 15).
-- **`database.types.ts` est annoté à la main**, malgré son en-tête. Le
-  générateur actuel produit des types plus stricts (`RejectExcessProperties`,
-  colonnes NOT NULL exigées à l'insertion même quand un trigger les remplit) :
-  adopter sa sortie telle quelle coûte vingt-et-une corrections sur huit
-  services. À faire dans une phase dédiée, pas au détour d'une autre. En
-  attendant, reprendre du générateur la forme exacte de ce qu'on ajoute.
-- **`database.types.ts` : les blocs `Relationships` ne sont pas décoratifs.**
-  Ils typent les jointures PostgREST ; leur absence produit un message
-  trompeur. Quatre incidents — régénérer plutôt que compléter à la main ; en
-  phase 9 les neuf tables concernées ont été comblées d'un coup.
+- **`database.types.ts` est la sortie BRUTE du générateur** depuis la phase 22 :
+  on le **régénère**, on ne le complète jamais à la main. Il a prétendu être
+  généré pendant treize phases sans l'être, et le coût s'est payé en blocs
+  `Relationships` incomplets — ce sont eux qui typent les jointures PostgREST,
+  et leur absence produit un message qui accuse la base. Quatre incidents.
+- **L'écart entre le schéma et le contrat d'exécution vit dans
+  `src/app/types/frontiere.ts`**, nommé une fois, jamais dans les types générés.
+  Trois écarts, trois seulement : `rempliParLaBase` (les colonnes que la base
+  pose — `organization_id`, `currency`, `number`, `unit_amount_minor` : le
+  générateur a raison sur le schéma et tort sur le contrat, et les envoyer
+  depuis le navigateur les rendrait falsifiables) ; `ligneDeVue` /
+  `uneLigneDeVue` (une vue ne propage pas `NOT NULL`, tout revient `| null`) ;
+  `nullAccepte` (un paramètre SQL qui accepte `NULL` mais que le générateur type
+  non nullable — `p_actif = null` retire une dérogation, c'est un troisième
+  état, pas une absence). Un quatrième écart signalerait plutôt un changement de
+  règle serveur.
+- **Un paramètre SQL facultatif se passe `undefined`, jamais `null`** : omettre
+  l'argument laisse PostgreSQL appliquer son `DEFAULT`, qui vaut précisément
+  `null`.
+- **`npm run types:check` ne vérifie pas les gabarits Angular.** Une erreur de
+  type dans un `.html` n'apparaît qu'au `ng build` — les deux sont dans
+  l'intégration continue, dans cet ordre.
 - Le jeu de démonstration a **deux stations** (Liberté 6, Ouakam) : les tests
   de caisse en dépendent, et l'affichage multi-station aussi.
 - Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`

@@ -68,7 +68,7 @@ export class CustomerService {
     this._erreur.set(null);
 
     const { data, error } = await this.supabase.client.rpc('rechercher_clients', {
-      p_recherche: terme.trim() || null,
+      p_recherche: terme.trim() || undefined,
       p_limite: PAGE,
       p_decalage: decalage,
     });

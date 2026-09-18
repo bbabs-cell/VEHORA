@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
+import { uneLigneDeVue } from '../../types/frontiere';
 
 /** Ce qu'une organisation a le droit de savoir d'elle-même. */
 export interface MonAbonnement {
@@ -113,7 +114,9 @@ export class SubscriptionService {
     }
 
     this.charge = true;
-    this._abonnement.set(abonnement.data?.[0] ?? null);
+    // `statut` est un `text` côté serveur, restreint par une contrainte que le
+    // générateur ne voit pas.
+    this._abonnement.set(uneLigneDeVue<MonAbonnement>(abonnement.data?.[0]));
     this._fonctionnalites.set(fonctionnalites.data ?? []);
   }
 }

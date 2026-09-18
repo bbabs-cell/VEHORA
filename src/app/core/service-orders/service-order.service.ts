@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
-import type { Enums, Tables } from '../../types/database.types';
+import type { Enums, Tables, TablesInsert } from '../../types/database.types';
+import { ligneDeVue, rempliParLaBase } from '../../types/frontiere';
 
 export type StatutDossier = Enums<'service_order_status'>;
 export type LigneDossier = Tables<'service_order_items'>;
@@ -191,23 +192,27 @@ export class ServiceOrderService {
     const parSolde = new Map((soldes.data ?? []).map((s) => [s.service_order_id, s]));
 
     this._dossiers.set(
-      (data ?? []).map((d) => ({
-        id: d.id,
-        number: d.number,
-        status: d.status,
-        arrived_at: d.arrived_at,
-        station_id: d.station_id,
-        vehicle_id: d.vehicle_id,
-        notes: d.notes,
-        plaque: d.vehicles?.plate ?? null,
-        type_vehicule: d.vehicles?.vehicle_types?.label ?? '',
-        client: d.customers?.full_name ?? null,
-        total_minor: parDossier.get(d.id)?.total_amount_minor ?? 0,
-        currency: parDossier.get(d.id)?.currency ?? null,
-        lignes: parDossier.get(d.id)?.lignes ?? 0,
-        balance_minor: parSolde.get(d.id)?.balance_minor ?? 0,
-        payment_status: parSolde.get(d.id)?.payment_status ?? 'UNPAID',
-      })),
+      // `payment_status` vient d'une vue : le générateur le rend `string`,
+      // l'écran connaît les quatre valeurs possibles.
+      ligneDeVue<DossierListe>(
+        (data ?? []).map((d) => ({
+          id: d.id,
+          number: d.number,
+          status: d.status,
+          arrived_at: d.arrived_at,
+          station_id: d.station_id,
+          vehicle_id: d.vehicle_id,
+          notes: d.notes,
+          plaque: d.vehicles?.plate ?? null,
+          type_vehicule: d.vehicles?.vehicle_types?.label ?? '',
+          client: d.customers?.full_name ?? null,
+          total_minor: parDossier.get(d.id)?.total_amount_minor ?? 0,
+          currency: parDossier.get(d.id)?.currency ?? null,
+          lignes: parDossier.get(d.id)?.lignes ?? 0,
+          balance_minor: parSolde.get(d.id)?.balance_minor ?? 0,
+          payment_status: parSolde.get(d.id)?.payment_status ?? 'UNPAID',
+        })),
+      ),
     );
   }
 
@@ -223,7 +228,9 @@ export class ServiceOrderService {
   }): Promise<{ id: string | null; erreur: string | null }> {
     const { data, error } = await this.supabase.client
       .from('service_orders')
-      .insert(dossier)
+      // `number` et `organization_id` viennent de la base : un numéro de
+      // dossier choisi par le navigateur serait un numéro négociable.
+      .insert(rempliParLaBase<TablesInsert<'service_orders'>>(dossier))
       .select('id')
       .single();
 
@@ -252,9 +259,12 @@ export class ServiceOrderService {
    * serait un montant négociable.
    */
   async ajouterPrestation(dossierId: string, serviceId: string): Promise<string | null> {
-    const { error } = await this.supabase.client
-      .from('service_order_items')
-      .insert({ service_order_id: dossierId, service_id: serviceId });
+    const { error } = await this.supabase.client.from('service_order_items').insert(
+      rempliParLaBase<TablesInsert<'service_order_items'>>({
+        service_order_id: dossierId,
+        service_id: serviceId,
+      }),
+    );
 
     if (error) return message(error.code, error.message);
     await Promise.all([this.chargerLignes(dossierId), this.chargerFile()]);
@@ -284,7 +294,7 @@ export class ServiceOrderService {
     const { error } = await this.supabase.client.rpc('transitionner_dossier', {
       p_service_order_id: dossierId,
       p_to_status: versStatut,
-      p_reason: motif,
+      p_reason: motif ?? undefined,
     });
 
     if (error) return message(error.code, error.message);

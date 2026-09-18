@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { ligneDeVue, nullAccepte } from '../../types/frontiere';
 
 /** Une organisation cliente, vue de la plateforme : métadonnées et volumes. */
 export interface OrganisationPlateforme {
@@ -185,9 +186,11 @@ export class PlatformService {
       return;
     }
 
-    this._organisations.set(organisations.data ?? []);
-    this._journal.set(journal.data ?? []);
-    this._abonnements.set(abonnements.data ?? []);
+    // Une vue ne propage pas la nullabilité : le générateur rend toutes ses
+    // colonnes `| null`, y compris celles qui viennent d'une colonne NOT NULL.
+    this._organisations.set(ligneDeVue<OrganisationPlateforme>(organisations.data));
+    this._journal.set(ligneDeVue<EntreeJournal>(journal.data));
+    this._abonnements.set(ligneDeVue<AbonnementPlateforme>(abonnements.data));
     this._plans.set(plans.data ?? []);
   }
 
@@ -212,7 +215,7 @@ export class PlatformService {
       this._factures.set([]);
       return;
     }
-    this._factures.set((data ?? []) as FacturePlateforme[]);
+    this._factures.set(ligneDeVue<FacturePlateforme>(data));
   }
 
   /**
@@ -322,7 +325,8 @@ export class PlatformService {
     const { error } = await this.supabase.client.rpc('basculer_fonctionnalite', {
       p_organization_id: organisationId,
       p_cle: cle,
-      p_actif: actif,
+      // `null` retire la dérogation : un troisième état, pas une absence.
+      p_actif: nullAccepte(actif),
       p_motif: motif,
     });
 

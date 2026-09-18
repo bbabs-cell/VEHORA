@@ -303,7 +303,7 @@
             <li class="ligne">
               <span class="ligne__nom">{{ ligne.service_name }}</span>
               <span class="ligne__montant">
-                {{ formaterMontantLigne(ligne.line_total_minor, ligne.currency) }}
+                {{ formaterMontantLigne(ligne.line_total_minor ?? 0, ligne.currency) }}
               </span>
               <button
                 class="ligne__retirer"
