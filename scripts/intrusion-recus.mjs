@@ -5,6 +5,7 @@
 // faire disparaître un, d'en fabriquer un numéro, ou — côté rapports — de lire
 // le chiffre d'affaires d'une station qu'on n'a pas le droit de connaître.
 // Tout cela se tente ici par l'API réelle.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

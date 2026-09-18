@@ -1,4 +1,5 @@
 // Campagne d'intrusion phase 8 — catalogue et tarifs, par l'API réelle.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

@@ -1,27 +1,20 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
   motDePasse: process.env['VEHORA_TEST_PASSWORD'],
 };
 
-async function seConnecter(page: Page): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(proprietaire.email!);
-  await page.getByLabel('Mot de passe').fill(proprietaire.motDePasse!);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Confirmations', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test('une confirmation dit ce qui va se passer, et son bouton ce qu’il fait', async ({
     page,
   }) => {
-    await seConnecter(page);
+    await installerRelaisReseau(page);
     await page.goto('/clients');
 
     const carte = page.locator('.carte').first();
@@ -52,7 +45,7 @@ test.describe('Confirmations', () => {
   });
 
   test('la page ne défile pas derrière une confirmation', async ({ page }) => {
-    await seConnecter(page);
+    await installerRelaisReseau(page);
     await page.goto('/vehicules');
 
     const carte = page.locator('.carte').first();

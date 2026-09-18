@@ -12,10 +12,7 @@ const email = process.env['VEHORA_TEST_EMAIL'];
 const motDePasse = process.env['VEHORA_TEST_PASSWORD'];
 
 test.describe('Session connectée', () => {
-  test.skip(
-    !email || !motDePasse,
-    'VEHORA_TEST_EMAIL et VEHORA_TEST_PASSWORD non définis',
-  );
+  test.skip(!email || !motDePasse, 'VEHORA_TEST_EMAIL et VEHORA_TEST_PASSWORD non définis');
 
   test.beforeEach(async ({ page }) => {
     await installerRelaisReseau(page);

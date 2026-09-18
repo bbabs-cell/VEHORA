@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import './proxy-node';
 
 /**
  * Relais réseau pour l'environnement cloud.

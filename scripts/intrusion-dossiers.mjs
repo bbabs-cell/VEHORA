@@ -3,6 +3,7 @@
 // Le cycle de vie ne vaut que si l'API le fait respecter. Un trigger qui
 // protège le statut en SQL local ne prouve rien tant qu'un PATCH REST n'a pas
 // été tenté pour de vrai.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

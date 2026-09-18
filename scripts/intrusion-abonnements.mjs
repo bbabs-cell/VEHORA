@@ -4,6 +4,7 @@
 // tentations sont donc : s'ouvrir une fonctionnalité qu'on ne paie pas, se
 // donner une station de plus, lire la grille tarifaire ou l'abonnement du
 // voisin. Tout cela se tente ici par l'API réelle.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

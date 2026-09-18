@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -10,29 +11,26 @@ const caissier = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_CAISSIER'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 // ---------------------------------------------------------------------------
 // 1. Utilisateur autorisé
 // ---------------------------------------------------------------------------
 test.describe('Stations — propriétaire', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
+    await page.goto('/tableau-de-bord');
   });
 
   test('création, modification et désactivation', async ({ page }, infos) => {
     const nom = `Station test ${infos.project.name} ${Date.now()}`;
 
-    // Sur mobile, la navigation vit dans le tiroir : il faut l'ouvrir.
+    // Sur mobile, la navigation vit dans le tiroir : il faut l'ouvrir. On
+    // attend que la coquille soit posée : interroger la visibilité d'un bouton
+    // pas encore rendu répond « non » sans erreur, et le clic suivant échoue
+    // pour une raison qui n'a rien à voir avec les stations.
+    await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 20_000 });
     const ouvrirMenu = page.getByRole('button', { name: 'Ouvrir le menu' });
     if (await ouvrirMenu.isVisible()) {
       await ouvrirMenu.click();
@@ -107,9 +105,11 @@ test.describe('Stations — propriétaire', () => {
 // ---------------------------------------------------------------------------
 test.describe('Stations — caissier sans stations.manage', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants caissier absents');
+  test.use({ storageState: etat('caissier') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
+    await installerRelaisReseau(page);
+    await page.goto('/tableau-de-bord');
   });
 
   test("l'entrée Stations n'apparaît pas dans la navigation", async ({ page }) => {

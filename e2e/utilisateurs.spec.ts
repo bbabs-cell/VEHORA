@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -14,23 +15,15 @@ const sansOrg = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_SANS_ORG'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-}
-
 // ---------------------------------------------------------------------------
 // 1. Utilisateur autorisé
 // ---------------------------------------------------------------------------
 test.describe('Utilisateurs — propriétaire', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
-    await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
+    await installerRelaisReseau(page);
     await page.goto('/utilisateurs');
   });
 
@@ -101,10 +94,10 @@ test.describe('Utilisateurs — propriétaire', () => {
 // ---------------------------------------------------------------------------
 test.describe('Utilisateurs — caissier sans users.manage', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants caissier absents');
+  test.use({ storageState: etat('caissier') });
 
   test('l’accès direct à l’URL est refusé', async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
-    await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
+    await installerRelaisReseau(page);
 
     await page.goto('/utilisateurs');
     await expect(page).toHaveURL(/tableau-de-bord/);
@@ -117,9 +110,11 @@ test.describe('Utilisateurs — caissier sans users.manage', () => {
 // ---------------------------------------------------------------------------
 test.describe('Compte sans organisation', () => {
   test.skip(!sansOrg.email || !sansOrg.motDePasse, 'identifiants sans-org absents');
+  test.use({ storageState: etat('sans-org') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, sansOrg.email!, sansOrg.motDePasse!);
+    await installerRelaisReseau(page);
+    await page.goto('/');
     await expect(page).toHaveURL(/sans-organisation/, { timeout: 20_000 });
   });
 

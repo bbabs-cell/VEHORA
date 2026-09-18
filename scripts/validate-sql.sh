@@ -3,6 +3,19 @@
 # structurels. Permet de valider le SQL sans projet Supabase rattaché.
 set -euo pipefail
 
+# PostgreSQL refuse de démarrer sous root. En conteneur (cloud, CI) on est root :
+# on se relance sous un compte non privilégié plutôt que d'échouer à `initdb`.
+if [ "$(id -u)" = "0" ] && [ -z "${VEHORA_SQL_REEXEC:-}" ]; then
+  utilisateur=${VEHORA_SQL_USER:-postgres}
+  if id "$utilisateur" >/dev/null 2>&1; then
+    echo "Exécution sous « $utilisateur » (PostgreSQL ne démarre pas sous root)."
+    exec su "$utilisateur" -s /bin/bash -c \
+      "cd $(pwd) && VEHORA_SQL_REEXEC=1 bash $0"
+  fi
+  echo "Ce script ne peut pas s'exécuter sous root et aucun compte de repli n'existe." >&2
+  exit 1
+fi
+
 PGBIN=${PGBIN:-/usr/lib/postgresql/16/bin}
 PGDATA=$(mktemp -d)
 PORT=${PORT:-55432}

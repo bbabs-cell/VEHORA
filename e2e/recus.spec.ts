@@ -1,6 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { connecterApi, creerDossierArrive, stationDuProjet } from './fixtures';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 // Chaque test crée son dossier et le referme : aucun ne dépend de l'état laissé
 // par un autre, et aucun n'épingle un numéro de reçu — la numérotation avance.
@@ -9,29 +10,21 @@ const proprietaire = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD'],
 };
 
-async function seConnecter(page: Page): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(proprietaire.email!);
-  await page.getByLabel('Mot de passe').fill(proprietaire.motDePasse!);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Reçus', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
-  test('un dossier facturable donne un reçu numéroté et imprimable', async ({
-    page,
-  }, info) => {
+  test('un dossier facturable donne un reçu numéroté et imprimable', async ({ page }, info) => {
     const dossier = await creerDossierArrive('Lavage complet', stationDuProjet(info.project.name));
     try {
-      await seConnecter(page);
+      await installerRelaisReseau(page);
       await page.goto('/file-attente');
 
       const carte = page.locator('.dossier', { hasText: `N° ${dossier.numero}` });
       await expect(carte).toBeVisible({ timeout: 20_000 });
-      await carte.getByRole('button', { name: `Émettre le reçu du dossier ${dossier.numero}` }).click();
+      await carte
+        .getByRole('button', { name: `Émettre le reçu du dossier ${dossier.numero}` })
+        .click();
 
       await expect(page).toHaveURL(/\/recus\//, { timeout: 20_000 });
       // Ce que l'œil doit voir : un numéro, le dossier, un total, et le fait
@@ -66,7 +59,7 @@ test.describe('Reçus', () => {
       .single();
 
     try {
-      await seConnecter(page);
+      await installerRelaisReseau(page);
       await page.goto('/file-attente');
 
       const carte = page.locator('.dossier', { hasText: `N° ${dossier!.number}` });
@@ -87,9 +80,10 @@ test.describe('Reçus', () => {
 
 test.describe('Rapports', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page);
+    await installerRelaisReseau(page);
     await page.goto('/rapports');
   });
 

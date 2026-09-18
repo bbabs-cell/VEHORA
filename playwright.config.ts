@@ -109,6 +109,12 @@ const baseURL = `http://localhost:${port}`;
 export default defineConfig({
   testDir: './e2e',
   /**
+   * Une connexion par rôle, avant la suite, plutôt qu'une par test : deux cents
+   * authentifications de moins par exécution, et la limite d'authentification
+   * de Supabase n'est plus atteinte depuis un poste unique.
+   */
+  globalSetup: './e2e/global-setup.ts',
+  /**
    * 45 s plutôt que 30 : la toute première navigation attend la compilation des
    * lots différés par le serveur de développement, ce qui dépasse 30 s sur un
    * poste modeste. Les deux premiers tests de la suite échouaient pour cette

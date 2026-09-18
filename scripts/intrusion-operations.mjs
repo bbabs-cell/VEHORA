@@ -4,6 +4,7 @@
 // distinctes, portées par des colonnes différentes de la même ligne. Une policy
 // RLS ne voit pas quelle colonne a changé — c'est un trigger qui tranche, et
 // c'est donc par l'API qu'il faut le prouver.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 // Changer un plan modifie l'état d'une organisation : chaque projet travaille
 // sur la sienne, et les tests d'un même projet s'enchaînent — la règle établie
@@ -19,20 +20,12 @@ const proprietaire = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await page.waitForURL(/plateforme|tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Abonnement — côté organisation', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/abonnement');
   });
 
@@ -65,9 +58,10 @@ test.describe('Abonnement — côté organisation', () => {
 
 test.describe('Abonnement — côté plateforme', () => {
   test.skip(!admin.motDePasse, 'mot de passe de plateforme absent');
+  test.use({ storageState: etat('admin') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, admin.email, admin.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/plateforme/organisations');
   });
 

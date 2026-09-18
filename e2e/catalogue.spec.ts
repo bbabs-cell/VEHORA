@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -10,20 +11,12 @@ const caissier = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_CAISSIER'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Catalogue — propriétaire', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/catalogue');
   });
 
@@ -70,7 +63,10 @@ test.describe('Catalogue — propriétaire', () => {
   });
 
   test('changer un prix propose demain, pas aujourd’hui', async ({ page }) => {
-    await page.getByRole('button', { name: /^Changer le tarif/ }).first().click();
+    await page
+      .getByRole('button', { name: /^Changer le tarif/ })
+      .first()
+      .click();
     const modale = page.getByRole('dialog');
     await expect(modale).toBeVisible();
 
@@ -86,9 +82,7 @@ test.describe('Catalogue — propriétaire', () => {
   });
 
   test('le formulaire de tarif propose « tous les véhicules » par défaut', async ({ page }) => {
-    await page
-      .getByRole('button', { name: 'Ajouter un tarif à Lavage complet' })
-      .click();
+    await page.getByRole('button', { name: 'Ajouter un tarif à Lavage complet' }).click();
     const modale = page.getByRole('dialog');
     await expect(modale).toBeVisible();
     await expect(modale.getByLabel('Type de véhicule')).toHaveValue('');
@@ -100,15 +94,14 @@ test.describe('Catalogue — propriétaire', () => {
 
 test.describe('Catalogue — caissier', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('caissier') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/catalogue');
   });
 
-  test('le caissier lit les tarifs mais ne peut ni les créer ni les modifier', async ({
-    page,
-  }) => {
+  test('le caissier lit les tarifs mais ne peut ni les créer ni les modifier', async ({ page }) => {
     const liste = page.getByRole('list', { name: 'Prestations du catalogue' });
     await expect(liste).toBeVisible({ timeout: 15_000 });
     await expect(liste).toContainText('Lavage complet');

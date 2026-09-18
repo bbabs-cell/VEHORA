@@ -4,6 +4,7 @@
 // un compte de plateforme, malgré ses droits, n'atteint AUCUNE donnée métier
 // d'un client. Pas une ligne. Si une policy `or is_platform_admin()` apparaît
 // un jour quelque part, c'est ce script qui doit le dire.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';

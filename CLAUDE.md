@@ -138,9 +138,9 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 16 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 17 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
-bord chiffré.
+bord chiffré, dette d'outillage de test traitée.
 Prochaine étape au choix : facturation réelle (échéances, relances), historique
 des sessions de caisse, ou export des rapports.
 
@@ -303,7 +303,7 @@ des sessions de caisse, ou export des rapports.
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **231 tests Playwright**,
+- Parcours connecté vérifié de bout en bout ; **231 tests Playwright** (3,4 min),
   **243 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
@@ -311,6 +311,25 @@ des sessions de caisse, ou export des rapports.
   `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
   `scripts/intrusion-catalogue.mjs`, 21 ; 14 sur le stockage).
+- **Une connexion par rôle, pas une par test.** `e2e/global-setup.ts` se connecte
+  une fois par rôle et enregistre l'état (`storageState`) dans `e2e/.etats/`,
+  effacé à chaque exécution et ignoré par Git. La suite est passée de 10,3 à
+  3,4 minutes, et la limite de débit de Supabase Auth ne refuse plus rien.
+- **Une assertion d'absence sur une page qu'on n'a pas ouverte passe toujours.**
+  Deux faux verts découverts en retirant les connexions locales : les tests
+  tournaient sur `about:blank`, et `toHaveCount(0)` y est toujours vrai. Tout
+  test qui vérifie qu'une chose n'est pas là établit d'abord qu'il est au bon
+  endroit. De même, `isVisible()` sur un élément pas encore rendu répond
+  « non » sans erreur : attendre la coquille avant d'interroger la navigation.
+- **Node n'achemine plus `fetch` par le proxy sans `NODE_USE_ENV_PROXY`**, et il
+  lit la variable **au démarrage du processus**. Sans elle, en cloud, toute
+  connexion Supabase depuis Node échoue en `Service Unavailable` **503 émis par
+  le proxy** — un message qui accuse Supabase alors que Supabase répond. D'où
+  `npm run e2e` (et non `npx playwright test`), qui relance Playwright dans un
+  processus fils correctement configuré ; `e2e/proxy-node.ts` et
+  `scripts/proxy-node.mjs` échouent en nommant la cause si le drapeau manque.
+- **`npm run validate:sql` se relance sous un compte non privilégié** : en
+  conteneur on est root, et PostgreSQL refuse de démarrer sous root.
 - **Un test ne doit pas modifier l'état que d'autres tests lisent**, ni épingler
   un numéro qui avance. `e2e/fixtures.ts` monte un dossier par l'API réelle ;
   chaque test qui fait avancer quelque chose crée le sien et le referme.

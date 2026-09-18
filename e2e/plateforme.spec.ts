@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 // Suspendre change l'état d'une organisation : chaque projet travaille sur la
 // sienne, et les tests d'un même projet s'enchaînent. Les deux sont
@@ -20,22 +21,12 @@ const proprietaire = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  // Sans cette attente, le `goto` suivant part pendant la connexion et tombe
-  // sur une redirection en cours.
-  await page.waitForURL(/plateforme|tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Espace plateforme — Super Admin', () => {
   test.skip(!admin.motDePasse, 'mot de passe de plateforme absent');
+  test.use({ storageState: etat('admin') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, admin.email, admin.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/plateforme/organisations');
   });
 
@@ -51,8 +42,10 @@ test.describe('Espace plateforme — Super Admin', () => {
     const lien = bandeau.getByRole('link', { name: 'Organisations' });
     const [a, b] = [await espace.boundingBox(), await lien.boundingBox()];
     const chevauche =
-      a!.x < b!.x + b!.width && b!.x < a!.x + a!.width &&
-      a!.y < b!.y + b!.height && b!.y < a!.y + a!.height;
+      a!.x < b!.x + b!.width &&
+      b!.x < a!.x + a!.width &&
+      a!.y < b!.y + b!.height &&
+      b!.y < a!.y + a!.height;
     expect(chevauche).toBe(false);
 
     // Rien de la navigation cliente ne doit apparaître ici.
@@ -96,7 +89,9 @@ test.describe('Espace plateforme — Super Admin', () => {
   test('suspendre annonce la conséquence et exige un motif', async ({ page }, info) => {
     const liste = page.getByRole('list', { name: 'Organisations clientes' });
     await expect(liste).toBeVisible({ timeout: 15_000 });
-    await page.getByLabel('Rechercher une organisation').fill(organisationDuProjet(info.project.name));
+    await page
+      .getByLabel('Rechercher une organisation')
+      .fill(organisationDuProjet(info.project.name));
 
     await page.getByRole('button', { name: /^Suspendre / }).click();
     const modale = page.getByRole('dialog');
@@ -134,7 +129,9 @@ test.describe('Espace plateforme — Super Admin', () => {
   test('réactiver rend l’accès, et laisse sa trace', async ({ page }, info) => {
     const liste = page.getByRole('list', { name: 'Organisations clientes' });
     await expect(liste).toBeVisible({ timeout: 15_000 });
-    await page.getByLabel('Rechercher une organisation').fill(organisationDuProjet(info.project.name));
+    await page
+      .getByLabel('Rechercher une organisation')
+      .fill(organisationDuProjet(info.project.name));
 
     await page.getByRole('button', { name: /^Réactiver / }).click();
     const modale = page.getByRole('dialog');
@@ -158,10 +155,10 @@ test.describe('Espace plateforme — Super Admin', () => {
 
 test.describe('Espace plateforme — compte client', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test('un client ne peut pas entrer dans l’espace plateforme', async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
-    await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
+    await installerRelaisReseau(page);
 
     await page.goto('/plateforme/organisations');
     await expect(page).not.toHaveURL(/plateforme/, { timeout: 15_000 });

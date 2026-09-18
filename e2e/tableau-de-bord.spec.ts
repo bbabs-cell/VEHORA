@@ -1,6 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { creerDossierEnAttente, stationDuProjet } from './fixtures';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -11,17 +12,9 @@ const caissier = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_CAISSIER'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Tableau de bord', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test('il compte les véhicules présents, et ne promet plus rien', async ({ page }, info) => {
     const dossier = await creerDossierEnAttente(
@@ -29,7 +22,8 @@ test.describe('Tableau de bord', () => {
       stationDuProjet(info.project.name),
     );
     try {
-      await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+      await installerRelaisReseau(page);
+      await page.goto('/tableau-de-bord');
 
       const presents = page.getByRole('region', { name: 'En ce moment' });
       await expect(presents).toBeVisible({ timeout: 20_000 });
@@ -48,7 +42,8 @@ test.describe('Tableau de bord', () => {
   });
 
   test('le chiffre du jour est là pour un propriétaire', async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
+    await page.goto('/tableau-de-bord');
 
     const jour = page.getByRole('region', { name: 'Aujourd’hui' });
     await expect(jour).toBeVisible({ timeout: 20_000 });
@@ -60,9 +55,11 @@ test.describe('Tableau de bord', () => {
 
 test.describe('Tableau de bord — caissier', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants caissier absents');
+  test.use({ storageState: etat('caissier') });
 
   test('un caissier voit la file, pas le chiffre d’affaires', async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
+    await installerRelaisReseau(page);
+    await page.goto('/tableau-de-bord');
 
     await expect(page.getByRole('region', { name: 'En ce moment' })).toBeVisible({
       timeout: 20_000,

@@ -1,3 +1,4 @@
+import './proxy-node';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../src/environments/environment';
 import type { Database } from '../src/app/types/database.types';

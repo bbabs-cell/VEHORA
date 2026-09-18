@@ -52,3 +52,6 @@ yarn-error.log
 # motif qui correspond gagne. `.env.example` ne contient aucun secret, il donne
 # la forme attendue de `.env.local`.
 !.env.example
+
+# États de session des tests : jetons réels, régénérés à chaque exécution.
+e2e/.etats/

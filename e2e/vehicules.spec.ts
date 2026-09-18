@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -10,20 +11,12 @@ const caissier = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_CAISSIER'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Véhicules — propriétaire', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/vehicules');
   });
 
@@ -71,9 +64,7 @@ test.describe('Véhicules — propriétaire', () => {
       const boite = await champ.boundingBox();
       if (!boite || !boiteModale) continue;
       // Tolérance d'un pixel pour les arrondis de rendu.
-      expect(boite.x + boite.width).toBeLessThanOrEqual(
-        boiteModale.x + boiteModale.width + 1,
-      );
+      expect(boite.x + boite.width).toBeLessThanOrEqual(boiteModale.x + boiteModale.width + 1);
     }
 
     const debordement = await page.evaluate(
@@ -153,9 +144,10 @@ test.describe('Véhicules — propriétaire', () => {
 
 test.describe('Véhicules — caissier en lecture seule', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants caissier absents');
+  test.use({ storageState: etat('caissier') });
 
   test('il voit les véhicules mais aucune action d’écriture', async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/vehicules');
 
     const liste = page.getByRole('list', { name: 'Liste des véhicules' });

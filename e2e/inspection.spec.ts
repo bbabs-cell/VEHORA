@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 const proprietaire = {
   email: process.env['VEHORA_TEST_EMAIL'],
@@ -10,15 +11,6 @@ const caissier = {
   motDePasse: process.env['VEHORA_TEST_PASSWORD_CAISSIER'],
 };
 
-async function seConnecter(page: Page, email: string, motDePasse: string): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(motDePasse);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 /** Une image PNG minuscule, pour éprouver le chemin d'envoi sans gros fichier. */
 const PNG_1x1 = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -27,11 +19,15 @@ const PNG_1x1 = Buffer.from(
 
 test.describe('Inspection — propriétaire', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }) => {
-    await seConnecter(page, proprietaire.email!, proprietaire.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/vehicules');
-    await page.getByRole('link', { name: /^Inspecter / }).first().click();
+    await page
+      .getByRole('link', { name: /^Inspecter / })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/inspection/);
   });
 
@@ -147,9 +143,10 @@ test.describe('Inspection — propriétaire', () => {
 
 test.describe('Inspection — caissier sans inspections.write', () => {
   test.skip(!caissier.email || !caissier.motDePasse, 'identifiants caissier absents');
+  test.use({ storageState: etat('caissier') });
 
   test('ni le bouton, ni l’accès direct par URL', async ({ page }) => {
-    await seConnecter(page, caissier.email!, caissier.motDePasse!);
+    await installerRelaisReseau(page);
     await page.goto('/vehicules');
 
     await expect(page.getByRole('link', { name: /^Inspecter / })).toHaveCount(0);

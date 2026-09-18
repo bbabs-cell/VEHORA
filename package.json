@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "e2e": "playwright test",
+    "e2e": "node scripts/e2e.mjs",
     "validate:sql": "bash scripts/validate-sql.sh",
     "types:check": "tsc -p tsconfig.app.json --noEmit"
   },

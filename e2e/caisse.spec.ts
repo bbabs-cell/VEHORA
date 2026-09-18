@@ -6,6 +6,7 @@ import {
   type DossierDeTest,
 } from './fixtures';
 import { installerRelaisReseau } from './relais-reseau';
+import { etat } from './session-partagee';
 
 // La caisse est une ressource unique par (station, utilisateur) : deux tests
 // qui l'ouvrent en même temps se la ferment mutuellement. La séparation par
@@ -26,21 +27,13 @@ async function choisirStation(page: Page, projet: string): Promise<void> {
   await selecteur.selectOption({ label: options[stationDuProjet(projet)] });
 }
 
-async function seConnecter(page: Page): Promise<void> {
-  await installerRelaisReseau(page);
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail').fill(proprietaire.email!);
-  await page.getByLabel('Mot de passe').fill(proprietaire.motDePasse!);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/tableau-de-bord/, { timeout: 20_000 });
-}
-
 test.describe('Caisse', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.beforeEach(async ({ page }, info) => {
     await fermerMesCaisses(stationDuProjet(info.project.name));
-    await seConnecter(page);
+    await installerRelaisReseau(page);
     await page.goto('/caisse');
     // Chaque projet travaille sur sa propre station : la caisse est une
     // ressource par (station, utilisateur).
@@ -114,6 +107,7 @@ test.describe('Caisse', () => {
 
 test.describe('Encaissement', () => {
   test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
 
   test.afterEach(async ({}, info) => {
     await fermerMesCaisses(stationDuProjet(info.project.name));
@@ -125,7 +119,7 @@ test.describe('Encaissement', () => {
     try {
       await fermerMesCaisses(station);
       dossier = await creerDossierPret('Lavage complet', station);
-      await seConnecter(page);
+      await installerRelaisReseau(page);
       await page.goto('/file-attente');
 
       await page.getByRole('button', { name: `Encaisser le dossier ${dossier.numero}` }).click();
@@ -144,7 +138,7 @@ test.describe('Encaissement', () => {
     try {
       await fermerMesCaisses(station);
       dossier = await creerDossierPret('Lavage complet', station);
-      await seConnecter(page);
+      await installerRelaisReseau(page);
 
       await page.goto('/caisse');
       await choisirStation(page, info.project.name);
@@ -186,7 +180,7 @@ test.describe('Encaissement', () => {
     let dossier: DossierDeTest | null = null;
     try {
       dossier = await creerDossierPret('Lavage complet', stationDuProjet(info.project.name));
-      await seConnecter(page);
+      await installerRelaisReseau(page);
       await page.goto('/file-attente');
 
       await page.getByRole('button', { name: `Encaisser le dossier ${dossier.numero}` }).click();
@@ -215,7 +209,7 @@ test.describe('Encaissement', () => {
     let dossier: DossierDeTest | null = null;
     try {
       dossier = await creerDossierPret('Lavage complet', stationDuProjet(info.project.name));
-      await seConnecter(page);
+      await installerRelaisReseau(page);
       await page.goto('/file-attente');
 
       const liste = page.getByRole('list', { name: 'Dossiers — Prêt' });
@@ -248,7 +242,7 @@ test.describe('Encaissement', () => {
     try {
       await fermerMesCaisses(station);
       dossier = await creerDossierPret('Lavage complet', station);
-      await seConnecter(page);
+      await installerRelaisReseau(page);
 
       // Une caisse ouverte, puis un encaissement : il faut un paiement pour
       // pouvoir en rembourser un.

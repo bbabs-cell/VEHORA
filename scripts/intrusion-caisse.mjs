@@ -3,6 +3,7 @@
 // C'est la partie du produit où l'argent circule. Un caissier a un intérêt
 // direct à faire disparaître une entrée, à corriger un écart, ou à laisser
 // partir un véhicule impayé. Tout cela se tente ici, par l'API réelle.
+import './proxy-node.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://entpmxssjxllggsqhnwc.supabase.co';
