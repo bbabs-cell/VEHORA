@@ -2951,6 +2951,202 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Phase 20 — Facturation des abonnements
+--
+-- Une facture est un constat : elle fige ce qu'elle facture, ne se modifie pas,
+-- ne se supprime pas, et appartient à la plateforme — jamais au chiffre
+-- d'affaires d'une station.
+-- ---------------------------------------------------------------------------
+select pg_temp.login_plateforme();
+
+-- Un abonnement payant est nécessaire pour qu'il y ait quelque chose à
+-- facturer. Écrit hors de tout bloc qui attend un échec : une exception
+-- attrapée annulerait cette préparation avec le reste.
+set local role postgres;
+update public.subscriptions
+   set status = 'ACTIVE',
+       plan_id = (select id from public.plans where code = 'PRO')
+ where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+set local role authenticated;
+select pg_temp.login_plateforme();
+
+do $$
+declare n integer; v_ref text;
+begin
+  select count(*) into n from public.emettre_factures('2026-09-01'::date);
+  if n < 1 then raise exception 'ÉCHEC — aucune facture émise pour un plan payant'; end if;
+  raise notice 'ok — % facture(s) émise(s) pour la période', n;
+
+  -- Rejouée sur la même période, l'émission ne produit rien de plus : on ne
+  -- facture pas deux fois le même mois parce qu'on a cliqué deux fois.
+  select count(*) into n from public.emettre_factures('2026-09-01'::date);
+  if n <> 0 then raise exception 'ÉCHEC — une seconde émission a re-facturé la période'; end if;
+  raise notice 'ok — émettre deux fois la même période ne refacture pas';
+
+  select reference into v_ref from public.platform_invoices limit 1;
+  if v_ref !~ '^VH-[0-9]{4}-[0-9]{6}$' then
+    raise exception 'ÉCHEC — référence de facture inattendue : %', v_ref;
+  end if;
+  raise notice 'ok — la référence est numérotée et lisible (%)', v_ref;
+end;
+$$;
+
+-- Un plan gratuit ne produit pas de facture à zéro : ce serait du bruit à
+-- classer, relancer et expliquer.
+select pg_temp.check('aucune facture de zéro franc',
+  (select count(*) from public.platform_invoices where amount_minor = 0), 0);
+
+-- La facture fige ce qu'elle facture : renommer l'organisation ne la change pas.
+do $$
+declare v_avant text; v_apres text;
+begin
+  select organization_label into v_avant from public.platform_invoices limit 1;
+  set local role postgres;
+  update public.organizations set name = 'Nom changé après facturation'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  set local role authenticated;
+  perform pg_temp.login_plateforme();
+  select organization_label into v_apres from public.platform_invoices limit 1;
+  if v_avant is distinct from v_apres then
+    raise exception 'ÉCHEC — la facture a suivi le renommage (% → %)', v_avant, v_apres;
+  end if;
+  raise notice 'ok — renommer l''organisation ne change aucune facture émise';
+end;
+$$;
+
+-- Immuabilité : ni UPDATE ni DELETE, même pour la plateforme.
+do $$
+declare v_id uuid;
+begin
+  select id into v_id from public.platform_invoices limit 1;
+  set local role postgres;
+  update public.invoices set amount_minor = 1 where id = v_id;
+  raise exception 'ÉCHEC — le montant d''une facture a été réécrit';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le montant d''une facture ne se réécrit pas';
+end;
+$$;
+set local role authenticated;
+select pg_temp.login_plateforme();
+
+do $$
+declare v_id uuid;
+begin
+  select id into v_id from public.platform_invoices limit 1;
+  set local role postgres;
+  delete from public.invoices where id = v_id;
+  raise exception 'ÉCHEC — une facture a été supprimée';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — une facture ne se supprime pas ; on l''annule';
+end;
+$$;
+set local role authenticated;
+select pg_temp.login_plateforme();
+
+-- Règlement, puis les deux refus qui suivent.
+do $$
+declare v_id uuid; v_f public.invoices;
+begin
+  select id into v_id from public.platform_invoices where status = 'ISSUED' limit 1;
+  v_f := public.marquer_facture_payee(v_id, 'VIR-2026-09-001');
+  if v_f.status <> 'PAID' or v_f.paid_at is null then
+    raise exception 'ÉCHEC — la facture n''est pas passée à PAID';
+  end if;
+  raise notice 'ok — une facture se règle, avec sa référence de paiement';
+
+  begin
+    perform public.marquer_facture_payee(v_id, 'VIR-DOUBLON');
+    raise exception 'ÉCHEC — une facture a été réglée deux fois';
+  exception
+    when others then
+      if sqlerrm like '%VEHORA_FACTURE_DEJA_PAYEE%'
+      then raise notice 'ok — une facture réglée ne se règle pas deux fois';
+      else raise; end if;
+  end;
+
+  begin
+    perform public.annuler_facture(v_id, 'Erreur de saisie');
+    raise exception 'ÉCHEC — une facture réglée a été annulée';
+  exception
+    when others then
+      if sqlerrm like '%VEHORA_FACTURE_DEJA_PAYEE%'
+      then raise notice 'ok — une facture réglée ne s''annule pas ; on rembourse';
+      else raise; end if;
+  end;
+end;
+$$;
+
+-- Une annulation s'explique.
+do $$
+declare v_id uuid;
+begin
+  select id into v_id from public.platform_invoices where status = 'ISSUED' limit 1;
+  if v_id is null then
+    raise notice 'ok — (aucune facture ouverte : motif d''annulation non couvert)';
+  else
+    begin
+      perform public.annuler_facture(v_id, ' ');
+      raise exception 'ÉCHEC — une facture a été annulée sans motif';
+    exception
+      when others then
+        if sqlerrm like '%VEHORA_MOTIF_REQUIS%'
+        then raise notice 'ok — une annulation de facture exige son motif';
+        else raise; end if;
+    end;
+  end if;
+end;
+$$;
+
+-- Un client ne lit pas les factures, ni les siennes par la table, ni celles des
+-- autres. Il passe par `mes_factures()`, qui ne prend aucun paramètre.
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+select pg_temp.check('un client ne lit aucune facture par la table',
+  (select count(*) from public.invoices), 0);
+select pg_temp.check('ni par la vue de plateforme',
+  (select count(*) from public.platform_invoices), 0);
+select pg_temp.check('mais il retrouve les siennes par mes_factures()',
+  (select count(*) > 0 from public.mes_factures())::int::bigint, 1);
+
+do $$
+begin
+  perform public.emettre_factures();
+  raise exception 'ÉCHEC — un client a émis des factures';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un client n''émet pas de facture';
+end;
+$$;
+
+do $$
+declare v_id uuid;
+begin
+  set local role postgres;
+  select id into v_id from public.invoices limit 1;
+  set local role authenticated;
+  perform pg_temp.login('11111111-1111-1111-1111-111111111111',
+                        'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+  perform public.marquer_facture_payee(v_id, 'je me déclare à jour');
+  raise exception 'ÉCHEC — un client a marqué sa propre facture payée';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — un client ne déclare pas sa facture réglée';
+end;
+$$;
+
+-- Une autre organisation ne voit rien des factures de celle-ci.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+select pg_temp.check('l''organisation B ne voit aucune facture de A',
+  (select count(*) from public.mes_factures()), 0);
+
+select pg_temp.login_plateforme();
+
+-- ---------------------------------------------------------------------------
+-- Phase 18 — Historique des sessions de caisse-- ---------------------------------------------------------------------------
 -- Phase 18 — Historique des sessions de caisse
 --
 -- L'écart d'un collègue ne regarde pas un caissier : la lecture d'une session
@@ -3082,6 +3278,38 @@ exception
 end;
 $$;
 
+-- Et l'invariant : une organisation facturée reste supprimable. La cascade
+-- `SET NULL` demande un UPDATE que le trigger d'immuabilité doit tolérer —
+-- écrit d'emblée cette fois, après trois incidents du même genre.
+set local role postgres;
+do $$
+declare v_org uuid := 'aaaaaaaa-0000-0000-0000-000000000001'; v_avant integer; n integer;
+begin
+  select count(*) into v_avant from public.invoices where organization_id = v_org;
+  if v_avant = 0 then raise exception 'ÉCHEC — aucune facture à éprouver'; end if;
+
+  delete from public.organizations where id = v_org;
+
+  select count(*) into n from public.invoices where organization_id = v_org;
+  if n <> 0 then
+    raise exception 'ÉCHEC — des factures pointent encore sur une organisation supprimée';
+  end if;
+  -- Elles restent, et restent lisibles : le nom est figé dans la facture, pas
+  -- lu par jointure.
+  select count(*) into n from public.invoices
+   where organization_id is null and organization_label is not null;
+  if n < v_avant then
+    raise exception 'ÉCHEC — % facture(s) ont disparu avec l''organisation', v_avant - n;
+  end if;
+  raise notice 'ok — une organisation facturée reste supprimable, ses % facture(s) restent lisibles', v_avant;
+exception
+  when others then
+    if sqlerrm like '%VEHORA_FACTURE_IMMUABLE%' then
+      raise exception 'ÉCHEC — le trigger d''immuabilité bloque la cascade de suppression';
+    else raise;
+    end if;
+end;
+$$;
 -- Une organisation doit rester supprimable : l'invariant « dernier
 -- propriétaire » ne doit pas bloquer la cascade (régression corrigée en phase 1),
 -- ni le garde-fou des opérations (phase 10).

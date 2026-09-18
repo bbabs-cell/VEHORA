@@ -104,3 +104,45 @@
   border: 1px solid var(--vh-border);
   white-space: nowrap;
 }
+
+.reste {
+  margin: 0 0 var(--vh-space-3);
+  font-size: var(--vh-text-sm);
+}
+
+.facture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-1);
+}
+
+.facture__tete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.facture__reference {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.facture__periode {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.facture__montant {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Une échéance dépassée se voit, et le mot le dit aussi — jamais la couleur
+   seule. */
+.etiquette--retard {
+  background: color-mix(in srgb, var(--vh-error) 18%, transparent);
+  color: var(--vh-error);
+}

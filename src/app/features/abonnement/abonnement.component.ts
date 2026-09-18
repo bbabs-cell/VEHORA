@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   LIBELLES_STATUT_ABONNEMENT,
+  LIBELLES_STATUT_FACTURE_CLIENT,
   SubscriptionService,
+  type MaFacture,
   type MonAbonnement,
 } from '../../core/subscription/subscription.service';
-import { formaterDate } from '../../shared/format/montant';
+import { formaterDate, formaterMontant } from '../../shared/format/montant';
 
 @Component({
   selector: 'vh-abonnement',
@@ -18,9 +20,34 @@ export class AbonnementComponent {
 
   readonly abonnement = computed(() => this.service.abonnement());
   readonly fonctionnalites = computed(() => this.service.fonctionnalites());
+  readonly factures = computed(() => this.service.factures());
+
+  /** Ce qui reste à payer, tous mois confondus. */
+  readonly resteADevoir = computed(() =>
+    this.factures()
+      .filter((f) => f.statut === 'ISSUED')
+      .reduce((s, f) => s + f.montant_minor, 0),
+  );
+
+  readonly devise = computed(() => this.factures()[0]?.devise ?? 'XOF');
 
   constructor() {
     void this.service.charger(true);
+    void this.service.chargerFactures();
+  }
+
+  statutFacture(f: MaFacture): string {
+    return LIBELLES_STATUT_FACTURE_CLIENT[f.statut];
+  }
+
+  classeFacture(f: MaFacture): string {
+    if (f.statut === 'VOID') return 'etiquette';
+    if (f.statut === 'PAID') return 'etiquette etiquette--ouverte';
+    return f.en_retard ? 'etiquette etiquette--retard' : 'etiquette etiquette--fermee';
+  }
+
+  montant(mineur: number, devise?: string): string {
+    return formaterMontant(mineur, devise ?? this.devise());
   }
 
   statut(a: MonAbonnement): string {
@@ -40,5 +67,9 @@ export class AbonnementComponent {
 
   finEssai(iso: string | null): string {
     return iso ? formaterDate(iso.slice(0, 10)) : '';
+  }
+
+  jour(iso: string): string {
+    return formaterDate(iso);
   }
 }

@@ -20,6 +20,25 @@ export interface Fonctionnalite {
   readonly actif: boolean;
 }
 
+/** Une facture, telle que l'organisation a le droit de la voir : la sienne. */
+export interface MaFacture {
+  readonly reference: string;
+  readonly periode_debut: string;
+  readonly periode_fin: string;
+  readonly montant_minor: number;
+  readonly devise: string;
+  readonly statut: 'ISSUED' | 'PAID' | 'VOID';
+  readonly echeance: string;
+  readonly payee_le: string | null;
+  readonly en_retard: boolean;
+}
+
+export const LIBELLES_STATUT_FACTURE_CLIENT: Readonly<Record<MaFacture['statut'], string>> = {
+  ISSUED: 'À régler',
+  PAID: 'Réglée',
+  VOID: 'Annulée',
+};
+
 export const LIBELLES_STATUT_ABONNEMENT: Readonly<Record<MonAbonnement['statut'], string>> = {
   TRIAL: 'Essai',
   ACTIVE: 'Actif',
@@ -37,18 +56,38 @@ export class SubscriptionService {
 
   private readonly _abonnement = signal<MonAbonnement | null>(null);
   private readonly _fonctionnalites = signal<Fonctionnalite[]>([]);
+  private readonly _factures = signal<MaFacture[]>([]);
   private readonly _chargement = signal(false);
   private readonly _erreur = signal<string | null>(null);
   private charge = false;
 
   readonly abonnement = this._abonnement.asReadonly();
   readonly fonctionnalites = this._fonctionnalites.asReadonly();
+  readonly factures = this._factures.asReadonly();
   readonly chargement = this._chargement.asReadonly();
   readonly erreur = this._erreur.asReadonly();
 
   /** Vrai seulement si la base l'a dit. Une clé inconnue est fermée. */
   actif(cle: string): boolean {
     return this._fonctionnalites().find((f) => f.cle === cle)?.actif ?? false;
+  }
+
+  /**
+   * Ses propres factures. La fonction serveur ne prend aucun paramètre : il n'y
+   * a donc rien à falsifier, et elle ne parle que de l'organisation du jeton.
+   */
+  async chargerFactures(): Promise<void> {
+    const { data, error } = await this.supabase.client.rpc('mes_factures');
+    if (error) {
+      this._erreur.set(
+        error.message.toLowerCase().includes('failed to fetch')
+          ? 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.'
+          : 'Vos factures n’ont pas pu être chargées.',
+      );
+      this._factures.set([]);
+      return;
+    }
+    this._factures.set((data ?? []) as unknown as MaFacture[]);
   }
 
   async charger(forcer = false): Promise<void> {

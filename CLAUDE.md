@@ -139,15 +139,16 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 19 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 20 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
-caisse, export CSV des rapports et des sessions.
-Prochaine étape au choix : facturation réelle (échéances, relances) ou
-notifications au client (« votre véhicule est prêt »).
+caisse, export CSV des rapports et des sessions, facturation des abonnements
+(échéances, relances, annulation).
+Prochaine étape : notifications au client (« votre véhicule est prêt ») —
+suppose un fournisseur SMS, donc une décision et un budget.
 
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 44 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
+- 46 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
@@ -208,6 +209,18 @@ notifications au client (« votre véhicule est prêt »).
   Les espèces génèrent un mouvement, le Mobile Money non, un achat de savon est
   un mouvement sans paiement. Le mouvement est écrit par la base : pouvoir
   écrire l'un sans l'autre, c'est pouvoir faire disparaître de l'argent.
+- **Une facture est un constat, et elle appartient à la plateforme.** Elle fige
+  le nom de l'organisation, le code du plan et le montant : renommer une
+  organisation ou changer un tarif ne modifie aucune facture émise. Aucune
+  policy d'écriture, un trigger refuse UPDATE et DELETE, l'annulation est un
+  état avec motif — jamais une suppression. Le client n'a aucune policy de
+  lecture : il interroge `mes_factures()`, qui ne prend aucun paramètre.
+  **Le revenu de VEHORA n'est jamais le chiffre d'affaires d'une station.**
+- **Une échéance dépassée est un état (`PAST_DUE`), pas une sanction.** La
+  suspension reste une décision prise ailleurs et auditée : confondre les deux,
+  c'est couper un client pour un virement en retard de deux jours.
+- **Un plan gratuit ne produit pas de facture à zéro** : ce serait du bruit à
+  classer, relancer et expliquer.
 - **Aucun paiement ne se modifie ni ne se supprime** : la correction est un
   remboursement qui le référence, avec motif, plafonné au montant reçu, et de
   la même méthode.
@@ -222,6 +235,9 @@ notifications au client (« votre véhicule est prêt »).
   clôture passe par `cloturer_caisse()`, et une session clôturée est immuable.
 - **Restituer avec un solde** exige `payments.refund` + un motif, et c'est
   audité — sauf en `STRICT`, où c'est refusé. Un caissier ne l'accorde pas.
+- **`vh-confirmation` accepte un champ projeté** (`<ng-content>`) et un
+  `desactive` : un motif ou une référence que l'action exige se saisit **dans**
+  la boîte. Le demander ailleurs obligerait à fermer pour saisir, puis rouvrir.
 - **Une modale fige la page derrière elle** (`ScrollLockService`) : sinon on
   perd sa place dans la file en encaissant. `vh-confirmation` pose et lève le
   verrou lui-même — l'appelant n'a rien à gérer.
@@ -244,12 +260,17 @@ notifications au client (« votre véhicule est prêt »).
   qui tranche. Règle générale pour toute table où deux droits se partagent une
   ligne.
 - **Un trigger de protection doit se taire quand l'écriture vient d'une
-  cascade.** **Trois incidents** (dernier propriétaire en phase 1, opérations en
-  phase 10, immuabilité du journal d'audit en phase 14) : à chaque fois
-  l'invariant « une organisation reste supprimable » était menacé, et la règle
-  écrite n'a empêché ni la deuxième ni la troisième. `audit_logs` référence
-  `organizations` en `ON DELETE SET NULL` : la cascade demande un UPDATE. Tester
-  la suppression d'organisation avec des données réelles, journal compris.
+  cascade.** **Quatre incidents** (dernier propriétaire en phase 1, opérations
+  en phase 10, journal d'audit en phase 14, reçus — latent depuis la phase 13,
+  trouvé en phase 20 : aucune organisation ayant émis un reçu n'était
+  supprimable). La règle écrite n'a empêché aucun des trois suivants. Ce qui
+  l'a trouvée la quatrième fois : une assertion qui supprime une organisation
+  **réelle**, avec ses dossiers, ses paiements, ses reçus et ses factures — pas
+  une organisation vide. `audit_logs` et `invoices` référencent `organizations`
+  en `ON DELETE SET NULL` (la cascade demande un UPDATE), `receipts` en
+  `ON DELETE CASCADE` (elle demande un DELETE). **Repère sans drapeau** : lors
+  d'une cascade, PostgreSQL supprime la ligne parente **avant** les filles — si
+  le parent n'existe plus, l'écriture vient de la cascade.
 - **Une action que le serveur refusera ne s'affiche pas comme possible** :
   bouton inerte et raison visible, jamais un clic qui échoue. Trois occurrences
   (prestation sans tarif, opération non assignée, plan déjà en cours). De même,
@@ -347,15 +368,16 @@ notifications au client (« votre véhicule est prêt »).
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
-- Parcours connecté vérifié de bout en bout ; **237 tests Playwright** (4,1 min),
-  **253 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+- Parcours connecté vérifié de bout en bout ; **249 tests Playwright** (4,3 min),
+  **271 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
   `scripts/intrusion-caisse.mjs`, 25 ;
   `scripts/intrusion-operations.mjs`, 17 ; `scripts/intrusion-dossiers.mjs`, 23 ;
   `scripts/intrusion-catalogue.mjs`, 21 ;
-  `scripts/intrusion-historique-caisse.mjs`, 11 ; 14 sur le stockage).
+  `scripts/intrusion-historique-caisse.mjs`, 11 ;
+  `scripts/intrusion-facturation.mjs`, 24 ; 14 sur le stockage).
 - **Une connexion par rôle, pas une par test.** `e2e/global-setup.ts` se connecte
   une fois par rôle et enregistre l'état (`storageState`) dans `e2e/.etats/`,
   effacé à chaque exécution et ignoré par Git. La suite est passée de 10,3 à

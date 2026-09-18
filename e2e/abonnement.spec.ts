@@ -117,3 +117,99 @@ test.describe('Abonnement — côté plateforme', () => {
     await expect(modale2).toBeHidden({ timeout: 20_000 });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Facturation (phase 20)
+//
+// L'écran de facturation agit sur des données partagées : émettre et relancer
+// touchent toutes les organisations. Ces tests vivent donc dans le fichier qui
+// possède déjà l'espace plateforme, et s'enchaînent avec les précédents.
+// ---------------------------------------------------------------------------
+test.describe('Facturation — plateforme', () => {
+  test.skip(!admin.motDePasse, 'mot de passe de plateforme absent');
+  test.use({ storageState: etat('admin') });
+
+  test.beforeEach(async ({ page }) => {
+    await installerRelaisReseau(page);
+    await page.goto('/plateforme/facturation');
+    await expect(page.getByRole('heading', { name: 'Facturation' })).toBeVisible({
+      timeout: 20_000,
+    });
+  });
+
+  test('la période est écrite en toutes lettres, pas seulement dans le champ', async ({
+    page,
+  }) => {
+    // Un `<input type="date">` s'affiche dans la locale de l'appareil : sur un
+    // Android en anglais, « 09/01/2026 ».
+    await expect(page.getByText(/Mois retenu : \w+ \d{4}\./)).toBeVisible();
+  });
+
+  test('l’écran dit ce qu’il facture, et ce qu’il ne facture pas', async ({ page }) => {
+    // Le revenu de VEHORA n'est pas le chiffre d'affaires des stations : la
+    // règle est dans le texte de l'écran, là où quelqu'un la lira.
+    await expect(page.getByText(/jamais le chiffre d’affaires des stations/)).toBeVisible();
+  });
+
+  test('émettre deux fois la même période ne refacture pas', async ({ page }) => {
+    await page.getByRole('button', { name: 'Émettre les échéances' }).click();
+    await expect(page.getByRole('status')).toContainText('émises', { timeout: 20_000 });
+
+    const avant = await page.locator('.carte').count();
+
+    await page.getByRole('button', { name: 'Émettre les échéances' }).click();
+    await expect(page.getByRole('status')).toContainText('émises', { timeout: 20_000 });
+
+    // L'idempotence est garantie par l'index unique en base, pas par l'écran :
+    // ce test vérifie que la garantie tient de bout en bout.
+    await expect(page.locator('.carte')).toHaveCount(avant, { timeout: 20_000 });
+  });
+
+  test('une facture annulée demande son motif, et le bouton reste inerte sans lui', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Émettre les échéances' }).click();
+    await expect(page.getByRole('status')).toContainText('émises', { timeout: 20_000 });
+
+    const carte = page.locator('.carte').filter({ hasText: 'À régler' }).first();
+    await expect(carte).toBeVisible({ timeout: 20_000 });
+
+    await carte.getByRole('button', { name: 'Annuler la facture' }).click();
+    const modale = page.getByRole('dialog');
+    await expect(modale).toBeVisible();
+
+    // Une action que le serveur refusera ne s'affiche pas comme possible.
+    await expect(modale.getByRole('button', { name: 'Marquer annulée' })).toBeDisabled();
+    await expect(modale.getByText('Le motif est obligatoire.')).toBeVisible();
+
+    await modale.getByLabel('Motif').fill('Test de parcours automatisé');
+    await expect(modale.getByRole('button', { name: 'Marquer annulée' })).toBeEnabled();
+
+    await modale.getByRole('button', { name: 'Marquer annulée' }).click();
+    await expect(modale).toBeHidden({ timeout: 20_000 });
+    await expect(page.getByRole('status')).toContainText('annulée', { timeout: 20_000 });
+  });
+
+  test('une facture annulée n’offre plus d’action, et dit pourquoi', async ({ page }) => {
+    const annulee = page.locator('.carte').filter({ hasText: 'Annulée' }).first();
+    await expect(annulee).toBeVisible({ timeout: 20_000 });
+    await expect(annulee).toContainText('plus rien à faire sur cette facture');
+    await expect(annulee.getByRole('button', { name: 'Marquer réglée' })).toHaveCount(0);
+  });
+});
+
+test.describe('Factures — côté organisation', () => {
+  test.skip(!proprietaire.email || !proprietaire.motDePasse, 'identifiants absents');
+  test.use({ storageState: etat('proprietaire') });
+
+  test('une organisation voit ses factures, et le symbole de sa devise', async ({ page }) => {
+    await installerRelaisReseau(page);
+    await page.goto('/abonnement');
+
+    const section = page.getByRole('heading', { name: 'Vos factures' });
+    await expect(section).toBeVisible({ timeout: 20_000 });
+
+    // Le symbole à l'écran, jamais le code ISO — même pour une facture.
+    await expect(page.locator('.facturation, .abonnement')).not.toContainText('XOF');
+  });
+});

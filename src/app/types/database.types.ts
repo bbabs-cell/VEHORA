@@ -1663,6 +1663,90 @@ export type Database = {
           },
         ];
       };
+      invoices: {
+        Row: {
+          amount_minor: number;
+          created_at: string;
+          currency: string;
+          due_date: string;
+          id: string;
+          issued_at: string;
+          number: number;
+          organization_id: string | null;
+          organization_label: string;
+          paid_at: string | null;
+          payment_reference: string | null;
+          period_end: string;
+          period_start: string;
+          plan_code: string;
+          reference: string;
+          status: string;
+          subscription_id: string | null;
+          void_reason: string | null;
+          year: number;
+        };
+        // Aucune policy d'écriture : l'émission, le règlement et l'annulation
+        // passent par des fonctions. Ces formes existent pour le typage, pas
+        // pour être utilisées depuis le navigateur.
+        Insert: {
+          amount_minor: number;
+          created_at?: string;
+          currency: string;
+          due_date: string;
+          id?: string;
+          issued_at?: string;
+          number: number;
+          organization_id?: string | null;
+          organization_label: string;
+          paid_at?: string | null;
+          payment_reference?: string | null;
+          period_end: string;
+          period_start: string;
+          plan_code: string;
+          reference: string;
+          status?: string;
+          subscription_id?: string | null;
+          void_reason?: string | null;
+          year: number;
+        };
+        Update: {
+          amount_minor?: number;
+          created_at?: string;
+          currency?: string;
+          due_date?: string;
+          id?: string;
+          issued_at?: string;
+          number?: number;
+          organization_id?: string | null;
+          organization_label?: string;
+          paid_at?: string | null;
+          payment_reference?: string | null;
+          period_end?: string;
+          period_start?: string;
+          plan_code?: string;
+          reference?: string;
+          status?: string;
+          subscription_id?: string | null;
+          void_reason?: string | null;
+          year?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'invoices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'subscriptions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organization_feature_overrides: {
         Row: {
           organization_id: string;
@@ -1810,6 +1894,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_invoices: {
+        Row: {
+          amount_minor: number;
+          currency: string;
+          due_date: string;
+          en_retard: boolean;
+          id: string;
+          issued_at: string;
+          jours_de_retard: number;
+          organization_id: string | null;
+          organization_label: string;
+          paid_at: string | null;
+          payment_reference: string | null;
+          period_end: string;
+          period_start: string;
+          plan_code: string;
+          reference: string;
+          status: string;
+          void_reason: string | null;
+        };
+        Relationships: [];
+      };
       platform_organizations: {
         Row: {
           id: string;
@@ -1875,6 +1981,47 @@ export type Database = {
       mes_fonctionnalites: {
         Args: Record<string, never>;
         Returns: { cle: string; libelle: string; actif: boolean }[];
+      };
+      emettre_factures: {
+        Args: { p_delai_jours?: number; p_periode?: string };
+        Returns: {
+          devise: string;
+          montant_minor: number;
+          organisation: string;
+          reference: string;
+        }[];
+      };
+      marquer_facture_payee: {
+        Args: { p_invoice_id: string; p_reference?: string };
+        Returns: Database['public']['Tables']['invoices']['Row'];
+      };
+      annuler_facture: {
+        Args: { p_invoice_id: string; p_motif: string };
+        Returns: Database['public']['Tables']['invoices']['Row'];
+      };
+      relancer_impayes: {
+        Args: never;
+        Returns: {
+          devise: string;
+          jours_de_retard: number;
+          montant_minor: number;
+          organisation: string;
+          reference: string;
+        }[];
+      };
+      mes_factures: {
+        Args: never;
+        Returns: {
+          devise: string;
+          echeance: string;
+          en_retard: boolean;
+          montant_minor: number;
+          payee_le: string;
+          periode_debut: string;
+          periode_fin: string;
+          reference: string;
+          statut: string;
+        }[];
       };
       changer_plan: {
         Args: { p_organization_id: string; p_plan_code: string; p_motif: string };

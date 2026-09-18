@@ -62,6 +62,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'facturation',
+        title: 'Facturation — VEHORA plateforme',
+        loadComponent: () =>
+          import('./features/platform/facturation/facturation.component').then(
+            (m) => m.PlatformFacturationComponent,
+          ),
+      },
+      {
         path: 'journal',
         title: 'Journal — VEHORA plateforme',
         loadComponent: () =>

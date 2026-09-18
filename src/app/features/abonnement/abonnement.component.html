@@ -67,6 +67,41 @@
         }
       </ul>
     </section>
+    <section aria-labelledby="titre-factures">
+      <h2 id="titre-factures" class="abonnement__section">Vos factures</h2>
+
+      @if (factures().length === 0) {
+        <p class="vh-muted">
+          Aucune facture pour l’instant. Un plan d’essai ou gratuit n’en produit pas.
+        </p>
+      } @else {
+        @if (resteADevoir() > 0) {
+          <p class="vh-muted reste">
+            Reste à régler : <strong>{{ montant(resteADevoir()) }}</strong>
+          </p>
+        }
+        <ul class="liste" aria-label="Vos factures">
+          @for (f of factures(); track f.reference) {
+            <li class="vh-card facture">
+              <div class="facture__tete">
+                <span class="facture__reference">{{ f.reference }}</span>
+                <span [class]="classeFacture(f)">
+                  {{ statutFacture(f) }}
+                  @if (f.en_retard) {
+                    — échéance dépassée
+                  }
+                </span>
+              </div>
+              <p class="vh-muted facture__periode">
+                Période du {{ jour(f.periode_debut) }} au {{ jour(f.periode_fin) }} ·
+                échéance le {{ jour(f.echeance) }}
+              </p>
+              <p class="facture__montant">{{ montant(f.montant_minor, f.devise) }}</p>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   } @else {
     <p class="vh-muted">Aucun abonnement n’est rattaché à votre organisation.</p>
   }

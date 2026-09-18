@@ -1,0 +1,234 @@
+<div class="facturation">
+  <header class="facturation__entete">
+    <div>
+      <h1 class="facturation__titre">Facturation</h1>
+      <p class="vh-muted facturation__sous-titre">
+        Les abonnements de VEHORA. Ce n’est jamais le chiffre d’affaires des stations —
+        les deux ne s’additionnent pas.
+      </p>
+    </div>
+  </header>
+
+  <section class="actions" aria-label="Émission et relance">
+    <div class="vh-field">
+      <label class="vh-label" for="periode">Période à facturer</label>
+      <input
+        id="periode"
+        class="vh-input"
+        type="date"
+        [value]="periode()"
+        (change)="surPeriode($event)"
+      />
+      <p class="vh-muted aide">Mois retenu : {{ periodeLisible() }}.</p>
+    </div>
+
+    <button class="vh-button" type="button" [disabled]="enCours()" (click)="emettre()">
+      Émettre les échéances
+    </button>
+    <button
+      class="vh-button vh-button--ghost"
+      type="button"
+      [disabled]="enCours()"
+      (click)="relancer()"
+    >
+      Relancer les impayés
+    </button>
+  </section>
+
+  @if (message(); as texte) {
+    <p class="vh-alert" role="status">{{ texte }}</p>
+  }
+  @if (plateforme.erreur(); as erreur) {
+    <p class="vh-alert" role="alert">{{ erreur }}</p>
+  }
+
+  @if (plateforme.chargement()) {
+    <vh-skeleton />
+  } @else if (plateforme.factures().length === 0) {
+    <vh-empty-state
+      titre="Aucune facture"
+      texte="Émettez les échéances du mois : seules les organisations sur un plan payant en reçoivent une."
+    />
+  } @else {
+    <section class="resume" aria-label="Résumé des factures">
+      <div class="resume__carte">
+        <p class="vh-muted">À régler</p>
+        <p class="resume__valeur">{{ montant(resume().montantARegler) }}</p>
+        <p class="vh-muted resume__detail">{{ resume().aRegler }} facture(s)</p>
+      </div>
+      <div class="resume__carte">
+        <p class="vh-muted">Dont en retard</p>
+        <p class="resume__valeur resume__valeur--retard">
+          {{ montant(resume().montantEnRetard) }}
+        </p>
+        <p class="vh-muted resume__detail">{{ resume().enRetard }} facture(s)</p>
+      </div>
+      <div class="resume__carte">
+        <p class="vh-muted">Réglé</p>
+        <p class="resume__valeur">{{ montant(resume().montantReglees) }}</p>
+        <p class="vh-muted resume__detail">{{ resume().reglees }} facture(s)</p>
+      </div>
+      <div class="resume__carte">
+        <p class="vh-muted">Annulées</p>
+        <p class="resume__valeur">{{ resume().annulees }}</p>
+        <p class="vh-muted resume__detail">sur {{ resume().total }} au total</p>
+      </div>
+    </section>
+
+    <div class="barre">
+      <div class="vh-field">
+        <label class="vh-label" for="filtre">Afficher</label>
+        <select id="filtre" class="vh-input" (change)="surFiltre($event)">
+          <option value="TOUTES">Toutes les factures</option>
+          <option value="RETARD">En retard</option>
+          <option value="ISSUED">À régler</option>
+          <option value="PAID">Réglées</option>
+          <option value="VOID">Annulées</option>
+        </select>
+      </div>
+      <button class="vh-button vh-button--ghost" type="button" (click)="exporter()">
+        Exporter (CSV)
+      </button>
+    </div>
+
+    @if (factures().length === 0) {
+      <p class="vh-muted">Aucune facture ne correspond à ce filtre.</p>
+    } @else {
+      <ul class="liste" aria-label="Factures">
+        @for (f of factures(); track f.id) {
+          <li class="carte">
+            <div class="carte__tete">
+              <div>
+                <p class="carte__reference">{{ f.reference }}</p>
+                <p class="vh-muted carte__organisation">
+                  {{ f.organization_label }} · plan {{ f.plan_code }}
+                </p>
+              </div>
+              <span [class]="classeStatut(f)">
+                {{ statut(f) }}
+                @if (f.en_retard) {
+                  — {{ f.jours_de_retard }} j
+                }
+              </span>
+            </div>
+
+            <dl class="chiffres">
+              <div>
+                <dt class="vh-muted">Montant</dt>
+                <dd class="chiffres__montant">{{ montant(f.amount_minor, f.currency) }}</dd>
+              </div>
+              <div>
+                <dt class="vh-muted">Période</dt>
+                <dd>{{ periodeFacture(f) }}</dd>
+              </div>
+              <div>
+                <dt class="vh-muted">Échéance</dt>
+                <dd>{{ jour(f.due_date) }}</dd>
+              </div>
+              @if (f.paid_at) {
+                <div>
+                  <dt class="vh-muted">Réglée le</dt>
+                  <dd>{{ jour(f.paid_at) }}</dd>
+                </div>
+              }
+            </dl>
+
+            @if (f.payment_reference) {
+              <p class="vh-muted note">Paiement : {{ f.payment_reference }}</p>
+            }
+            @if (f.void_reason) {
+              <p class="vh-muted note">Annulée : « {{ f.void_reason }} »</p>
+            }
+
+            @if (f.status === 'ISSUED') {
+              <div class="carte__actions">
+                <button
+                  class="vh-button"
+                  type="button"
+                  [disabled]="enCours()"
+                  (click)="demanderReglement(f)"
+                >
+                  Marquer réglée
+                </button>
+                <!-- « Annuler » seul se lirait « annuler l'opération », surtout
+                     à côté d'une action et dans une modale qui porte déjà ce
+                     mot pour se refermer. -->
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  [disabled]="enCours()"
+                  (click)="demanderAnnulation(f)"
+                >
+                  Annuler la facture
+                </button>
+              </div>
+            } @else {
+              <!-- Une action que le serveur refusera ne s'affiche pas comme
+                   possible : on dit pourquoi il n'y en a plus. -->
+              <p class="vh-muted note">
+                {{
+                  f.status === 'PAID'
+                    ? 'Réglée : une facture réglée ne s’annule pas, elle se rembourse.'
+                    : 'Annulée : plus rien à faire sur cette facture.'
+                }}
+              </p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+
+  @if (aRegler(); as f) {
+    <vh-confirmation
+      titre="Marquer {{ f.reference }} réglée ?"
+      texte="Le montant est de {{ montant(f.amount_minor, f.currency) }}. Indiquez la référence du virement ou du versement : c’est ce qui permettra de retrouver l’opération plus tard."
+      action="Marquer réglée"
+      [enCours]="enCours()"
+      (confirmer)="confirmerReglement()"
+      (annuler)="aRegler.set(null)"
+    >
+      <div class="vh-field">
+        <label class="vh-label" for="reference-paiement">Référence du paiement</label>
+        <input
+          id="reference-paiement"
+          class="vh-input"
+          type="text"
+          autocomplete="off"
+          [value]="referencePaiement()"
+          (input)="surReference($event)"
+          placeholder="VIR-2026-09-014"
+        />
+      </div>
+    </vh-confirmation>
+  }
+
+  @if (aAnnuler(); as f) {
+    <vh-confirmation
+      titre="Annuler la facture {{ f.reference }} ?"
+      texte="Une facture annulée reste dans l’historique : elle n’est ni modifiée ni supprimée. Le motif rejoint le journal de plateforme."
+      action="Marquer annulée"
+      [danger]="true"
+      [enCours]="enCours()"
+      [desactive]="motifTropCourt()"
+      (confirmer)="confirmerAnnulation()"
+      (annuler)="aAnnuler.set(null)"
+    >
+      <div class="vh-field">
+        <label class="vh-label" for="motif-annulation">Motif</label>
+        <input
+          id="motif-annulation"
+          class="vh-input"
+          type="text"
+          autocomplete="off"
+          [value]="motifAnnulation()"
+          (input)="surMotif($event)"
+          placeholder="Facturée par erreur, organisation résiliée…"
+        />
+        @if (motifTropCourt()) {
+          <p class="erreur-champ">Le motif est obligatoire.</p>
+        }
+      </div>
+    </vh-confirmation>
+  }
+</div>

@@ -42,6 +42,11 @@ import { ScrollLockService } from '../../core/ui/scroll-lock.service';
 
         <p class="texte">{{ texte() }}</p>
 
+        <!-- Un champ que l'action exige (motif, référence) se projette ici,
+             dans la boîte : le demander ailleurs obligerait à fermer pour le
+             saisir, puis à rouvrir. -->
+        <ng-content />
+
         <div class="modale__actions">
           <button class="vh-button vh-button--ghost" type="button" (click)="annuler.emit()">
             Annuler
@@ -50,7 +55,7 @@ import { ScrollLockService } from '../../core/ui/scroll-lock.service';
             class="vh-button"
             [class.vh-button--danger]="danger()"
             type="button"
-            [disabled]="enCours()"
+            [disabled]="enCours() || desactive()"
             (click)="confirmer.emit()"
           >
             {{ enCours() ? 'En cours…' : action() }}
@@ -74,6 +79,12 @@ export class ConfirmationComponent {
   readonly action = input.required<string>();
   readonly danger = input(true);
   readonly enCours = input(false);
+  /**
+   * Rend le bouton inerte tant que ce que l'action exige n'est pas là — un
+   * motif, une référence. Une action que le serveur refusera ne s'affiche pas
+   * comme possible.
+   */
+  readonly desactive = input(false);
 
   readonly confirmer = output<void>();
   readonly annuler = output<void>();

@@ -1,0 +1,170 @@
+.facturation {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.facturation__titre {
+  font-size: var(--vh-text-xl);
+  margin: 0;
+}
+
+.facturation__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.actions,
+.barre {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-3);
+  align-items: flex-end;
+}
+
+.barre {
+  justify-content: space-between;
+}
+
+.actions .vh-field,
+.barre .vh-field {
+  flex: 1 1 12rem;
+}
+
+.aide {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-xs);
+}
+
+.resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--vh-space-3);
+}
+
+.resume__carte {
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.resume__carte p {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.resume__valeur {
+  font-size: var(--vh-text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: var(--vh-space-1) 0 !important;
+}
+
+.resume__valeur--retard {
+  color: var(--vh-error);
+}
+
+.resume__detail {
+  font-size: var(--vh-text-xs) !important;
+}
+
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.carte {
+  background: var(--vh-surface-1);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-card);
+  padding: var(--vh-space-3);
+}
+
+.carte__tete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.carte__reference {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.carte__organisation {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.etat {
+  border-radius: var(--vh-radius-control);
+  padding: 0.125rem var(--vh-space-2);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etat--attente {
+  background: color-mix(in srgb, var(--vh-warning) 18%, transparent);
+  color: var(--vh-warning);
+}
+
+.etat--retard {
+  background: color-mix(in srgb, var(--vh-error) 18%, transparent);
+  color: var(--vh-error);
+}
+
+.etat--reglee {
+  background: color-mix(in srgb, var(--vh-success) 18%, transparent);
+  color: var(--vh-success);
+}
+
+.etat--annulee {
+  background: var(--vh-surface-3);
+  color: var(--vh-text-muted);
+}
+
+.chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--vh-space-2);
+  margin: var(--vh-space-3) 0 0;
+}
+
+.chiffres dt {
+  font-size: var(--vh-text-xs);
+  margin: 0;
+}
+
+.chiffres dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffres__montant {
+  font-weight: 700;
+}
+
+.note {
+  margin: var(--vh-space-2) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+/* Les actions restent sur une seule ligne, et assez grandes pour un pouce. */
+.carte__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  margin-top: var(--vh-space-3);
+}

@@ -60,6 +60,37 @@ export const LIBELLES_ACTION: Readonly<Record<string, string>> = {
   'platform.organization.reactivate': 'Réactivation',
   'platform.subscription.change': 'Changement de plan',
   'platform.feature.toggle': 'Fonctionnalité',
+  'platform.invoices.issue': 'Émission de factures',
+  'platform.invoices.dunning': 'Relance des impayés',
+  'platform.invoice.paid': 'Facture réglée',
+  'platform.invoice.void': 'Facture annulée',
+};
+
+/** Une facture, telle que la vue de plateforme la rend. */
+export interface FacturePlateforme {
+  readonly id: string;
+  readonly reference: string;
+  readonly organization_id: string | null;
+  readonly organization_label: string;
+  readonly plan_code: string;
+  readonly period_start: string;
+  readonly period_end: string;
+  readonly amount_minor: number;
+  readonly currency: string;
+  readonly status: 'ISSUED' | 'PAID' | 'VOID';
+  readonly issued_at: string;
+  readonly due_date: string;
+  readonly paid_at: string | null;
+  readonly payment_reference: string | null;
+  readonly void_reason: string | null;
+  readonly en_retard: boolean;
+  readonly jours_de_retard: number;
+}
+
+export const LIBELLES_STATUT_FACTURE: Readonly<Record<FacturePlateforme['status'], string>> = {
+  ISSUED: 'À régler',
+  PAID: 'Réglée',
+  VOID: 'Annulée',
 };
 
 function message(code: string | undefined, brut: string): string {
@@ -67,6 +98,22 @@ function message(code: string | undefined, brut: string): string {
     return 'Cette action est réservée à la plateforme.';
   }
   if (brut.includes('VEHORA_MOTIF_REQUIS')) return 'Un motif est obligatoire.';
+  if (brut.includes('VEHORA_DROIT_REQUIS')) {
+    return 'La facturation est réservée à la plateforme.';
+  }
+  if (brut.includes('VEHORA_FACTURE_DEJA_PAYEE')) {
+    return 'Cette facture est déjà réglée : une facture réglée ne s’annule pas, elle se rembourse.';
+  }
+  if (brut.includes('VEHORA_FACTURE_ANNULEE')) {
+    return 'Cette facture est annulée : elle ne se règle pas.';
+  }
+  if (brut.includes('VEHORA_FACTURE_INTROUVABLE')) return 'Cette facture n’existe pas.';
+  if (brut.includes('VEHORA_FACTURE_IMMUABLE')) {
+    return 'Une facture émise ne se modifie pas.';
+  }
+  if (brut.includes('VEHORA_DELAI_INVALIDE')) {
+    return 'Le délai de paiement va de 0 à 180 jours.';
+  }
   if (brut.includes('VEHORA_PLAN_TROP_ETROIT')) {
     return 'Ce plan est plus étroit que ce que l’organisation utilise déjà.';
   }
@@ -103,6 +150,7 @@ export class PlatformService {
   private readonly _abonnements = signal<AbonnementPlateforme[]>([]);
   private readonly _plans = signal<Tables<'plans'>[]>([]);
   private readonly _journal = signal<EntreeJournal[]>([]);
+  private readonly _factures = signal<FacturePlateforme[]>([]);
   private readonly _chargement = signal(false);
   private readonly _erreur = signal<string | null>(null);
 
@@ -110,6 +158,7 @@ export class PlatformService {
   readonly abonnements = this._abonnements.asReadonly();
   readonly plans = this._plans.asReadonly();
   readonly journal = this._journal.asReadonly();
+  readonly factures = this._factures.asReadonly();
   readonly chargement = this._chargement.asReadonly();
   readonly erreur = this._erreur.asReadonly();
 
@@ -140,6 +189,80 @@ export class PlatformService {
     this._journal.set(journal.data ?? []);
     this._abonnements.set(abonnements.data ?? []);
     this._plans.set(plans.data ?? []);
+  }
+
+  /**
+   * Les factures de la plateforme. Chargées séparément de `charger()` : elles
+   * ne concernent qu'un écran, et le tableau des organisations n'a pas à
+   * attendre après elles.
+   */
+  async chargerFactures(): Promise<void> {
+    this._chargement.set(true);
+    this._erreur.set(null);
+
+    const { data, error } = await this.supabase.client
+      .from('platform_invoices')
+      .select('*')
+      .order('issued_at', { ascending: false })
+      .limit(300);
+
+    this._chargement.set(false);
+    if (error) {
+      this._erreur.set(message(error.code, error.message));
+      this._factures.set([]);
+      return;
+    }
+    this._factures.set((data ?? []) as FacturePlateforme[]);
+  }
+
+  /**
+   * Émet les factures d'une période. Idempotent : rejoué sur le même mois, il
+   * ne produit rien de plus — l'index unique en base le garantit, pas une
+   * précaution d'écran.
+   */
+  async emettreFactures(periode: string, delaiJours = 15): Promise<string | null> {
+    const { error } = await this.supabase.client.rpc('emettre_factures', {
+      p_periode: periode,
+      p_delai_jours: delaiJours,
+    });
+
+    if (error) return message(error.code, error.message);
+    await this.chargerFactures();
+    return null;
+  }
+
+  async marquerPayee(factureId: string, reference: string): Promise<string | null> {
+    const { error } = await this.supabase.client.rpc('marquer_facture_payee', {
+      p_invoice_id: factureId,
+      p_reference: reference || undefined,
+    });
+
+    if (error) return message(error.code, error.message);
+    await this.chargerFactures();
+    return null;
+  }
+
+  async annulerFacture(factureId: string, motif: string): Promise<string | null> {
+    const { error } = await this.supabase.client.rpc('annuler_facture', {
+      p_invoice_id: factureId,
+      p_motif: motif,
+    });
+
+    if (error) return message(error.code, error.message);
+    await this.chargerFactures();
+    return null;
+  }
+
+  /**
+   * Passe en impayé les abonnements dont une facture a dépassé son échéance.
+   * C'est un état, pas une sanction : la suspension reste une décision prise
+   * ailleurs, et auditée.
+   */
+  async relancerImpayes(): Promise<string | null> {
+    const { error } = await this.supabase.client.rpc('relancer_impayes');
+    if (error) return message(error.code, error.message);
+    await this.chargerFactures();
+    return null;
   }
 
   /**
