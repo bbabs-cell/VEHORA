@@ -316,6 +316,19 @@ des rapports.
   le permettent : le client ne l'envoie pas, donc ne peut pas le falsifier.
   Appliquer le même principe à chaque nouvelle table métier.
 - Custom access token hook **activé** sur `vehora.custom_access_token_hook`.
+- **Intégration continue** : `.github/workflows/verification.yml` rejoue types
+  (app **et** tests), build avec budgets, migrations et assertions SQL, et
+  parcours Playwright, à chaque poussée. Trois travaux séparés : un échec de
+  type ne doit pas cacher une policy cassée. Les campagnes d'intrusion n'y sont
+  pas — elles écrivent dans la base réelle et se gêneraient entre exécutions.
+  Sans les secrets `VEHORA_TEST_*`, la suite connectée s'ignore en bloc.
+- **Déploiement** : `vercel.json` (réécriture SPA — sans elle `/caisse/historique`
+  renvoie un 404 —, cache immuable sur les fichiers versionnés et `no-cache` sur
+  `index.html`, en-têtes de sécurité). `src/environments/environment.prod.ts`
+  remplace `environment.ts` au build. **Il pointe encore sur le projet de
+  développement** : créer un projet Supabase de production, y rejouer les
+  migrations, activer le hook, puis remplacer les deux valeurs. Marche à suivre
+  dans `docs/deploiement.md`.
 - Application Angular 22 : connexion, gardes, coquille applicative
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils

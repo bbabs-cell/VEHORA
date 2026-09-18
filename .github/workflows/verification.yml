@@ -1,0 +1,97 @@
+# Vérification continue — ce que CLAUDE.md demande à chaque phase, rejoué par la
+# machine plutôt que par la mémoire de celui qui pousse.
+#
+# Trois travaux séparés, volontairement : un échec de type ne doit pas cacher
+# une policy cassée, et l'inverse non plus. Chacun dit ce qu'il a vérifié.
+name: Vérification
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # Un nouveau commit annule la vérification du précédent sur la même branche :
+  # personne ne lit le résultat d'un code déjà remplacé.
+  group: verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  types-et-build:
+    name: Types et build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          # Angular 22 exige Node ≥ 22.22.3.
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Types de l'application
+        run: npm run types:check
+      - name: Types des tests
+        # Les fichiers de test ne sont pas dans `tsconfig.app.json` : sans cette
+        # étape, une erreur de type dans `e2e/` ne se voit qu'à l'exécution.
+        run: npx tsc -p tsconfig.spec.json --noEmit
+      - name: Build de production
+        # Les budgets de taille sont appliqués ici : un écran qui fait grossir
+        # le bundle au-delà du seuil échoue, et c'est voulu — l'application
+        # tourne sur des téléphones d'entrée de gamme.
+        run: npm run build
+
+  securite-sql:
+    name: Migrations et assertions de sécurité
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: PostgreSQL 16
+        # `scripts/validate-sql.sh` monte son propre serveur jetable : on n'a
+        # besoin que des binaires, pas d'un service.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+      - name: Migrations rejouées et assertions
+        # Le script refuse de tourner sous root (PostgreSQL aussi) ; le runner
+        # GitHub n'est pas root, donc il s'exécute tel quel.
+        run: npm run validate:sql
+
+  parcours:
+    name: Tests de parcours
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Suite connectée
+        # Sans ces secrets, la suite s'ignore en bloc — et un « skipped »
+        # massif ressemble à un succès. `playwright.config.ts` l'affiche en
+        # avertissement au démarrage ; l'étape suivante le rend visible ici.
+        env:
+          VEHORA_TEST_EMAIL: ${{ secrets.VEHORA_TEST_EMAIL }}
+          VEHORA_TEST_PASSWORD: ${{ secrets.VEHORA_TEST_PASSWORD }}
+          VEHORA_TEST_EMAIL_CAISSIER: ${{ secrets.VEHORA_TEST_EMAIL_CAISSIER }}
+          VEHORA_TEST_PASSWORD_CAISSIER: ${{ secrets.VEHORA_TEST_PASSWORD_CAISSIER }}
+          VEHORA_TEST_EMAIL_SANS_ORG: ${{ secrets.VEHORA_TEST_EMAIL_SANS_ORG }}
+          VEHORA_TEST_PASSWORD_SANS_ORG: ${{ secrets.VEHORA_TEST_PASSWORD_SANS_ORG }}
+          VEHORA_TEST_EMAIL_ADMIN: ${{ secrets.VEHORA_TEST_EMAIL_ADMIN }}
+          VEHORA_TEST_PASSWORD_ADMIN: ${{ secrets.VEHORA_TEST_PASSWORD_ADMIN }}
+        run: npm run e2e
+      - name: Rapport en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
