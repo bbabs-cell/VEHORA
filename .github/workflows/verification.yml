@@ -44,6 +44,12 @@ jobs:
         # le bundle au-delà du seuil échoue, et c'est voulu — l'application
         # tourne sur des téléphones d'entrée de gamme.
         run: npm run build
+      - name: Politique de sécurité de contenu
+        # Une CSP trop stricte ne casse rien à la compilation : elle casse
+        # l'écran, en production, avec une ligne de console pour tout message.
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:csp
 
   securite-sql:
     name: Migrations et assertions de sécurité

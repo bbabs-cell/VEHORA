@@ -1,0 +1,8 @@
+# vehora.magyapro.com est un environnement de démonstration : ses données sont
+# fictives et ses comptes publics. Il n'a rien à faire dans un moteur de
+# recherche. L'en-tête `X-Robots-Tag` de `vercel.json` dit la même chose aux
+# robots qui ignorent ce fichier.
+#
+# À revoir le jour où un domaine de production sert de vrais clients.
+User-agent: *
+Disallow: /

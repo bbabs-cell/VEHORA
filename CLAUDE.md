@@ -129,6 +129,7 @@ Chaque fonctionnalité est testée sous trois angles :
 | Migrations + tests de sécurité SQL | `npm run validate:sql` |
 | Tests de parcours | `npm run e2e` |
 | Assertions unitaires | `npm run test:unit` |
+| Application sous sa CSP réelle | `npm run build && npm run test:csp` |
 | Vérification des types | `npm run types:check` |
 
 **Node ≥ 22.22.3 requis** par Angular 22. En environnement cloud, le hook
@@ -381,13 +382,32 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   type ne doit pas cacher une policy cassée. Les campagnes d'intrusion n'y sont
   pas — elles écrivent dans la base réelle et se gêneraient entre exécutions.
   Sans les secrets `VEHORA_TEST_*`, la suite connectée s'ignore en bloc.
-- **Déploiement** : `vercel.json` (réécriture SPA — sans elle `/caisse/historique`
+- **Déploiement : `vehora.magyapro.com`, en démonstration/préproduction.**
+  `vercel.json` porte tout (réécriture SPA — sans elle `/caisse/historique`
   renvoie un 404 —, cache immuable sur les fichiers versionnés et `no-cache` sur
-  `index.html`, en-têtes de sécurité). `src/environments/environment.prod.ts`
-  remplace `environment.ts` au build. **Il pointe encore sur le projet de
-  développement** : créer un projet Supabase de production, y rejouer les
-  migrations, activer le hook, puis remplacer les deux valeurs. Marche à suivre
-  dans `docs/deploiement.md`.
+  `index.html`, en-têtes de sécurité, CSP). Marche à suivre complète dans
+  `docs/deploiement.md`. **Ce déploiement sert les données de développement** :
+  bon pour montrer le produit, jamais pour encaisser l'argent d'un vrai client.
+  `public/robots.txt` et `X-Robots-Tag: noindex` le tiennent hors des moteurs —
+  à retirer le jour d'un vrai domaine de production.
+- **Sur Cloudflare, le nuage doit rester GRIS** (DNS only) pour le CNAME vers
+  Vercel : proxifié, Vercel ne valide pas le domaine ni son certificat, et le
+  symptôme (boucle de redirection, certificat qui n'arrive jamais) envoie
+  chercher ailleurs.
+- **Auth ignore le nouveau domaine tant qu'on ne le lui dit pas.** Site URL et
+  Redirect URLs dans Supabase : sans ça, les liens de réinitialisation de mot de
+  passe pointent vers `localhost` et l'utilisateur n'arrive nulle part.
+- **La CSP porte l'hôte Supabase en dur** (`connect-src`, `img-src`) : il change
+  **en même temps** que `environment.prod.ts` le jour d'un projet de production.
+  L'oublier donne une application qui s'affiche et ne charge rien.
+  `npm run test:csp` sert le build réel avec l'en-tête réel et échoue à la
+  moindre violation — il a trouvé que l'inlining du CSS critique d'Angular pose
+  un `onload=` en ligne, que la CSP refuse
+  (`optimization.styles.inlineCritical: false` depuis).
+- `src/environments/environment.prod.ts` remplace `environment.ts` au build.
+  **Il pointe sur le projet de développement**, ce qui est le choix assumé de la
+  préproduction ; la production réelle demande un second projet Supabase, les
+  migrations rejouées, le hook activé, et les comptes de démonstration absents.
 - Application Angular 22 : connexion, gardes, coquille applicative
   (barre latérale desktop, tiroir et barre basse mobile), thème sombre/clair.
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
