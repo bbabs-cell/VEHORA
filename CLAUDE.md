@@ -373,6 +373,17 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   « Libert� 6 ») — le seul BOM volontaire du projet. Les montants partent en
   unité principale avec une colonne « Devise » : dans un fichier qu'on trie et
   qu'on additionne, le code ISO est le bon choix, contrairement à l'écran.
+- **Un test qui cherche un MOT trouve sa propre documentation.** « Aucune clé
+  `service_role` dans le bundle » cherchait la chaîne `service_role` : elle est
+  dans le commentaire d'`environment.ts` qui dit justement que cette clé ne doit
+  jamais s'y trouver. Vert en local par un hasard de chargement, rouge dès que
+  l'intégration continue a servi le bundle à froid. On cherche désormais une
+  **clé** : le préfixe `sb_secret_`, et tout JWT dont la charge utile décodée
+  porte `service_role`. Un garde-fou qui crie au loup discrédite les autres.
+- **Sans les secrets `VEHORA_TEST_*` dans GitHub, la CI ignore 246 tests sur
+  258 et met 17 secondes** : exactement le « skipped massif qui ressemble à un
+  succès ». Les déclarer est la première chose à faire pour que l'intégration
+  continue garde quelque chose.
 - **Premier test unitaire** : `npm run test:unit` (`scripts/verifier-csv.mjs`,
   16 assertions). Node exécute le TypeScript tel quel depuis la 23.6 : un module
   sans réseau ni DOM se vérifie sans navigateur, en quelques millisecondes.

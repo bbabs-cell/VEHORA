@@ -73,7 +73,26 @@ test.describe('Authentification', () => {
     await page.waitForLoadState('networkidle');
 
     const tout = reponses.join('\n');
-    expect(tout).not.toContain('service_role');
-    expect(tout).not.toContain('sb_secret');
+
+    // On cherche une CLÉ, pas un MOT. La première version cherchait la chaîne
+    // « service_role » et tombait sur le commentaire d'`environment.ts` qui dit
+    // justement que cette clé ne doit jamais s'y trouver : le test trouvait sa
+    // propre documentation, en silence tant qu'un hasard de chargement le lui
+    // épargnait, puis en rouge dès que l'intégration continue a servi le bundle
+    // à froid. Un garde-fou qui crie au loup discrédite les autres.
+    expect(tout).not.toContain('sb_secret_');
+
+    // Une clé `service_role` est un JWT dont la charge utile porte ce rôle.
+    // On les décode tous plutôt que de chercher un mot quelque part.
+    const jetons = tout.match(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+/g) ?? [];
+    const privilegies = jetons.filter((jeton) => {
+      try {
+        const charge = Buffer.from(jeton.split('.')[1], 'base64url').toString('utf8');
+        return /"role"\s*:\s*"(service_role|supabase_admin)"/.test(charge);
+      } catch {
+        return false;
+      }
+    });
+    expect(privilegies, 'un jeton privilégié est servi au navigateur').toEqual([]);
   });
 });
