@@ -2951,6 +2951,152 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Phase 23 — Paramètres de l'organisation
+--
+-- Une policy ne voit pas quelle colonne a changé. Celle d'`organizations`
+-- laissait donc un propriétaire écrire la devise, le raccourci et l'état —
+-- depuis la phase 1, et personne ne l'avait regardé.
+-- ---------------------------------------------------------------------------
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- 1. Utilisateur autorisé : ce qui est un réglage se règle.
+do $$
+declare o public.organizations;
+begin
+  update public.organizations
+     set name = 'Station Awa — Liberté', city = 'Dakar', phone = '+221 33 800 00 00'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001'
+  returning * into o;
+
+  if o.name <> 'Station Awa — Liberté' or o.city <> 'Dakar' then
+    raise exception 'ÉCHEC — un propriétaire ne peut pas renommer son organisation';
+  end if;
+  raise notice 'ok — un propriétaire règle le nom, la ville et le contact';
+end;
+$$;
+
+do $$
+declare r public.organization_settings;
+begin
+  update public.organization_settings
+     set payment_before_delivery = 'STRICT', max_discount_percent = 5
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+  returning * into r;
+
+  if r.payment_before_delivery <> 'STRICT' then
+    raise exception 'ÉCHEC — la règle de paiement avant restitution ne se règle pas';
+  end if;
+  raise notice 'ok — la règle de paiement avant restitution se règle depuis le produit';
+
+  -- On la repose : d'autres assertions comptent sur ALLOW_DEBT.
+  update public.organization_settings set payment_before_delivery = 'ALLOW_DEBT',
+         max_discount_percent = 10
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+end;
+$$;
+
+-- 2 et 3. Ce qui n'est pas un réglage est refusé, même au propriétaire.
+do $$
+begin
+  update public.organizations set currency = 'EUR'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  raise exception 'ÉCHEC CRITIQUE — la devise a été changée depuis le produit';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — la devise ne se change pas par un formulaire';
+end;
+$$;
+
+do $$
+begin
+  update public.organizations set slug = 'vehora-platform-bis'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  raise exception 'ÉCHEC CRITIQUE — le raccourci d''une organisation a été réécrit';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — le raccourci d''une organisation ne se réécrit pas';
+end;
+$$;
+
+do $$
+declare v_autre public.organization_status;
+begin
+  -- Un état différent de l'actuel : écrire la même valeur ne change rien, et le
+  -- trigger ne compare que ce qui change. L'assertion visait d'abord 'ACTIVE',
+  -- que l'organisation portait déjà — elle prouvait donc l'inverse de ce qu'on
+  -- croyait.
+  select case when status = 'ACTIVE' then 'DEACTIVATED' else 'ACTIVE' end
+    into v_autre from public.organizations
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+  update public.organizations set status = v_autre
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  raise exception 'ÉCHEC CRITIQUE — un client a écrit l''état de son organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — l''état d''une organisation appartient à la plateforme';
+end;
+$$;
+
+-- La plateforme, elle, continue de suspendre : ses fonctions sont SECURITY
+-- DEFINER et ne s'exécutent pas sous `authenticated`. Sans cette porte, le
+-- garde-fou ci-dessus aurait cassé la suspension — c'est exactement la forme
+-- des quatre incidents de cascade, vérifiée d'emblée cette fois.
+select pg_temp.login_plateforme();
+do $$
+declare v_org uuid := 'ccccdddd-0000-0000-0000-000000000003';
+begin
+  perform public.suspendre_organisation(v_org, 'Vérification du garde-fou');
+  if (select status from public.organizations where id = v_org) <> 'SUSPENDED' then
+    raise exception 'ÉCHEC — la plateforme ne suspend plus';
+  end if;
+  perform public.reactiver_organisation(v_org, 'Fin de vérification');
+  if (select status from public.organizations where id = v_org) <> 'ACTIVE' then
+    raise exception 'ÉCHEC — la plateforme ne réactive plus';
+  end if;
+  raise notice 'ok — la plateforme suspend et réactive toujours';
+end;
+$$;
+
+-- Un rôle sans `organization.manage` ne règle rien.
+select pg_temp.login('33333333-3333-3333-3333-333333333333',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+do $$
+declare n integer;
+begin
+  update public.organizations set name = 'Renommée par un caissier'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC — un caissier a renommé l''organisation'; end if;
+
+  update public.organization_settings set payment_before_delivery = 'ALLOW_DEBT'
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC — un caissier a changé les réglages'; end if;
+
+  raise notice 'ok — régler son organisation exige organization.manage';
+end;
+$$;
+
+-- Et une organisation ne règle pas celle du voisin.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+do $$
+declare n integer;
+begin
+  update public.organizations set name = 'Prise par B'
+   where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC CRITIQUE — B a renommé l''organisation A'; end if;
+  raise notice 'ok — une organisation ne règle pas celle du voisin';
+end;
+$$;
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- ---------------------------------------------------------------------------
 -- Phase 21 — Notifications au client : la file
 --
 -- Rien ne part de cette file. Ce qui se vérifie ici, c'est à qui on aurait le
