@@ -1,8 +1,39 @@
-# Déploiement — `vehora.magyapro.com`
+# Déploiement
 
-Ce document décrit le déploiement **de démonstration / préproduction** décidé le
-19 septembre 2026 : sous-domaine `vehora.magyapro.com`, DNS gérés par
-Cloudflare, et **le projet Supabase actuel conservé**.
+## En ligne aujourd'hui : `https://vehora.vercel.app`
+
+Le projet Vercel existe et sert l'application. Vérifié le 25 septembre 2026,
+depuis l'extérieur :
+
+| Contrôle | Résultat |
+|---|---|
+| HTTPS public, sans protection de déploiement | ✅ |
+| Réécriture SPA (`/caisse/historique` en accès direct) | ✅ 200 |
+| En-têtes de sécurité et CSP | ✅ servis, aucune violation |
+| `robots.txt` + `X-Robots-Tag: noindex` | ✅ |
+| Cache `immutable` sur les fichiers versionnés | ✅ |
+| Feuille de styles appliquée (`--vh-bg` lu à l'exécution) | ✅ |
+| **Connexion réelle** (`awa@vehora.test`) → tableau de bord | ✅ claims lus (OWNER, 30 permissions) |
+
+**Il reste une étape** : les URL d'Auth dans Supabase (partie 3 ci-dessous), avec
+`https://vehora.vercel.app` pour valeur. La connexion par mot de passe fonctionne
+sans elle ; les liens de réinitialisation, non.
+
+Le sous-domaine `vehora.magyapro.com` s'ajoutera ensuite sans rien casser : les
+deux adresses serviront la même application, et il suffira d'ajouter la seconde
+URL dans Supabase sans retirer la première.
+
+---
+
+# Le sous-domaine — `vehora.magyapro.com`
+
+Déploiement **de démonstration / préproduction** : sous-domaine
+`vehora.magyapro.com`, DNS gérés par Cloudflare, et **le projet Supabase actuel
+conservé**.
+
+`magyapro.com` est déjà sur Vercel (projet `magya-pro`), et
+`boutique.magyapro.com` y fonctionne : le plus sûr est d'ouvrir cet
+enregistrement DNS et de le recopier pour `vehora`.
 
 Ce choix a une conséquence qu'il faut assumer à voix haute :
 
@@ -68,9 +99,11 @@ pointent vers `localhost` : l'utilisateur clique et n'arrive nulle part.
 
 Dans **Authentication → URL Configuration** :
 
-- **Site URL** : `https://vehora.magyapro.com`
-- **Redirect URLs** : ajouter `https://vehora.magyapro.com/**`
-  (garder `http://localhost:4200/**` pour le développement).
+- **Site URL** : l'adresse servie — aujourd'hui `https://vehora.vercel.app`.
+- **Redirect URLs** : `https://vehora.vercel.app/**`, puis
+  `https://vehora.magyapro.com/**` quand le sous-domaine arrivera. Garder
+  `http://localhost:4200/**` pour le développement. **On ajoute, on ne remplace
+  pas** : plusieurs adresses peuvent servir la même application.
 
 Et pendant qu'on y est, **Authentication → Policies** : activer la protection
 contre les mots de passe divulgués. Elle est désactivée, l'advisor le signale à
