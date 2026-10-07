@@ -130,6 +130,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'parametres',
+        title: 'Paramètres — VEHORA',
+        canActivate: [permissionGuard('organization.manage')],
+        loadComponent: () =>
+          import('./features/parametres/parametres.component').then(
+            (m) => m.ParametresComponent,
+          ),
+      },
+      {
         path: 'abonnement',
         title: 'Abonnement — VEHORA',
         // Lecture seule : changer de plan passe par VEHORA. La garde évite

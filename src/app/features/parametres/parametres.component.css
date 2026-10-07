@@ -1,0 +1,81 @@
+.parametres {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.parametres__titre {
+  font-size: var(--vh-text-xl);
+  margin: 0;
+}
+
+.parametres__sous-titre {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.bloc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.bloc__titre {
+  font-size: var(--vh-text-lg);
+  margin: 0;
+}
+
+/* Deux champs par ligne quand la place le permet, l'un sous l'autre sur un
+   téléphone tenu d'une main. */
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--vh-space-3);
+}
+
+.aide {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-xs);
+}
+
+.bascule {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  cursor: pointer;
+}
+
+.bascule input {
+  /* Cochable au pouce, dehors, sur un appareil modeste. */
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.lecture {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--vh-space-3);
+  margin: 0;
+  padding: var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border-radius: var(--vh-radius-card);
+}
+
+.lecture dt {
+  font-size: var(--vh-text-xs);
+  margin: 0;
+}
+
+.lecture dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bloc__actions {
+  display: flex;
+  justify-content: flex-end;
+}

@@ -55,3 +55,6 @@ yarn-error.log
 
 # États de session des tests : jetons réels, régénérés à chaque exécution.
 e2e/.etats/
+
+# Captures d'écran de validation de phase : utiles en revue, pas en dépôt.
+/captures/

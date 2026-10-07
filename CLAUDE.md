@@ -140,12 +140,16 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 22 validée.** Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 23 validée** (sous réserve : voir ci-dessous). Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
 caisse, export CSV des rapports et des sessions, facturation des abonnements
 (échéances, relances, annulation), file des notifications au client, types de
-base régénérés.
+base régénérés, écran « Paramètres » et colonnes d'organisation protégées.
+**Deux contrôles de la phase 23 restent dus** : la suite `npm run e2e` complète
+et `scripts/intrusion-parametres.mjs` (écrit, jamais exécuté). Le proxy sortant
+du conteneur a cessé d'accepter l'hôte Supabase en fin de phase ; le garde-fou
+lui-même a été vérifié sur la base réelle au moment de son application.
 **Prochaine étape bloquée par une décision** : choisir un fournisseur de SMS.
 Tout le reste des notifications est fait ; il ne manque que l'envoi
 (`docs/notifications.md`).
@@ -284,6 +288,14 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   même ligne. Une policy ne voit pas quelle colonne a changé — c'est un trigger
   qui tranche. Règle générale pour toute table où deux droits se partagent une
   ligne.
+- **Une policy d'écriture sans restriction de colonne ouvre toute la ligne.**
+  `owners update own organization` laissait un propriétaire écrire `currency` :
+  rien n'est converti, donc 60 000 F CFA devenaient 60 000 € jusque dans les
+  reçus déjà remis. Aussi `slug` (l'identité) et `status` (se réactiver soi-même
+  annulait une suspension). Fermé par `vehora.protect_organization()`, qui doit
+  être **SECURITY INVOKER** : en `SECURITY DEFINER`, `current_user` vaut le
+  propriétaire de la fonction et le garde-fou laisse tout passer. Deuxième
+  occurrence de « une policy ne voit pas quelle colonne a changé ».
 - **Un trigger de protection doit se taire quand l'écriture vient d'une
   cascade.** **Quatre incidents** (dernier propriétaire en phase 1, opérations
   en phase 10, journal d'audit en phase 14, reçus — latent depuis la phase 13,
@@ -424,7 +436,7 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
 - Parcours connecté vérifié de bout en bout ; **257 tests Playwright** (4,5 min),
-  **287 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  **295 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
@@ -433,7 +445,9 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   `scripts/intrusion-catalogue.mjs`, 21 ;
   `scripts/intrusion-historique-caisse.mjs`, 11 ;
   `scripts/intrusion-facturation.mjs`, 24 ;
-  `scripts/intrusion-notifications.mjs`, 12 ; 14 sur le stockage).
+  `scripts/intrusion-notifications.mjs`, 12 ;
+  `scripts/intrusion-parametres.mjs`, 14 (écrite en phase 23, pas encore jouée) ;
+  14 sur le stockage).
 - **Une connexion par rôle, pas une par test.** `e2e/global-setup.ts` se connecte
   une fois par rôle et enregistre l'état (`storageState`) dans `e2e/.etats/`,
   effacé à chaque exécution et ignoré par Git. La suite est passée de 10,3 à
