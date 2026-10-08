@@ -20,6 +20,10 @@ body {
   font-size: var(--vh-text-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* La forme des glyphes doit venir de Manrope, pas d'une synthèse du
+     navigateur : une graisse 600 fabriquée à partir d'une variable 400 est
+     baveuse en petit corps, et c'est le corps que ce produit utilise. */
+  font-synthesis-weight: none;
 }
 
 h1,
@@ -30,9 +34,17 @@ h3 {
   font-weight: 600;
 }
 
+/* Le titre de page, et lui seul, porte le degré « display ». Il se resserre
+   sur un téléphone plutôt que de passer sur trois lignes. */
+h1 {
+  font-size: clamp(var(--vh-text-xl), 5vw, var(--vh-text-2xl));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 /* Focus visible : exigence d'accessibilité, jamais supprimé. */
 :focus-visible {
-  outline: 2px solid var(--vh-accent);
+  outline: 2px solid var(--vh-primary-bright);
   outline-offset: 2px;
   border-radius: var(--vh-radius-control);
 }
@@ -64,47 +76,128 @@ textarea {
   background: var(--vh-surface-2);
   border: 1px solid var(--vh-border);
   border-radius: var(--vh-radius-control);
-  transition: border-color var(--vh-duration-fast) var(--vh-ease);
+  color: var(--vh-text);
+  /* 16px : en dessous, iOS zoome sur le champ à la mise au point, et l'écran
+     part de travers au milieu d'une saisie faite d'une main. */
+  font-size: var(--vh-text-base);
+  transition:
+    border-color var(--vh-duration-fast) var(--vh-ease),
+    box-shadow var(--vh-duration-fast) var(--vh-ease);
 }
 
+.vh-input::placeholder {
+  color: var(--vh-text-faint);
+}
+
+.vh-input:hover:not(:disabled):not(:focus) {
+  border-color: var(--vh-text-faint);
+}
+
+/* Le champ actif se distingue par le contraste et un anneau, pas par une
+   couleur de plus : un halo coloré sur chaque champ fait un écran bariolé. */
 .vh-input:focus {
-  border-color: var(--vh-primary);
+  border-color: var(--vh-primary-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vh-primary-bright) 22%, transparent);
+  outline: none;
+}
+
+.vh-input:disabled {
+  background: var(--vh-surface-3);
+  color: var(--vh-text-faint);
+  cursor: not-allowed;
 }
 
 .vh-input[aria-invalid='true'] {
   border-color: var(--vh-error);
 }
 
+.vh-input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vh-error) 22%, transparent);
+}
+
+/* Le message d'un champ en erreur se lit SOUS le champ, en toutes lettres.
+   Un contour rouge seul ne dit pas quoi corriger, et ne se voit pas du tout
+   pour qui ne distingue pas le rouge. */
+.vh-field__erreur {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-error-text);
+}
+
 .vh-button {
-  min-height: var(--vh-touch-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vh-space-2);
+  min-height: var(--vh-touch-min);
   padding: 0 var(--vh-space-6);
   background: var(--vh-primary);
-  color: #fff;
+  color: var(--vh-primary-ink);
   border: none;
   border-radius: var(--vh-radius-control);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--vh-duration-fast) var(--vh-ease);
+  box-shadow: var(--vh-glow-primary);
+  transition:
+    background var(--vh-duration-fast) var(--vh-ease),
+    transform var(--vh-duration-fast) var(--vh-ease),
+    box-shadow var(--vh-duration-fast) var(--vh-ease);
 }
 
+/* Au survol, la LUMINOSITÉ monte ; la teinte ne bouge pas. La couleur
+   s'active, elle ne devient pas une autre couleur. */
 .vh-button:hover:not(:disabled) {
   background: var(--vh-primary-hover);
+  transform: translateY(-1px);
+}
+
+/* Le bouton se comprime sous le doigt. C'est la seule réponse immédiate dont
+   dispose quelqu'un qui appuie dehors, sur un réseau lent : elle arrive à
+   l'image suivante, bien avant le serveur. */
+.vh-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 60ms;
 }
 
 .vh-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* L'action opérationnelle primaire — encaisser, démarrer, restituer — posée
+   en bas de l'écran, là où arrive le pouce d'une main qui tient aussi un jet. */
+.vh-button--op {
+  min-height: var(--vh-touch-primary);
+  width: 100%;
+  font-size: var(--vh-text-lg);
 }
 
 .vh-button--ghost {
-  background: transparent;
-  color: var(--vh-text-muted);
+  background: var(--vh-surface-2);
+  color: var(--vh-text);
   border: 1px solid var(--vh-border);
   min-height: var(--vh-touch-min);
+  box-shadow: none;
 }
 
 .vh-button--ghost:hover:not(:disabled) {
   background: var(--vh-surface-3);
+  border-color: var(--vh-text-faint);
+}
+
+/* Action de service — « Tout afficher », « Annuler ». Sans fond au repos :
+   elle ne doit pas peser autant qu'un choix. */
+.vh-button--discret {
+  background: transparent;
+  color: var(--vh-text-muted);
+  border: none;
+  min-height: var(--vh-touch-min);
+  box-shadow: none;
+  padding: 0 var(--vh-space-3);
+}
+
+.vh-button--discret:hover:not(:disabled) {
+  background: var(--vh-surface-2);
   color: var(--vh-text);
 }
 
@@ -113,9 +206,11 @@ textarea {
    et une confirmation la précède. */
 .vh-button--danger {
   background: var(--vh-error);
+  box-shadow: none;
 }
 
 .vh-button--danger:hover:not(:disabled) {
+  background: var(--vh-error);
   filter: brightness(1.1);
 }
 
@@ -124,6 +219,126 @@ textarea {
   border: 1px solid var(--vh-border);
   border-radius: var(--vh-radius-card);
   padding: var(--vh-space-6);
+  /* Surface, filet, PUIS ombre — dans cet ordre. La carte se détache d'abord
+     par son fond et son trait ; l'ombre ne fait que la décoller du plan. */
+  box-shadow: var(--vh-shadow-1);
+}
+
+/* Une carte sur laquelle on peut appuyer le dit en se soulevant. Deux pixels :
+   assez pour être perçu, jamais assez pour faire sauter la grille sous le
+   doigt. */
+.vh-card--cliquable {
+  cursor: pointer;
+  transition:
+    transform var(--vh-duration-fast) var(--vh-ease),
+    box-shadow var(--vh-duration-fast) var(--vh-ease),
+    border-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.vh-card--cliquable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--vh-shadow-2);
+  border-color: var(--vh-text-faint);
+}
+
+.vh-card--cliquable:active {
+  transform: translateY(0);
+  transition-duration: 60ms;
+}
+
+/* Un encart À L'INTÉRIEUR d'une carte. Jamais une seconde carte : deux filets
+   et deux ombres imbriqués brouillent la lecture au lieu de la structurer. */
+.vh-encart {
+  background: var(--vh-surface-3);
+  border-radius: var(--vh-radius-control);
+  padding: var(--vh-space-4);
+}
+
+/* --- Pastilles d'état ----------------------------------------------------
+   Fond sourd de l'état, texte dans la teinte pleine, ET une forme — le point.
+   Jamais la couleur seule : le daltonisme et une dalle bon marché en plein
+   jour emportent la nuance, et un statut mal lu fait repartir une voiture
+   non payée. */
+.vh-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  padding: var(--vh-space-1) var(--vh-space-3);
+  border-radius: var(--vh-radius-pill);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vh-pastille::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--vh-radius-pill);
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.vh-pastille--neutre {
+  background: var(--vh-surface-3);
+  color: var(--vh-text-muted);
+}
+.vh-pastille--marque {
+  background: var(--vh-primary-soft);
+  color: var(--vh-primary-bright);
+}
+.vh-pastille--ok {
+  background: var(--vh-success-soft);
+  color: var(--vh-success);
+}
+.vh-pastille--attente {
+  background: var(--vh-warning-soft);
+  color: var(--vh-warning);
+}
+.vh-pastille--erreur {
+  background: var(--vh-error-soft);
+  color: var(--vh-error-text);
+}
+.vh-pastille--argent {
+  background: var(--vh-money-soft);
+  color: var(--vh-money);
+}
+
+/* --- Le rail d'état ------------------------------------------------------
+   Signature du système : 3px au bord gauche d'une carte de dossier, colorés
+   par le statut. Une file de vingt véhicules se balaie sans lire un mot.
+   La couleur se règle par `--vh-rail` sur l'élément. */
+.vh-rail {
+  position: relative;
+  padding-left: var(--vh-space-6);
+}
+
+.vh-rail::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--vh-radius-pill);
+  background: var(--vh-rail, var(--vh-border));
+}
+
+/* --- Les chiffres --------------------------------------------------------
+   Tout nombre lu en colonne s'aligne. Deux totaux qui ne s'alignent pas se
+   comparent à l'œil, donc mal. */
+.vh-chiffre {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Un montant. Le laiton ne sert qu'à l'argent : un total se repère sans être
+   lu, et employer cette teinte ailleurs la viderait de ce sens. */
+.vh-montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--vh-money);
 }
 
 .vh-alert {
@@ -132,6 +347,21 @@ textarea {
   border: 1px solid var(--vh-error);
   background: color-mix(in srgb, var(--vh-error) 12%, transparent);
   font-size: var(--vh-text-sm);
+}
+
+/* Une information n'est pas une panne. « Aucun message n'est envoyé » affiché
+   en rouge a déjà fait douter du reste de l'écran (phase 21) : le rouge est
+   réservé à ce qui est cassé. */
+.vh-alert--info {
+  border-color: var(--vh-primary-bright);
+  background: color-mix(in srgb, var(--vh-primary-bright) 10%, transparent);
+  color: var(--vh-text);
+}
+
+.vh-alert--attention {
+  border-color: var(--vh-warning);
+  background: color-mix(in srgb, var(--vh-warning) 12%, transparent);
+  color: var(--vh-text);
 }
 
 .vh-muted {
@@ -241,5 +471,154 @@ textarea {
 @media (min-width: 640px) {
   .modale {
     align-items: center;
+  }
+}
+
+/* --- Mouvement -----------------------------------------------------------
+   Vivant, mais calme. Vocabulaire repris du skill « animations vivantes »
+   (dépôts ATELIERFLOW et MagyaPro), avec la retenue qu'impose un écran de
+   travail : rien ne boucle, rien ne dérive en fond, et aucune animation
+   décorative sur la file d'attente ou la caisse — elles sont consultées cent
+   fois par jour.
+
+   N'animer que `transform` et `opacity` : tout le reste fait recalculer la
+   mise en page, et le téléphone visé n'en a pas les moyens. */
+
+@keyframes vh-entree {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vh-apparition {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vh-ouverture {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vh-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes vh-scintillement {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+/* L'arrivée d'une page. Un changement de filtre sur la même page ne la rejoue
+   pas : seul le contenu réellement inséré glisse. */
+.vh-entree {
+  animation: vh-entree var(--vh-duration-slow) var(--vh-ease) both;
+}
+
+.vh-ouverture {
+  animation: vh-ouverture var(--vh-duration-base) var(--vh-ease) both;
+}
+
+/* Une valeur qui change rebondit UNE fois. Mettre la valeur en `key` dans le
+   gabarit pour que l'animation se rejoue à chaque changement. */
+.vh-pop {
+  animation: vh-pop var(--vh-duration-base) var(--vh-ease-pop) both;
+}
+
+/* Entrée en cascade d'une liste : 50 ms par élément, plafonnés à 300 ms.
+   Au-delà, le dernier élément d'une file de trente voitures arriverait une
+   seconde et demie après le premier. */
+.vh-cascade > * {
+  animation: vh-entree var(--vh-duration-slow) var(--vh-ease) both;
+}
+.vh-cascade > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.vh-cascade > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.vh-cascade > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.vh-cascade > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.vh-cascade > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.vh-cascade > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.vh-cascade > *:nth-child(n + 7) {
+  animation-delay: 300ms;
+}
+
+/* Attente : un squelette aux dimensions du contenu final, pas un tourniquet
+   au centre de l'écran. On voit arriver la forme de ce qu'on attend. */
+.vh-squelette {
+  border-radius: var(--vh-radius-control);
+  background: linear-gradient(
+    90deg,
+    var(--vh-surface-2) 0%,
+    var(--vh-surface-3) 40%,
+    var(--vh-surface-2) 80%
+  );
+  background-size: 220% 100%;
+  animation: vh-scintillement 1.4s linear infinite;
+}
+
+/* Le voile d'une modale apparaît en fondu, son contenu s'ouvre. */
+.modale {
+  animation: vh-apparition var(--vh-duration-fast) var(--vh-ease) both;
+}
+
+.modale__contenu {
+  animation: vh-ouverture var(--vh-duration-base) var(--vh-ease) both;
+}
+
+/* La coupure du mouvement annule les durées PUIS les délais. N'annuler que la
+   durée laisserait une entrée retardée invisible pendant son attente : ce
+   n'est pas une animation économisée, c'est un contenu perdu. */
+@media (prefers-reduced-motion: reduce) {
+  .vh-entree,
+  .vh-ouverture,
+  .vh-pop,
+  .vh-cascade > *,
+  .modale,
+  .modale__contenu {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .vh-squelette {
+    animation: none;
+    background: var(--vh-surface-2);
   }
 }

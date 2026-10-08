@@ -1,31 +1,59 @@
-/* VEHORA — tokens de design.
-   Aucune couleur en dur ailleurs dans le projet : toujours var(--vh-*). */
+/* VEHORA — tokens de design. Identité « Le reflet » (docs/design/DESIGN.md).
+   Aucune couleur en dur ailleurs dans le projet : toujours var(--vh-*).
+
+   Deux valeurs par couleur d'accent, et c'est délibéré : une teinte assez
+   profonde pour porter du texte blanc en bouton (≥ 4,5:1) est trop sombre pour
+   servir de texte sur le fond de l'atelier, et l'inverse est vrai aussi. Les
+   deux rôles sont donc deux tokens. Les ratios sont vérifiés par
+   `npm run test:contraste`. */
 
 :root {
-  /* Couleurs — thème sombre (défaut) */
-  --vh-bg: #0b1120;
-  --vh-surface-1: #111827;
-  --vh-surface-2: #172033;
-  --vh-surface-3: #1e293b;
-  --vh-primary: #3b82f6;
-  --vh-primary-hover: #2563eb;
-  --vh-accent: #06b6d4;
-  --vh-success: #22c55e;
-  --vh-warning: #f59e0b;
-  --vh-error: #ef4444;
-  --vh-text: #f8fafc;
-  --vh-text-muted: #94a3b8;
-  --vh-border: #263449;
+  /* ---- Thème sombre (défaut) -------------------------------------------- */
 
-  /* Statuts de prestation */
+  /* Neutres — bleu d'encre tiède, jamais le gris ardoise froid. */
+  --vh-bg: #0a1016;
+  --vh-surface-1: #111a22;
+  --vh-surface-2: #17242e;
+  --vh-surface-3: #1f303c;
+  --vh-border: #273945;
+  --vh-text: #f1f6f8; /* jamais #fff sur fond sombre : il vibre */
+  --vh-text-muted: #93a8b4;
+  --vh-text-faint: #6b808d; /* invite et désactivé SEULEMENT */
+
+  /* Marque — l'azur de l'eau et du chrome. */
+  --vh-primary: #0a7a9e; /* fond d'action, porte du blanc (4,89:1) */
+  --vh-primary-hover: #0c8cb4; /* la luminosité monte, la teinte ne bouge pas */
+  --vh-primary-ink: #ffffff; /* le texte posé sur --vh-primary */
+  --vh-primary-bright: #2cc4e8; /* la marque en TRAIT : icône, lien, focus */
+  --vh-primary-soft: #0a2a35; /* fond de pastille de marque */
+
+  /* L'argent — et rien d'autre. */
+  --vh-money: #c89a3c;
+  --vh-money-soft: #30250f;
+
+  /* États — séparés de la marque, volontairement. */
+  --vh-success: #1f9d5f;
+  --vh-success-soft: #0c2a1c;
+  --vh-warning: #c07c12;
+  --vh-warning-soft: #2e220b;
+  --vh-error: #d04545; /* fond de bouton danger, porte du blanc */
+  --vh-error-text: #e06060; /* le même état, lu en texte sur le fond */
+  --vh-error-soft: #331517;
+
+  /* Accent historique conservé : des écrans l'utilisent encore. */
+  --vh-accent: var(--vh-primary-bright);
+
+  /* Statuts de prestation — couleur ET forme, jamais la couleur seule. */
   --vh-status-arrived: var(--vh-text-muted);
-  --vh-status-inspection: var(--vh-accent);
+  --vh-status-inspection: var(--vh-primary-bright);
   --vh-status-waiting: var(--vh-warning);
-  --vh-status-in-progress: var(--vh-primary);
-  --vh-status-control: var(--vh-accent);
+  --vh-status-in-progress: var(--vh-primary-bright);
+  --vh-status-control: var(--vh-money);
   --vh-status-ready: var(--vh-success);
   --vh-status-delivered: var(--vh-text-muted);
-  --vh-status-cancelled: var(--vh-error);
+  --vh-status-cancelled: var(--vh-error-text);
+
+  /* ---- Mesures ---------------------------------------------------------- */
 
   /* Espacement — échelle 4px */
   --vh-space-1: 4px;
@@ -38,63 +66,94 @@
   --vh-space-16: 64px;
 
   /* Rayons */
-  --vh-radius-control: 6px;
-  --vh-radius-card: 10px;
-  --vh-radius-modal: 16px;
+  --vh-radius-control: 10px;
+  --vh-radius-card: 14px;
+  --vh-radius-modal: 18px;
+  --vh-radius-pill: 9999px;
 
-  /* Profondeur — discrète : surface + bordure d'abord */
-  --vh-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
-  --vh-shadow-2: 0 4px 12px rgb(0 0 0 / 0.35);
-  --vh-shadow-3: 0 12px 32px rgb(0 0 0 / 0.45);
+  /* Profondeur — surface et filet d'abord, ombre ensuite. Deux couches :
+     un contact proche et net, une diffusion large et douce. Teintées d'encre
+     bleue, jamais de noir pur, qui grise la couleur au lieu de la poser. */
+  --vh-shadow-1: 0 1px 2px rgb(4 10 16 / 0.34), 0 6px 16px -10px rgb(4 10 16 / 0.5);
+  --vh-shadow-2: 0 2px 4px rgb(4 10 16 / 0.38), 0 16px 32px -18px rgb(4 10 16 / 0.62);
+  --vh-shadow-3: 0 4px 8px rgb(4 10 16 / 0.42), 0 28px 56px -24px rgb(4 10 16 / 0.72);
+  --vh-glow-primary: 0 6px 18px -6px rgb(10 122 158 / 0.55);
 
-  /* Typographie */
-  --vh-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --vh-text-xs: 12px;
-  --vh-text-sm: 14px;
+  /* ---- Typographie ------------------------------------------------------ */
+
+  /* Manrope est RÉELLEMENT chargée (@fontsource-variable/manrope, importée
+     dans styles.css). La pile précédente nommait « Inter » sans la servir :
+     le produit s'affichait dans la police système, différente sur chaque
+     appareil. Une famille nommée ici est une famille téléchargée. */
+  --vh-font:
+    'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vh-text-xs: 13px; /* plancher absolu — intitulés uniquement */
+  --vh-text-sm: 14px; /* plancher d'une donnée métier */
   --vh-text-base: 16px;
   --vh-text-lg: 20px;
   --vh-text-xl: 24px;
   --vh-text-2xl: 32px;
   --vh-text-3xl: 40px;
 
-  /* Mouvement */
+  /* ---- Mouvement -------------------------------------------------------- */
   --vh-duration-fast: 150ms;
   --vh-duration-base: 220ms;
   --vh-duration-slow: 300ms;
-  --vh-ease: cubic-bezier(0.2, 0, 0.2, 1);
+  --vh-ease: cubic-bezier(0.22, 1, 0.36, 1); /* arrivée confortable */
+  --vh-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* petites pastilles */
 
-  /* Cibles tactiles — minimum absolu et action opérationnelle primaire */
+  /* ---- Cibles tactiles -------------------------------------------------- */
   --vh-touch-min: 44px;
   --vh-touch-primary: 56px;
 
   /* Hauteur de la barre de navigation basse (mobile), bordure comprise.
-     Partagée : toute barre fixe qui doit s'y adosser part de cette valeur,
-     plutôt que d'un nombre recopié — c'est ainsi qu'apparaissent les décalages
-     de quelques pixels impossibles à retrouver. */
+     Partagée : toute barre fixe qui s'y adosse part de cette valeur, plutôt
+     que d'un nombre recopié — c'est ainsi qu'apparaissent les décalages de
+     quelques pixels impossibles à retrouver. */
   --vh-nav-basse: 65px;
 }
 
-/* Mode clair — exigence terrain : écrans opérationnels utilisés en plein soleil.
-   Mêmes tokens, valeurs redéfinies. Livré en phase 2. */
+/* Mode clair — exigence terrain : les écrans opérationnels sont lus en plein
+   soleil. Mêmes tokens, valeurs redéfinies, mêmes seuils de contraste tenus.
+   Le fond n'est pas blanc pur : un bleu-papier fatigue moins sous forte
+   luminosité, et le blanc reste disponible pour les cartes posées dessus. */
 [data-theme='light'] {
-  --vh-bg: #f5f7fa;
+  --vh-bg: #eef3f6;
   --vh-surface-1: #ffffff;
-  --vh-surface-2: #eef2f7;
-  --vh-surface-3: #e2e8f0;
-  --vh-primary: #1d4ed8;
-  --vh-primary-hover: #1e40af;
-  --vh-accent: #0e7490;
-  --vh-success: #15803d;
-  --vh-warning: #b45309;
-  --vh-error: #b91c1c;
-  --vh-text: #0b1120;
-  --vh-text-muted: #475569;
-  --vh-border: #cbd5e1;
-  --vh-shadow-1: 0 1px 2px rgb(11 17 32 / 0.08);
-  --vh-shadow-2: 0 4px 12px rgb(11 17 32 / 0.1);
-  --vh-shadow-3: 0 12px 32px rgb(11 17 32 / 0.14);
+  --vh-surface-2: #e6edf1;
+  --vh-surface-3: #dae4ea;
+  --vh-border: #c3d1da;
+  --vh-text: #0c1720;
+  --vh-text-muted: #4b5e6b;
+  --vh-text-faint: #6b808d;
+
+  --vh-primary: #0a6c8c;
+  --vh-primary-hover: #08607d;
+  --vh-primary-ink: #ffffff;
+  --vh-primary-bright: #07607b; /* en clair, le trait doit s'assombrir */
+  --vh-primary-soft: #dcecf2;
+
+  --vh-money: #8a6410;
+  --vh-money-soft: #f6eeda;
+
+  --vh-success: #126c42;
+  --vh-success-soft: #dcefe4;
+  --vh-warning: #8a580b;
+  --vh-warning-soft: #f8eed6;
+  --vh-error: #a62f2f;
+  --vh-error-text: #a62f2f;
+  --vh-error-soft: #f7e0e0;
+
+  --vh-shadow-1: 0 1px 2px rgb(12 23 32 / 0.07), 0 6px 16px -10px rgb(12 23 32 / 0.18);
+  --vh-shadow-2: 0 2px 4px rgb(12 23 32 / 0.08), 0 16px 32px -18px rgb(12 23 32 / 0.26);
+  --vh-shadow-3: 0 4px 8px rgb(12 23 32 / 0.1), 0 28px 56px -24px rgb(12 23 32 / 0.3);
+  --vh-glow-primary: 0 6px 18px -6px rgb(10 108 140 / 0.4);
 }
 
+/* La coupure du mouvement ramène les DURÉES à zéro mais pas les DÉLAIS : une
+   entrée retardée dont on n'annule que la durée laisse du contenu invisible.
+   Les délais sont donc coupés explicitement ici, et dans `_base.css` pour les
+   cascades. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --vh-duration-fast: 0ms;

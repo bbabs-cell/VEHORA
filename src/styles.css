@@ -1,3 +1,10 @@
-/* VEHORA — feuille de style globale. */
+/* VEHORA — feuille de style globale.
+
+   Manrope est auto-hébergée (paquet npm), jamais appelée chez un tiers : la
+   CSP de `vercel.json` n'autorise que `font-src 'self'`, et un fournisseur de
+   polices externe verrait passer l'adresse IP de chaque station à chaque
+   ouverture. Les `unicode-range` du paquet font que seul le sous-ensemble
+   latin part sur le réseau — 25 Ko, une fois. */
+@import '@fontsource-variable/manrope/wght.css';
 @import './styles/_tokens.css';
 @import './styles/_base.css';
