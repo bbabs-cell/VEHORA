@@ -58,3 +58,6 @@ e2e/.etats/
 
 # Captures d'écran de validation de phase : utiles en revue, pas en dépôt.
 /captures/
+
+# Produit par scripts/generer-restauration.mjs — se régénère, ne se versionne pas.
+/supabase/restauration.sql
