@@ -17,6 +17,6 @@
  */
 export const environment = {
   production: true,
-  supabaseUrl: 'https://entpmxssjxllggsqhnwc.supabase.co',
-  supabasePublishableKey: 'sb_publishable_e3seZbuqZkKCNHaW2GeEHA_wa5V8-Y2',
+  supabaseUrl: 'https://liragiqjtwlwqkfiyedk.supabase.co',
+  supabasePublishableKey: 'sb_publishable_HxQu-SCB2RQWdci03LZ7jg_Mf_NCzBB',
 } as const;
