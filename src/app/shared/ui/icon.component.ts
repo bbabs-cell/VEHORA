@@ -23,6 +23,17 @@ const TRACES: Record<string, string> = {
   menu: 'M4 7h16M4 12h16M4 17h16',
   fermer: 'M6 6l12 12M18 6 6 18',
   sortie: 'M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3M10 16l-4-4 4-4M6 12h10',
+  // Ajoutées en phase 24 : Stations, Rapports, Messages et Abonnement
+  // reprenaient l'icône d'un autre écran — deux entrées de menu identiques à
+  // l'œil, on les distingue en les lisant.
+  station: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+  rapport: 'M4 20h16M7 16v-5M12 16V7M17 16v-8',
+  message: 'M4 5h16v11H9l-5 4V5ZM8 9h8M8 12h5',
+  abonnement: 'M3 6h18v12H3zM3 10h18M7 15h4',
+  catalogue: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  plus: 'M6.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0ZM13.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0ZM20.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z',
+  etincelle: 'M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6L12 3ZM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2Z',
+  fleche: 'M7 17 17 7M9 7h8v8',
 };
 
 @Component({

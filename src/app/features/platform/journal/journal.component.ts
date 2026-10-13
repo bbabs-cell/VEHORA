@@ -6,11 +6,12 @@ import {
 } from '../../../core/platform/platform.service';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { SkeletonComponent } from '../../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-platform-journal',
   standalone: true,
-  imports: [EmptyStateComponent, SkeletonComponent],
+  imports: [EntetePageComponent, EmptyStateComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journal.component.html',
   styleUrl: './journal.component.css',

@@ -1,28 +1,54 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrganizationService } from '../../core/organization/organization.service';
 import { SubscriptionService } from '../../core/subscription/subscription.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { BarreProgressionComponent } from '../../shared/ui/barre-progression.component';
+import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
-import { NAVIGATION, NAVIGATION_MOBILE } from '../navigation';
+import { BarreBasseComponent } from '../barre-basse/barre-basse.component';
+import { NavigationLateraleComponent } from '../navigation-laterale/navigation-laterale.component';
+import { ENTREES_BARRE_BASSE, NAVIGATION, PRIORITE_MOBILE } from '../navigation';
 
 /**
  * Coquille de l'application cliente.
  *
- * Desktop : barre latérale persistante.
- * Mobile  : en-tête compact + barre d'actions en bas, atteignable au pouce.
+ * ≥ 1024 px : barre latérale persistante (`vh-navigation-laterale`).
+ * < 1024 px : en-tête compact, tiroir ☰ (compte, déconnexion, tout le menu) et
+ * barre basse au pouce (`vh-barre-basse`) — quatre écrans selon les droits,
+ * puis « Plus ».
  *
- * L'espace Super Admin aura sa propre coquille : ce n'est pas un onglet d'ici.
+ * Le seuil passe de 900 à 1024 px (méthode MagyaPro) : entre les deux, une
+ * tablette en portrait avait la barre latérale ET un contenu trop étroit.
+ *
+ * L'espace Super Admin a sa propre coquille : ce n'est pas un onglet d'ici.
  */
 @Component({
   selector: 'vh-app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, SkeletonComponent],
+  imports: [
+    RouterOutlet,
+    IconComponent,
+    SkeletonComponent,
+    FondVivantComponent,
+    BarreProgressionComponent,
+    NavigationLateraleComponent,
+    BarreBasseComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
+  host: { '(document:keydown.escape)': 'fermerMenu()' },
 })
 export class AppShellComponent {
   private readonly auth = inject(AuthService);
@@ -32,8 +58,6 @@ export class AppShellComponent {
   private readonly abonnement = inject(SubscriptionService);
 
   readonly menuOuvert = signal(false);
-  readonly claims = this.auth.claims;
-  readonly session = this.auth.session;
 
   /**
    * Entrées visibles : la permission de l'utilisateur, et la fonctionnalité
@@ -48,13 +72,29 @@ export class AppShellComponent {
     ),
   );
 
-  readonly entreesMobile = computed(() =>
-    this.entrees().filter((e) => NAVIGATION_MOBILE.includes(e.chemin)),
-  );
+  /** Les quatre premières entrées permises, dans l'ordre de priorité mobile. */
+  readonly entreesMobile = computed(() => {
+    const permises = this.entrees();
+    return PRIORITE_MOBILE.map((chemin) => permises.find((e) => e.chemin === chemin))
+      .filter((e) => e !== undefined)
+      .slice(0, ENTREES_BARRE_BASSE);
+  });
+
+  /** Tout ce qui n'est pas dans la barre basse : le contenu de « Plus ». */
+  readonly entreesPlus = computed(() => {
+    const directes = new Set(this.entreesMobile().map((e) => e.chemin));
+    return this.entrees().filter((e) => !directes.has(e.chemin));
+  });
 
   constructor() {
     void this.organisations.charger();
     void this.abonnement.charger();
+
+    // Une navigation referme le tiroir : on est arrivé.
+    const abonnement = this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => this.fermerMenu());
+    inject(DestroyRef).onDestroy(() => abonnement.unsubscribe());
   }
 
   basculerMenu(): void {
@@ -63,10 +103,5 @@ export class AppShellComponent {
 
   fermerMenu(): void {
     this.menuOuvert.set(false);
-  }
-
-  async deconnecter(): Promise<void> {
-    await this.auth.signOut();
-    await this.router.navigateByUrl('/connexion');
   }
 }

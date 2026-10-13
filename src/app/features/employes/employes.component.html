@@ -1,16 +1,12 @@
-<div class="employes">
-  <header class="employes__entete">
-    <div>
-      <h1 class="employes__titre">Employés</h1>
-      <p class="vh-muted employes__sous-titre">
-        Les personnes qui travaillent. Un employé n’a pas besoin d’un compte pour
-        que son travail soit tracé.
-      </p>
-    </div>
+<div class="vh-page employes">
+  <vh-entete-page
+    titre="Employés"
+    description="Les personnes qui travaillent. Un employé n’a pas besoin d’un compte pour que son travail soit tracé."
+  >
     @if (peutGerer()) {
       <button class="vh-button" type="button" (click)="ouvrirCreation()">Nouvel employé</button>
     }
-  </header>
+  </vh-entete-page>
 
   @if (employes.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
@@ -22,7 +18,7 @@
   }
 
   @if (employes.chargement() && employes.employes().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
       }
@@ -35,14 +31,14 @@
                le compte de connexion est facultatif."
       >
         @if (peutGerer()) {
-          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+          <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreation()">
             Ajouter un employé
           </button>
         }
       </vh-empty-state>
     </div>
   } @else {
-    <ul class="liste" aria-label="Employés actifs">
+    <ul class="vh-liste vh-stagger" aria-label="Employés actifs">
       @for (employe of actifs(); track employe.id) {
         <li class="vh-card employe">
           <div class="employe__identite">
@@ -53,7 +49,7 @@
                 · {{ employe.phone }}
               }
               @if (employe.profile_id) {
-                · <span class="etiquette">Avec compte</span>
+                · <span class="vh-etiquette">Avec compte</span>
               }
             </p>
           </div>
@@ -84,7 +80,7 @@
     @if (inactifs().length > 0) {
       <section class="inactifs">
         <h2 class="inactifs__titre">Inactifs</h2>
-        <ul class="liste" aria-label="Employés inactifs">
+        <ul class="vh-liste vh-stagger" aria-label="Employés inactifs">
           @for (employe of inactifs(); track employe.id) {
             <li class="vh-card employe employe--inactif">
               <div class="employe__identite">
@@ -138,7 +134,7 @@
             [attr.aria-invalid]="form.controls.full_name.touched && form.controls.full_name.invalid"
           />
           @if (form.controls.full_name.touched && form.controls.full_name.invalid) {
-            <p class="erreur-champ">Le nom est obligatoire (2 caractères minimum).</p>
+            <p class="vh-field__erreur">Le nom est obligatoire (2 caractères minimum).</p>
           }
         </div>
 

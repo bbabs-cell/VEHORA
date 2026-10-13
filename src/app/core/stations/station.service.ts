@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables, TablesInsert } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Station = Tables<'stations'>;
 export type StationNouvelle = Pick<
@@ -9,13 +10,13 @@ export type StationNouvelle = Pick<
 >;
 
 /** Traduction des erreurs PostgreSQL en messages utilisables. */
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  codes: { '23505': 'Une station porte déjà ce nom dans votre organisation.' },
+};
+
 function messageErreur(code: string | undefined, message: string): string {
-  if (code === '23505') return 'Une station porte déjà ce nom dans votre organisation.';
-  if (code === '42501') return "Vous n'avez pas le droit d'effectuer cette action.";
-  if (message.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'opération a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: message }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

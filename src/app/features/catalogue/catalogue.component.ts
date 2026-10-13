@@ -16,6 +16,7 @@ import { OrganizationService } from '../../core/organization/organization.servic
 import { StationService } from '../../core/stations/station.service';
 import { VehicleService } from '../../core/vehicles/vehicle.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import {
   formaterDate,
@@ -52,7 +53,7 @@ function demain(): string {
 @Component({
   selector: 'vh-catalogue',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
+  imports: [ReactiveFormsModule, EmptyStateComponent, EntetePageComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogue.component.html',
   styleUrl: './catalogue.component.css',

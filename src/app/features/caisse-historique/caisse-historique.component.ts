@@ -5,6 +5,7 @@ import { StationService } from '../../core/stations/station.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { formaterDate, formaterMontant, versSaisie } from '../../shared/format/montant';
 import { nomFichierCsv, nombreCsv, telechargerCsv, versCsv } from '../../shared/export/csv';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 /** `2026-09-18`, dans le fuseau de l'appareil — pas en UTC. */
 function jourLocal(decalageJours = 0): string {
@@ -18,7 +19,7 @@ function jourLocal(decalageJours = 0): string {
 @Component({
   selector: 'vh-caisse-historique',
   standalone: true,
-  imports: [EmptyStateComponent],
+  imports: [EntetePageComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './caisse-historique.component.html',
   styleUrl: './caisse-historique.component.css',

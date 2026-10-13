@@ -15,6 +15,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 const DELAI_RECHERCHE = 300;
 
@@ -22,6 +23,7 @@ const DELAI_RECHERCHE = 300;
   selector: 'vh-vehicles',
   standalone: true,
   imports: [
+    EntetePageComponent,
     ReactiveFormsModule,
     RouterLink,
     EmptyStateComponent,

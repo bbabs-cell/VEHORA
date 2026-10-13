@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Notification = Tables<'notifications'>;
 export type StatutNotification = Enums<'notification_status'>;
@@ -17,19 +18,16 @@ export const LIBELLES_ETAPE: Readonly<Record<string, string>> = {
   DELIVERED: 'Après restitution',
 };
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_NOTIFICATION_PARTIE: 'Ce message n’est plus en attente : il ne s’annule plus.',
+    VEHORA_NOTIFICATION_INTROUVABLE: 'Ce message n’existe pas.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_MOTIF_REQUIS')) return 'Un motif est obligatoire.';
-  if (brut.includes('VEHORA_NOTIFICATION_PARTIE')) {
-    return 'Ce message n’est plus en attente : il ne s’annule plus.';
-  }
-  if (brut.includes('VEHORA_NOTIFICATION_INTROUVABLE')) return 'Ce message n’existe pas.';
-  if (brut.includes('VEHORA_PERMISSION') || code === '42501') {
-    return 'Vous n’avez pas le droit d’effectuer cette action.';
-  }
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /** Une page : assez pour remplir un écran, assez peu pour un réseau lent. */

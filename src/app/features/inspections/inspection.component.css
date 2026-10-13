@@ -1,21 +1,8 @@
 .inspection {
   max-width: 760px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
   /* Place pour la barre d'actions fixe : sans cela, le dernier bloc reste
      inaccessible sous elle. */
   padding-bottom: calc(var(--vh-space-4) + var(--vh-nav-basse) + var(--vh-touch-primary));
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
-}
-
-.inspection__entete {
-  padding-top: var(--vh-space-4);
-}
-
-.inspection__titre {
-  font-size: var(--vh-text-xl);
 }
 
 .inspection__sous-titre {
@@ -23,11 +10,17 @@
   font-size: var(--vh-text-sm);
 }
 
-.plaque {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--vh-text);
+.brouillon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-2);
+}
+
+.brouillon__texte {
+  margin: 0;
+  flex: 1 1 14rem;
 }
 
 .inspection__aide {
@@ -35,7 +28,6 @@
   font-size: var(--vh-text-sm);
   max-width: 60ch;
 }
-
 /* ---------- Compteur d'avancement ---------- */
 
 .compteur {
@@ -51,44 +43,29 @@
   top: 56px;
   z-index: 5;
 }
-
 .compteur__anomalies {
   color: var(--vh-warning);
   font-weight: 600;
 }
-
 /* ---------- Zones ---------- */
-
-.liste {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-3);
-}
 
 .zone {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
 }
-
 .zone--anomalie {
   border-color: var(--vh-warning);
 }
-
 .zone__nom {
   margin: 0;
   font-weight: 600;
 }
-
 .zone__choix {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--vh-space-3);
 }
-
 /* Cibles larges : le geste se fait debout, une main occupée, parfois avec des
    gants mouillés. 56px est un minimum ici, pas un confort. */
 .choix {
@@ -105,30 +82,25 @@
     color var(--vh-duration-fast) var(--vh-ease),
     border-color var(--vh-duration-fast) var(--vh-ease);
 }
-
 .choix:hover {
   border-color: var(--vh-text-muted);
   color: var(--vh-text);
 }
-
 .choix--ok.choix--actif {
   background: color-mix(in srgb, var(--vh-success) 18%, transparent);
   border-color: var(--vh-success);
   color: var(--vh-success);
 }
-
 .choix--anomalie.choix--actif {
   background: color-mix(in srgb, var(--vh-warning) 18%, transparent);
   border-color: var(--vh-warning);
   color: var(--vh-warning);
 }
-
 .zone__detail {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
 }
-
 /* ---------- Photos ---------- */
 
 .photo-bouton {
@@ -144,12 +116,10 @@
   font-size: var(--vh-text-sm);
   cursor: pointer;
 }
-
 .photo-bouton:hover {
   border-color: var(--vh-primary);
   color: var(--vh-text);
 }
-
 .vignettes {
   list-style: none;
   margin: 0;
@@ -158,7 +128,6 @@
   flex-direction: column;
   gap: var(--vh-space-2);
 }
-
 .vignette {
   display: flex;
   align-items: center;
@@ -171,13 +140,11 @@
   font-size: var(--vh-text-sm);
   min-height: var(--vh-touch-min);
 }
-
 .vignette__nom {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .vignette__retirer {
   display: grid;
   place-items: center;
@@ -190,12 +157,10 @@
   border-radius: var(--vh-radius-control);
   cursor: pointer;
 }
-
 .vignette__retirer:hover {
   background: var(--vh-surface-3);
-  color: var(--vh-error);
+  color: var(--vh-error-text);
 }
-
 /* ---------- Bas de page ---------- */
 
 .inspection__zone-texte {
@@ -204,17 +169,14 @@
   resize: vertical;
   font-family: inherit;
 }
-
 .vh-alert--attention {
   border-color: var(--vh-warning);
   background: color-mix(in srgb, var(--vh-warning) 12%, transparent);
 }
-
 .progression {
   margin: 0;
   font-size: var(--vh-text-sm);
 }
-
 .inspection__actions {
   display: flex;
   gap: var(--vh-space-3);
@@ -233,26 +195,26 @@
   background: var(--vh-surface-1);
   border-top: 1px solid var(--vh-border);
 }
-
 /* Sur mobile les deux boutons partagent la largeur plutôt que de se replier
    l'un au-dessus de l'autre : deux lignes mangent l'écran et éloignent
    l'action principale du pouce. */
 .inspection__actions .vh-button {
   flex: 1;
+  /* À 320 px, deux boutons qui se partagent la largeur n'ont plus la place
+     d'un libellé sur une ligne : il passe sur deux plutôt que d'être coupé
+     (audit mobile, phase 24). */
+  white-space: normal;
+  line-height: 1.2;
+  padding: var(--vh-space-2) var(--vh-space-3);
+  text-align: center;
 }
-
-@media (min-width: 900px) {
-  .inspection {
-    padding: var(--vh-space-6);
-  }
-
-  .inspection {
-    padding-bottom: calc(var(--vh-space-6) + var(--vh-touch-primary) + var(--vh-space-6));
-  }
-
+/* Même seuil que la coquille (1024 px) : à 900, la barre se décalait pour
+   une barre latérale qui n'était plus là, et quittait la navigation basse
+   qui, elle, l'était encore. */
+@media (min-width: 1024px) {
   .inspection__actions {
-    /* La barre latérale occupe 264 px : la barre d'actions commence après. */
-    left: 264px;
+    /* La barre latérale occupe sa largeur : la barre d'actions commence après. */
+    left: var(--vh-largeur-laterale);
     bottom: 0;
     justify-content: flex-end;
     padding: var(--vh-space-3) var(--vh-space-6);

@@ -43,7 +43,9 @@ Configuré dans `angular.json` → un dépassement **casse le build**.
   `width`/`height` toujours renseignés (évite le décalage de mise en page).
 - Polices en local, `font-display: swap`. Jamais de CDN de polices.
 - Pas d'animation sur une propriété qui déclenche un recalcul de mise en page :
-  `transform` et `opacity` uniquement.
+  `transform` et `opacity` uniquement (skill `animations-vivantes`).
+- Une règle globale que rien n'utilise est du poids pour chaque téléphone : le
+  bundle initial est à 150 octets de son seuil d'alerte (phase 24).
 
 ## Formulaires
 
@@ -60,9 +62,22 @@ Trois règles, à appliquer ensemble :
 
 Reactive forms, jamais `ngModel`. Validation **côté client pour le confort,
 côté serveur pour la vérité** — les deux, jamais l'une à la place de l'autre.
-Un message d'erreur est attaché à son champ, en français, et dit comment
-corriger. Les formulaires longs sauvegardent leur état localement pendant la
-saisie (coupure réseau).
+Un message d'erreur est attaché à son champ (`.vh-field__erreur`), en français,
+et dit comment corriger. Les formulaires longs sauvegardent leur état
+localement pendant la saisie (coupure réseau) : `shared/brouillon/brouillon.ts`,
+clé préfixée par l'organisation, effacée à la réussite et à la déconnexion.
+
+Le retour d'une action est un `Retour` (`shared/ui/retour.ts`) : une réussite
+s'affiche en `vh-alert--succes`, jamais dans le bandeau rouge.
+
+## Erreurs serveur
+
+**Une seule conversion** : `core/erreurs/traduire-erreur.ts` (méthode
+MagyaPro, `route()`). Un service ne déclare que ses marqueurs métier
+(`VEHORA_…`) et le sens de ses codes ; le réseau coupé (trois navigateurs), le
+droit refusé, l'introuvable et le défaut sont communs. Une donnée d'un autre
+client est « introuvable », jamais « appartient à une autre organisation ».
+Ne jamais réécrire une fonction `message()` locale.
 
 ## Réseau
 

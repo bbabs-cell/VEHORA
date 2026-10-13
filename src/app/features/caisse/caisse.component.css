@@ -1,36 +1,131 @@
+/* Caisse — une session par station et par personne.
+
+   Phase 24 : la session, les mouvements et l'écart avaient perdu leurs styles
+   en phase 15 (mutualisation des modales) ; ils sont rétablis. */
+
 .caisse {
   max-width: 760px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
+}
+
+/* ---------- Session ouverte ---------- */
+
+.session {
+  --vh-rail: var(--vh-success);
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-4);
 }
 
-.caisse__titre {
-  font-size: var(--vh-text-xl);
+.session__etat {
+  margin: 0;
 }
 
-.caisse__sous-titre {
-  margin: var(--vh-space-1) 0 0;
+.session__chiffres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+  margin: 0;
+}
+
+.session__chiffres > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--vh-space-3);
+}
+
+.session__chiffres dt,
+.session__chiffres dd {
+  margin: 0;
+}
+
+.session__chiffres dt {
+  color: var(--vh-text-muted);
   font-size: var(--vh-text-sm);
 }
 
-@media (min-width: 640px) {
+.session__chiffres dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-@media (min-width: 900px) {
-  .caisse {
-    padding: var(--vh-space-6);
-  }
+.session__theorique {
+  padding-bottom: var(--vh-space-3);
+  border-bottom: 1px solid var(--vh-border);
 }
 
-/* L'en-tête porte maintenant une action : le titre à gauche, le lien à droite,
-   et les deux passent l'un sous l'autre sur un téléphone tenu d'une main. */
-.caisse__entete {
+.session__theorique dd {
+  font-size: clamp(var(--vh-text-xl), 7vw, var(--vh-text-2xl));
+  font-weight: 800;
+}
+
+/* ---------- Écart de clôture ---------- */
+
+.ecart {
+  margin: 0;
+}
+
+.ecart__montant {
+  font-variant-numeric: tabular-nums;
+  color: var(--vh-warning);
+}
+
+/* ---------- Mouvements ---------- */
+
+.mouvements-section {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--vh-space-3);
-  align-items: flex-start;
-  justify-content: space-between;
+}
+
+.mouvements {
+  gap: var(--vh-space-2);
+}
+
+.mouvement {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-3);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-1);
+}
+
+.mouvement__montant {
+  color: var(--vh-money);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Une sortie se lit comme une sortie, sans avoir à déchiffrer le signe. */
+.mouvement__montant--sortie {
+  color: var(--vh-error-text);
+}
+
+.mouvement__detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.mouvement__heure {
+  font-size: var(--vh-text-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- Ouverture ---------- */
+
+.ouverture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+  width: 100%;
+  max-width: 320px;
+  margin-top: var(--vh-space-2);
+  text-align: left;
 }

@@ -5,11 +5,18 @@ import { MemberService, type Invitation, type Membre } from '../../core/members/
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-users',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent, ConfirmationComponent],
+  imports: [
+    EntetePageComponent,
+    ReactiveFormsModule,
+    EmptyStateComponent,
+    SkeletonComponent,
+    ConfirmationComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './users.component.html',
   styleUrl: './users.component.css',

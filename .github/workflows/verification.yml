@@ -50,6 +50,11 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run test:csp
+      - name: Audit mobile à 375 px
+        # Méthode MagyaPro : rien ne déborde à 375 px, un seul bouton principal
+        # par écran, aucun texte coupé ni sous 13 px. Supabase y est SIMULÉ
+        # (scripts/maquette/) : l'audit tourne sans secret, sur chaque poussée.
+        run: npm run audit:mobile
 
   securite-sql:
     name: Migrations et assertions de sécurité

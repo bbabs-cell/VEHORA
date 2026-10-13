@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type TypeVehicule = Tables<'vehicle_types'>;
 
@@ -30,17 +31,17 @@ export interface VehiculeSaisi {
 
 const PAGE = 25;
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: { VEHORA_TENANCY_VIOLATION: 'Ce client est introuvable.' },
+  codes: {
+    '23505': 'Un véhicule actif porte déjà cette plaque.',
+    '23503': 'Sélectionnez un type de véhicule.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (code === '23505') return 'Un véhicule actif porte déjà cette plaque.';
-  if (brut.includes('VEHORA_TENANCY_VIOLATION')) {
-    return "Ce client n'appartient pas à votre organisation.";
-  }
-  if (code === '42501') return "Vous n'avez pas le droit d'effectuer cette action.";
-  if (code === '23503') return 'Sélectionnez un type de véhicule.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'opération a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

@@ -1,43 +1,249 @@
-.tdb {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
-}
-
-.tdb__entete {
-  padding-top: var(--vh-space-4);
-}
-
-.tdb__titre {
-  font-size: var(--vh-text-xl);
-}
-
-.tdb__sous-titre {
-  margin: var(--vh-space-1) 0 0;
-  font-size: var(--vh-text-sm);
-}
+/* Tableau de bord — bandeau d'accueil vivant, chiffres en 2 × 2, raccourcis
+   en cartes cliquables (skills « animations vivantes » et méthode MagyaPro). */
 
 .tdb__section {
-  margin: 0 0 var(--vh-space-4);
-  font-size: var(--vh-text-base);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
 }
+
+/* ---------- Bandeau d'accueil ---------- */
+
+.accueil {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--vh-radius-modal);
+  background-color: var(--vh-nav);
+  color: var(--vh-nav-ink);
+  box-shadow: var(--vh-shadow-3);
+  animation: var(--vh-anime-scale-in);
+  /* Sur cet aplat toujours sombre, le dégradé « trait » du thème clair serait
+     illisible : le bandeau garde celui de la lumière. */
+  --vh-degrade-trait: linear-gradient(
+    120deg,
+    var(--vh-vivant),
+    var(--vh-vivant-clair),
+    var(--vh-vivant-profond),
+    var(--vh-vivant)
+  );
+}
+
+.accueil__contenu {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vh-space-2);
+  padding: var(--vh-space-6) var(--vh-space-4) var(--vh-space-4);
+}
+
+.accueil__salut {
+  margin: 0;
+  color: var(--vh-nav-muted);
+  font-weight: 600;
+}
+
+.accueil__titre {
+  font-size: clamp(var(--vh-text-2xl), 8vw, var(--vh-text-3xl));
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.accueil__org {
+  margin: 0;
+  color: var(--vh-nav-muted);
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.accueil__chiffre {
+  margin: var(--vh-space-3) 0 var(--vh-space-1);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  font-weight: 600;
+}
+
+.accueil__nombre {
+  font-size: var(--vh-text-3xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.accueil__action {
+  margin-top: var(--vh-space-2);
+}
+
+.accueil__defilant {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  padding: var(--vh-space-3) var(--vh-space-4);
+  border-top: 1px solid var(--vh-nav-border);
+  color: var(--vh-nav-muted);
+  font-size: var(--vh-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.accueil__info {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vh-space-6);
+  padding-right: var(--vh-space-6);
+}
+
+.accueil__etoile {
+  color: var(--vh-nav-accent);
+}
+
+/* Immobile, un bandeau défilant n'est qu'une phrase coupée au bord : avec
+   « Réduire les animations », il disparaît — chaque chiffre reste dans sa
+   tuile (skill : « rien ne bouge en continu, tout reste visible »). */
+@media (prefers-reduced-motion: reduce) {
+  .accueil__defilant {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .accueil__contenu {
+    padding: var(--vh-space-8);
+  }
+}
+
+/* ---------- Rappel d'encaissement ----------
+   Un fait et son lien, pas une alerte clignotante. */
+.rappel {
+  margin: 0;
+  padding: var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: 1px solid var(--vh-border);
+  border-left: 3px solid var(--vh-warning);
+  border-radius: var(--vh-radius-card);
+  font-size: var(--vh-text-sm);
+  animation: var(--vh-anime-fade-up);
+}
+
+.rappel a {
+  white-space: nowrap;
+}
+
+/* ---------- Raccourcis ---------- */
+
+.raccourcis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-3);
+}
+
+@media (min-width: 1024px) {
+  .raccourcis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.raccourci {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vh-space-3);
+  min-height: 112px;
+  padding: var(--vh-space-4);
+}
+
+/* Halo flou dans un coin, qui grossit au survol (skill : `cardGlow`). */
+.raccourci__halo {
+  position: absolute;
+  right: -2rem;
+  top: -2rem;
+  width: 7rem;
+  height: 7rem;
+  border-radius: var(--vh-radius-pill);
+  background: rgb(var(--vh-vivant-rgb));
+  opacity: 0.12;
+  filter: blur(28px);
+  pointer-events: none;
+  transition:
+    transform 0.5s var(--vh-ease),
+    opacity 0.5s var(--vh-ease);
+}
+
+/* Pastille d'icône qui pivote au survol (skill : `cardIcon`). Décor : l'icône
+   n'est pas un texte, le dégradé clair peut la porter. */
+.raccourci__icone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--vh-radius-card);
+  background: linear-gradient(135deg, var(--vh-vivant-clair), var(--vh-vivant-profond));
+  color: var(--vh-primary-ink);
+  box-shadow: var(--vh-shadow-1);
+  transition: transform 0.5s var(--vh-ease);
+}
+
+.raccourci__libelle {
+  position: relative;
+  /* La place de la flèche : « Gérer les stations » passait dessous. */
+  padding-right: var(--vh-space-6);
+  font-weight: 700;
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* La flèche part en diagonale (skill). */
+.raccourci__fleche {
+  position: absolute;
+  right: var(--vh-space-4);
+  bottom: var(--vh-space-4);
+  color: var(--vh-text-muted);
+  transition: transform var(--vh-duration-fast) var(--vh-ease);
+}
+
+.raccourci:hover .raccourci__halo {
+  transform: scale(1.5);
+  opacity: 0.3;
+}
+
+.raccourci:hover .raccourci__icone {
+  transform: rotate(-10deg) scale(1.1);
+}
+
+.raccourci:hover .raccourci__fleche {
+  transform: translate(2px, -2px);
+  color: var(--vh-primary-bright);
+}
+
+.raccourci:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Votre accès ---------- */
 
 .tdb__liste {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--vh-space-1) var(--vh-space-4);
-  margin: 0;
+  margin: var(--vh-space-4) 0 0;
 }
 
 .tdb__liste dd {
   margin: 0 0 var(--vh-space-3);
+  overflow-wrap: anywhere;
 }
 
 .tdb__note {
-  margin: var(--vh-space-4) 0 0;
+  margin: var(--vh-space-2) 0 0;
   font-size: var(--vh-text-sm);
 }
 
@@ -45,70 +251,4 @@
   .tdb__liste {
     grid-template-columns: 160px 1fr;
   }
-}
-
-@media (min-width: 900px) {
-  .tdb {
-    padding: var(--vh-space-6);
-  }
-}
-
-/* ---------- Actions rapides ---------- */
-
-.actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--vh-space-3);
-}
-
-.action {
-  display: flex;
-  align-items: center;
-  gap: var(--vh-space-3);
-  min-height: var(--vh-touch-primary);
-  padding: 0 var(--vh-space-4);
-  background: var(--vh-surface-1);
-  border: 1px solid var(--vh-border);
-  border-radius: var(--vh-radius-card);
-  color: var(--vh-text);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: var(--vh-text-sm);
-  transition:
-    background var(--vh-duration-fast) var(--vh-ease),
-    border-color var(--vh-duration-fast) var(--vh-ease);
-}
-
-a.action:hover {
-  background: var(--vh-surface-2);
-  border-color: var(--vh-primary);
-}
-
-/* ---------- Tuiles ---------- */
-
-.tuiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--vh-space-3);
-}
-
-@media (min-width: 640px) {
-  .actions {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-}
-
-/* Rappel d'encaissement : un fait et son lien, pas une alerte clignotante. */
-.rappel {
-  margin: var(--vh-space-3) 0 0;
-  padding: var(--vh-space-3);
-  background: var(--vh-surface-2);
-  border: 1px solid var(--vh-border);
-  border-left: 3px solid var(--vh-warning);
-  border-radius: var(--vh-radius-card);
-  font-size: var(--vh-text-sm);
-}
-
-.rappel a {
-  white-space: nowrap;
 }

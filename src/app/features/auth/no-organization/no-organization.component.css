@@ -1,9 +1,5 @@
 .sans-org {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100dvh;
-  padding: var(--vh-space-4);
 }
 
 .sans-org__carte {
@@ -11,16 +7,11 @@
   max-width: 480px;
 }
 
-.sans-org__marque {
-  margin: 0 0 var(--vh-space-3);
-  font-size: var(--vh-text-sm);
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  color: var(--vh-accent);
+.sans-org__carte {
+  box-shadow: var(--vh-shadow-3);
 }
 
 .sans-org__titre {
-  font-size: var(--vh-text-xl);
   margin-bottom: var(--vh-space-2);
 }
 
@@ -76,7 +67,7 @@ form .vh-button {
 .erreur-champ {
   margin: 0;
   font-size: var(--vh-text-sm);
-  color: var(--vh-error);
+  color: var(--vh-error-text);
 }
 
 .sans-org__pied {

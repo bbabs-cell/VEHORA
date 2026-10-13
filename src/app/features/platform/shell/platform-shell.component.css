@@ -1,20 +1,30 @@
+/* Espace plateforme — bandeau sombre dans les deux thèmes, liseré de marque. */
+
 .plateforme {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--vh-surface-1);
 }
 
-/* Le bandeau ne ressemble pas à l'en-tête client : la teinte d'accent et le mot
-   « plateforme » disent en permanence où l'on se trouve. */
+/* Le bandeau ne ressemble pas à l'en-tête client : l'aplat sombre, le liseré
+   de marque et le mot « plateforme » disent en permanence où l'on se trouve. */
 .plateforme__bandeau {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--vh-space-3) var(--vh-space-5);
   padding: var(--vh-space-3) var(--vh-space-4);
-  border-bottom: 2px solid var(--vh-primary);
-  background: var(--vh-surface-2);
+  background-color: var(--vh-nav);
+  color: var(--vh-nav-ink);
+  border-bottom: 3px solid var(--vh-nav-accent);
+}
+
+.plateforme__bandeau > :not(vh-fond-vivant) {
+  position: relative;
+  z-index: 1;
 }
 
 .plateforme__identite {
@@ -26,16 +36,16 @@
 }
 
 .plateforme__marque {
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--vh-primary);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--vh-nav-accent);
 }
 
 .plateforme__espace {
   font-size: var(--vh-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--vh-text-muted);
+  color: var(--vh-nav-muted);
 }
 
 /* Sur mobile, la navigation prend sa propre ligne : sur la même que l'identité,
@@ -61,20 +71,25 @@
   min-height: var(--vh-touch-min);
   padding: 0 var(--vh-space-3);
   border-radius: var(--vh-radius-control);
-  color: var(--vh-text-muted);
+  color: var(--vh-nav-muted);
   text-decoration: none;
   font-size: var(--vh-text-sm);
+  transition:
+    background-color var(--vh-duration-fast) var(--vh-ease),
+    transform var(--vh-duration-fast) var(--vh-ease);
 }
 
 .plateforme__lien:hover {
-  background: var(--vh-surface-3);
-  color: var(--vh-text);
+  background: var(--vh-nav-raised);
+  color: var(--vh-nav-ink);
+  transform: translateY(-1px);
 }
 
 .plateforme__lien--actif {
-  background: var(--vh-surface-3);
-  color: var(--vh-text);
-  font-weight: 600;
+  background: var(--vh-nav-raised);
+  color: var(--vh-nav-ink);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--vh-nav-accent);
 }
 
 .plateforme__compte {
@@ -87,33 +102,54 @@
 
 .plateforme__email {
   font-size: var(--vh-text-sm);
-  color: var(--vh-text-muted);
+  color: var(--vh-nav-muted);
   overflow-wrap: anywhere;
+}
+
+.plateforme__theme,
+.plateforme__sortie {
+  min-height: var(--vh-touch-min);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-nav-ink);
+  cursor: pointer;
+  transition:
+    background-color var(--vh-duration-fast) var(--vh-ease),
+    transform var(--vh-duration-base) var(--vh-ease);
 }
 
 .plateforme__theme {
   display: grid;
   place-items: center;
   width: var(--vh-touch-min);
-  height: var(--vh-touch-min);
   background: none;
   border: none;
-  border-radius: var(--vh-radius-control);
-  color: var(--vh-text-muted);
-  cursor: pointer;
 }
 
 .plateforme__theme:hover {
-  background: var(--vh-surface-3);
-  color: var(--vh-text);
+  background: var(--vh-nav-raised);
+  transform: rotate(-20deg) scale(1.08);
 }
 
-.plateforme__compte .vh-button {
-  min-height: var(--vh-touch-min);
-  padding: 0 var(--vh-space-3);
+/* Bouton secondaire posé sur l'aplat sombre : ses propres jetons, sinon il
+   prendrait la surface claire du thème clair. */
+.plateforme__sortie {
+  padding: 0 var(--vh-space-4);
+  background: transparent;
+  border: 1px solid var(--vh-nav-border);
   font-size: var(--vh-text-sm);
+  font-weight: 600;
+}
+
+.plateforme__sortie:hover {
+  background: var(--vh-nav-raised);
 }
 
 .plateforme__contenu {
+  position: relative;
   flex: 1 1 auto;
+}
+
+.plateforme__fond {
+  position: fixed;
+  z-index: -1;
 }

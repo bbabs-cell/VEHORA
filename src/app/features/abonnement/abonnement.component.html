@@ -1,10 +1,8 @@
-<div class="abonnement">
-  <header>
-    <h1 class="abonnement__titre">Votre abonnement</h1>
-    <p class="vh-muted abonnement__sous-titre">
-      Ce que votre plan ouvre, et ce que vous en consommez. Pour en changer, contactez VEHORA.
-    </p>
-  </header>
+<div class="vh-page abonnement">
+  <vh-entete-page
+    titre="Votre abonnement"
+    description="Ce que votre plan ouvre, et ce que vous en consommez. Pour en changer, contactez VEHORA."
+  />
 
   @if (service.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>

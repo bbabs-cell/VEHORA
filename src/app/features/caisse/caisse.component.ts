@@ -14,6 +14,7 @@ import { PaymentService, type MouvementCaisse } from '../../core/payments/paymen
 import { StationService } from '../../core/stations/station.service';
 import { ScrollLockService } from '../../core/ui/scroll-lock.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 import {
   formaterMontant,
   symboleDevise,
@@ -30,7 +31,7 @@ const LIBELLES_MOUVEMENT: Readonly<Record<string, string>> = {
 @Component({
   selector: 'vh-caisse',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent],
+  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, EntetePageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './caisse.component.html',
   styleUrl: './caisse.component.css',

@@ -27,6 +27,21 @@
   --vh-primary-bright: #2cc4e8; /* la marque en TRAIT : icône, lien, focus */
   --vh-primary-soft: #0a2a35; /* fond de pastille de marque */
 
+  /* Le bouton principal est un DÉGRADÉ d'azurs profonds (skill « animations
+     vivantes ») : au repos on voit sa moitié sombre, au survol il glisse vers
+     sa moitié claire — la luminosité monte, la teinte ne change pas. Chaque
+     arrêt porte du blanc au-dessus de 4,5:1 (vérifié par test:contraste) : un
+     dégradé qui passe par un azur clair rendrait une partie du libellé
+     illisible, et c'est exactement le piège que le skill signale. */
+  --vh-primary-mid: #086c8d;
+  --vh-primary-fin: #075d7a;
+  --vh-degrade-primaire: linear-gradient(
+    120deg,
+    var(--vh-primary-fin) 0%,
+    var(--vh-primary-mid) 50%,
+    var(--vh-primary) 100%
+  );
+
   /* L'argent — et rien d'autre. */
   --vh-money: #c89a3c;
   --vh-money-soft: #30250f;
@@ -42,6 +57,60 @@
 
   /* Accent historique conservé : des écrans l'utilisent encore. */
   --vh-accent: var(--vh-primary-bright);
+
+  /* ---- Navigation --------------------------------------------------------
+     La barre latérale (et le tiroir mobile) reste SOMBRE dans les deux thèmes,
+     comme celle de MagyaPro : en clair, elle sépare l'outil du contenu d'un
+     seul aplat ; en sombre, elle descend d'un cran sous le fond. Ses tokens
+     sont donc fixes — le trait de marque du thème clair (#07607b) serait
+     illisible dessus, d'où un accent propre à la navigation. */
+  --vh-nav: #070d13;
+  --vh-nav-raised: #12202a;
+  --vh-nav-ink: #eef5f8;
+  --vh-nav-muted: #93a8b4;
+  --vh-nav-accent: #2cc4e8;
+  --vh-nav-border: rgb(238 245 248 / 0.1);
+  --vh-nav-trame: rgb(238 245 248 / 0.06);
+
+  /* Trame de points posée sur le fond du contenu (skill : `dot-grid-ink`). */
+  --vh-trame: rgb(238 245 248 / 0.035);
+
+  /* Voile sous une modale ou un tiroir : encre bleue, jamais du noir pur —
+     même raison que pour les ombres. */
+  --vh-voile: rgb(3 8 12 / 0.66);
+
+  /* ---- Mouvement « vivant » : la marque en lumière ------------------------
+     Couleurs SANS texte posé dessus : halos du fond vivant, contour animé
+     d'une carte au survol, point final des titres. Elles peuvent donc être
+     claires ; aucun libellé n'en dépend. */
+  --vh-vivant-clair: #7fdcf2;
+  --vh-vivant: #2cc4e8;
+  --vh-vivant-profond: #0b86ad;
+  --vh-vivant-rgb: 44 196 232; /* même teinte en « r g b » pour les halos */
+  --vh-degrade-trait: linear-gradient(
+    120deg,
+    var(--vh-vivant),
+    var(--vh-vivant-clair),
+    var(--vh-vivant-profond),
+    var(--vh-vivant)
+  );
+  --vh-degrade-aurore: linear-gradient(
+    120deg,
+    var(--vh-vivant-profond),
+    var(--vh-vivant-clair),
+    var(--vh-vivant),
+    var(--vh-vivant-profond),
+    var(--vh-vivant-clair)
+  );
+  --vh-halo-opacite: 0.16; /* intensité du fond vivant derrière le contenu */
+
+  /* ---- Impression --------------------------------------------------------
+     Un reçu imprimé est noir sur blanc quel que soit le thème de l'écran :
+     une imprimante thermique ne connaît pas le bleu d'encre. Ces trois
+     valeurs ne servent que sous `@media print`. */
+  --vh-print-papier: #ffffff;
+  --vh-print-encre: #000000;
+  --vh-print-filet: #999999;
 
   /* Statuts de prestation — couleur ET forme, jamais la couleur seule. */
   --vh-status-arrived: var(--vh-text-muted);
@@ -60,6 +129,11 @@
   --vh-space-2: 8px;
   --vh-space-3: 12px;
   --vh-space-4: 16px;
+  /* Utilisé par la file d'attente, les opérations et l'espace plateforme bien
+     avant d'exister : `var()` d'un jeton absent ne lève aucune erreur, la
+     propriété retombe sur sa valeur initiale — ici un écart de 0 entre l'en-tête
+     et les groupes. `npm run test:unit` refuse désormais un jeton inconnu. */
+  --vh-space-5: 20px;
   --vh-space-6: 24px;
   --vh-space-8: 32px;
   --vh-space-12: 48px;
@@ -95,12 +169,14 @@
   --vh-text-2xl: 32px;
   --vh-text-3xl: 40px;
 
-  /* ---- Mouvement -------------------------------------------------------- */
-  --vh-duration-fast: 150ms;
-  --vh-duration-base: 220ms;
-  --vh-duration-slow: 300ms;
+  /* ---- Mouvement --------------------------------------------------------
+     Durées du skill « animations vivantes » : survol 0,2–0,3 s, entrées
+     0,35–0,55 s, décor continu 5–28 s. */
+  --vh-duration-fast: 200ms; /* survol, appui */
+  --vh-duration-base: 300ms; /* ouverture d'un tiroir, d'une feuille */
+  --vh-duration-slow: 450ms; /* entrée d'un bloc */
   --vh-ease: cubic-bezier(0.22, 1, 0.36, 1); /* arrivée confortable */
-  --vh-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* petites pastilles */
+  --vh-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* petites pastilles SEULEMENT */
 
   /* ---- Cibles tactiles -------------------------------------------------- */
   --vh-touch-min: 44px;
@@ -111,6 +187,12 @@
      que d'un nombre recopié — c'est ainsi qu'apparaissent les décalages de
      quelques pixels impossibles à retrouver. */
   --vh-nav-basse: 65px;
+
+  /* Largeur de la barre latérale (≥ 1024 px). Recopiée en dur à trois
+     endroits — la coquille, son fond, la barre d'actions de l'inspection —
+     qui devaient bouger ensemble quand le seuil est passé de 900 à 1024 px
+     (phase 24). Même règle que `--vh-nav-basse`. */
+  --vh-largeur-laterale: 264px;
 }
 
 /* Mode clair — exigence terrain : les écrans opérationnels sont lus en plein
@@ -132,6 +214,14 @@
   --vh-primary-ink: #ffffff;
   --vh-primary-bright: #07607b; /* en clair, le trait doit s'assombrir */
   --vh-primary-soft: #dcecf2;
+  --vh-primary-mid: #085d79;
+  --vh-primary-fin: #074f67;
+
+  /* Le point final d'un titre doit rester visible sur le papier bleuté. */
+  --vh-degrade-trait: linear-gradient(120deg, #07607b, #0a86ad, #054a60, #07607b);
+  --vh-trame: rgb(12 23 32 / 0.06);
+  --vh-voile: rgb(12 23 32 / 0.5);
+  --vh-halo-opacite: 0.22;
 
   --vh-money: #8a6410;
   --vh-money-soft: #f6eeda;
@@ -147,7 +237,8 @@
   --vh-shadow-1: 0 1px 2px rgb(12 23 32 / 0.07), 0 6px 16px -10px rgb(12 23 32 / 0.18);
   --vh-shadow-2: 0 2px 4px rgb(12 23 32 / 0.08), 0 16px 32px -18px rgb(12 23 32 / 0.26);
   --vh-shadow-3: 0 4px 8px rgb(12 23 32 / 0.1), 0 28px 56px -24px rgb(12 23 32 / 0.3);
-  --vh-glow-primary: 0 6px 18px -6px rgb(10 108 140 / 0.4);
+  --vh-glow-primary:
+    0 10px 28px -10px rgb(10 108 140 / 0.45), 0 4px 12px -6px rgb(10 108 140 / 0.35);
 }
 
 /* La coupure du mouvement ramène les DURÉES à zéro mais pas les DÉLAIS : une

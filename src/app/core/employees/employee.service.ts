@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Employe = Tables<'employees'>;
 export type StatutEmploye = Enums<'employee_status'>;
@@ -11,17 +12,16 @@ export interface EmployeSaisi {
   readonly station_id: string | null;
 }
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  codes: {
+    '23505': 'Ce compte est déjà rattaché à un employé.',
+    '23514': 'Le nom doit faire entre 2 et 120 caractères.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_TENANCY_VIOLATION')) {
-    return 'Cet élément n’appartient pas à votre organisation.';
-  }
-  if (code === '23505') return 'Ce compte est déjà rattaché à un employé.';
-  if (code === '42501') return 'Vous n’avez pas le droit d’effectuer cette action.';
-  if (code === '23514') return 'Le nom doit faire entre 2 et 120 caractères.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /**

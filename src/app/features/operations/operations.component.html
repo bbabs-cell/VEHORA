@@ -1,13 +1,8 @@
-<div class="operations">
-  <header class="operations__entete">
-    <div>
-      <h1 class="operations__titre">Opérations</h1>
-      <p class="vh-muted operations__sous-titre">
-        Le travail à faire, dossier par dossier. Une opération démarre seulement
-        une fois assignée : sans cela, la trace ne vaudrait rien.
-      </p>
-    </div>
-  </header>
+<div class="vh-page operations">
+  <vh-entete-page
+    titre="Opérations"
+    description="Le travail à faire, dossier par dossier. Une opération démarre seulement une fois assignée : sans cela, la trace ne vaudrait rien."
+  />
 
   @if (operations.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
@@ -19,9 +14,9 @@
   }
 
   @if (operations.chargement() && vide()) {
-    <div class="groupe">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
-        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+        <div class="vh-card"><vh-skeleton hauteur="3.5rem" /></div>
       }
     </div>
   } @else if (vide()) {
@@ -35,19 +30,21 @@
   } @else {
     @for (groupe of groupes(); track groupe.statut) {
       <section class="groupe" [attr.aria-label]="groupe.libelle">
-        <h2 class="groupe__titre">
+        <h2 class="vh-section-titre">
           {{ groupe.libelle }}
-          <span class="groupe__compte">{{ groupe.operations.length }}</span>
+          @for (n of [groupe.operations.length]; track n) {
+            <span class="vh-compteur">{{ n }}</span>
+          }
         </h2>
 
-        <ul class="liste" [attr.aria-label]="'Opérations — ' + groupe.libelle">
+        <ul class="vh-liste vh-stagger" [attr.aria-label]="'Opérations — ' + groupe.libelle">
           @for (operation of groupe.operations; track operation.id) {
-            <li class="vh-card operation">
+            <li class="vh-card vh-rail operation" [attr.data-statut]="operation.status">
               <div class="operation__identite">
                 <p class="operation__ligne1">
                   <span class="operation__prestation">{{ operation.service_name }}</span>
-                  <span class="etiquette">N° {{ operation.numero }}</span>
-                  <span class="plaque">{{ operation.plaque || 'Sans plaque' }}</span>
+                  <span class="vh-etiquette">N° {{ operation.numero }}</span>
+                  <span class="vh-plaque">{{ operation.plaque || 'Sans plaque' }}</span>
                 </p>
                 <p class="vh-muted operation__ligne2">
                   @if (nomEmploye(operation); as employe) {
@@ -62,7 +59,10 @@
                 </p>
               </div>
 
-              <div class="operation__actions">
+              <!-- « Démarrer », « Terminer » : l'action propre à une ligne, en
+                   TRAIT de marque — l'écran n'a pas de bouton principal plein,
+                   il en aurait sinon un par opération. -->
+              <div class="operation__actions vh-actions">
                 @if (peutAssigner() && operation.status !== 'DONE') {
                   <button
                     class="vh-button vh-button--ghost"
@@ -77,7 +77,7 @@
                 }
                 @if (peutExecuter() && operation.status === 'IN_PROGRESS') {
                   <button
-                    class="operation__reprendre"
+                    class="vh-button vh-button--discret operation__reprendre"
                     type="button"
                     (click)="reprendre(operation)"
                     [disabled]="enregistrement()"
@@ -90,7 +90,7 @@
                 }
                 @if (peutExecuter() && actionSuivante(operation); as suite) {
                   <button
-                    class="vh-button"
+                    class="vh-button vh-button--trait"
                     type="button"
                     (click)="avancer(operation)"
                     [disabled]="enregistrement() || !operation.employee_id"

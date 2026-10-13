@@ -1,13 +1,8 @@
-<div class="facturation">
-  <header class="facturation__entete">
-    <div>
-      <h1 class="facturation__titre">Facturation</h1>
-      <p class="vh-muted facturation__sous-titre">
-        Les abonnements de VEHORA. Ce n’est jamais le chiffre d’affaires des stations —
-        les deux ne s’additionnent pas.
-      </p>
-    </div>
-  </header>
+<div class="vh-page facturation">
+  <vh-entete-page
+    titre="Facturation"
+    description="Les abonnements de VEHORA. Ce n’est jamais le chiffre d’affaires des stations — les deux ne s’additionnent pas."
+  />
 
   <section class="actions" aria-label="Émission et relance">
     <div class="vh-field">
@@ -19,7 +14,7 @@
         [value]="periode()"
         (change)="surPeriode($event)"
       />
-      <p class="vh-muted aide">Mois retenu : {{ periodeLisible() }}.</p>
+      <p class="vh-aide">Mois retenu : {{ periodeLisible() }}.</p>
     </div>
 
     <button class="vh-button" type="button" [disabled]="enCours()" (click)="emettre()">
@@ -35,8 +30,8 @@
     </button>
   </section>
 
-  @if (message(); as texte) {
-    <p class="vh-alert" role="status">{{ texte }}</p>
+  @if (message(); as r) {
+        <p class="vh-alert" [class.vh-alert--succes]="r.ok" [attr.role]="r.ok ? 'status' : 'alert'">{{ r.texte }}</p>
   }
   @if (plateforme.erreur(); as erreur) {
     <p class="vh-alert" role="alert">{{ erreur }}</p>
@@ -143,7 +138,7 @@
             @if (f.status === 'ISSUED') {
               <div class="carte__actions">
                 <button
-                  class="vh-button"
+                  class="vh-button vh-button--trait"
                   type="button"
                   [disabled]="enCours()"
                   (click)="demanderReglement(f)"

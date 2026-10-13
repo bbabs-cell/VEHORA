@@ -1,0 +1,62 @@
+<!-- « Plus » : une feuille posée AU-DESSUS de la barre basse, jamais dessous —
+     sa hauteur est bornée par l'en-tête et par `--vh-nav-basse` (méthode, « son
+     bas passe sous la barre »). Rendue seulement ouverte : fermée, ses liens
+     n'existent ni pour le clavier ni pour un test. -->
+@if (plusOuvert()) {
+  <button
+    class="voile--plus"
+    type="button"
+    (click)="fermerPlus()"
+    aria-label="Refermer « Plus »"
+  ></button>
+  <section class="feuille-plus" id="feuille-plus" aria-label="Autres écrans">
+    <ul class="feuille-plus__grille vh-stagger">
+      @for (entree of entreesPlus(); track entree.chemin) {
+        <li>
+          <a
+            class="feuille-plus__lien"
+            [routerLink]="entree.chemin"
+            routerLinkActive="feuille-plus__lien--actif"
+          >
+            <span class="feuille-plus__icone"><vh-icon [nom]="entree.icone" [taille]="22" /></span>
+            <span>{{ entree.libelleCourt ?? entree.libelle }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<nav class="barre-basse" aria-label="Navigation rapide">
+  @for (entree of entrees(); track entree.chemin) {
+    @if (entree.disponible) {
+      <a
+        class="barre-basse__lien"
+        [routerLink]="entree.chemin"
+        routerLinkActive="barre-basse__lien--actif"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <vh-icon [nom]="entree.icone" [taille]="22" />
+        <span>{{ entree.libelleCourt ?? entree.libelle }}</span>
+      </a>
+    } @else {
+      <span class="barre-basse__lien barre-basse__lien--bientot" aria-disabled="true">
+        <vh-icon [nom]="entree.icone" [taille]="22" />
+        <span>{{ entree.libelleCourt ?? entree.libelle }}</span>
+      </span>
+    }
+  }
+  @if (entreesPlus().length > 0) {
+    <button
+      class="barre-basse__lien"
+      [class.barre-basse__lien--actif]="plusActif() || plusOuvert()"
+      type="button"
+      (click)="basculerPlus()"
+      aria-controls="feuille-plus"
+      [attr.aria-expanded]="plusOuvert()"
+    >
+      <vh-icon [nom]="plusOuvert() ? 'fermer' : 'plus'" [taille]="22" />
+      <span>Plus</span>
+    </button>
+  }
+</nav>

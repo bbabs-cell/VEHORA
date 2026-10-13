@@ -72,6 +72,17 @@ export class AuthService {
 
   async signOut(): Promise<void> {
     await this.supabase.client.auth.signOut();
+    // Un téléphone de station passe de main en main : les brouillons de
+    // saisie (`vehora:<organisation>:…`) ne survivent pas à la personne qui
+    // les a écrits. Le choix du thème (`vehora.theme`) n'appartient à
+    // personne, il reste.
+    try {
+      for (const cle of Object.keys(localStorage)) {
+        if (cle.startsWith('vehora:')) localStorage.removeItem(cle);
+      }
+    } catch {
+      // Stockage inaccessible : il n'y avait rien à effacer.
+    }
   }
 
   /**

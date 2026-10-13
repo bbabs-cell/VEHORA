@@ -1,8 +1,11 @@
 <main class="sans-org">
+  <vh-scene>
   <section class="sans-org__carte vh-card">
     <header>
-      <p class="sans-org__marque">VEHORA</p>
-      <h1 class="sans-org__titre">Bienvenue</h1>
+      <p class="vh-marque vh-text-gradient">VEHORA</p>
+      <h1 class="vh-page-title vh-titre-scene sans-org__titre">
+        <span class="vh-anim-wiggle" aria-hidden="true">👋</span> Bienvenue
+      </h1>
       <p class="vh-muted">
         Votre compte n’est encore rattaché à aucune entreprise. Deux possibilités.
       </p>
@@ -39,7 +42,7 @@
             [attr.aria-invalid]="form.controls.code.touched && form.controls.code.invalid"
           />
           @if (form.controls.code.touched && form.controls.code.invalid) {
-            <p class="erreur-champ">Collez le code complet reçu par votre responsable.</p>
+            <p class="vh-field__erreur">Collez le code complet reçu par votre responsable.</p>
           }
         </div>
 
@@ -58,4 +61,5 @@
       <button class="lien" type="button" (click)="deconnecter()">Se déconnecter</button>
     </footer>
   </section>
+  </vh-scene>
 </main>

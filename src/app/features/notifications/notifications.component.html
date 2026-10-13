@@ -1,10 +1,8 @@
-<div class="messages">
-  <header class="messages__entete">
-    <h1 class="messages__titre">Messages aux clients</h1>
-    <p class="vh-muted messages__sous-titre">
-      Ce que la station enverrait à ses clients quand leur véhicule est prêt.
-    </p>
-  </header>
+<div class="vh-page messages">
+  <vh-entete-page
+    titre="Messages aux clients"
+    description="Ce que la station enverrait à ses clients quand leur véhicule est prêt."
+  />
 
   <!-- Rien ne part de cette file, et le dire vaut mieux que laisser chercher
        pourquoi les clients ne reçoivent rien. -->
@@ -44,8 +42,8 @@
       </div>
     </div>
 
-    @if (message(); as texte) {
-      <p class="vh-alert" role="status">{{ texte }}</p>
+    @if (message(); as r) {
+        <p class="vh-alert" [class.vh-alert--succes]="r.ok" [attr.role]="r.ok ? 'status' : 'alert'">{{ r.texte }}</p>
     }
     @if (service.erreur(); as erreur) {
       <p class="vh-alert" role="alert">{{ erreur }}</p>
@@ -125,7 +123,7 @@
           placeholder="Le client est venu entre-temps…"
         />
         @if (motifTropCourt()) {
-          <p class="erreur-champ">Le motif est obligatoire.</p>
+          <p class="vh-field__erreur">Le motif est obligatoire.</p>
         }
       </div>
     </vh-confirmation>

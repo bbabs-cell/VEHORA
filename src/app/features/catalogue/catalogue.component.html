@@ -1,25 +1,21 @@
-<div class="catalogue">
-  <header class="catalogue__entete">
-    <div>
-      <h1 class="catalogue__titre">Catalogue et tarifs</h1>
-      <p class="vh-muted catalogue__sous-titre">
-        Le prix est déterminé par le serveur, du plus précis au plus général :
-        type de véhicule et station d’abord, tarif général ensuite.
-      </p>
-    </div>
+<div class="vh-page catalogue">
+  <vh-entete-page
+    titre="Catalogue et tarifs"
+    description="Le prix est déterminé par le serveur, du plus précis au plus général : type de véhicule et station d’abord, tarif général ensuite."
+  >
     @if (peutGererCatalogue()) {
       <button class="vh-button" type="button" (click)="ouvrirCreationPrestation()">
         Nouvelle prestation
       </button>
     }
-  </header>
+  </vh-entete-page>
 
   @if (catalogue.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
   }
 
   @if (catalogue.chargement() && lignes().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
       }
@@ -32,14 +28,14 @@
                lavage complet, aspiration. Vous leur donnerez un tarif ensuite."
       >
         @if (peutGererCatalogue()) {
-          <button class="vh-button" type="button" (click)="ouvrirCreationPrestation()">
+          <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreationPrestation()">
             Créer une prestation
           </button>
         }
       </vh-empty-state>
     </div>
   } @else {
-    <ul class="liste" aria-label="Prestations du catalogue">
+    <ul class="vh-liste vh-stagger" aria-label="Prestations du catalogue">
       @for (ligne of lignes(); track ligne.prestation.id) {
         <li class="vh-card prestation">
           <div class="prestation__entete">
@@ -47,7 +43,7 @@
               <p class="prestation__nom">
                 {{ ligne.prestation.name }}
                 @if (!ligne.prestation.is_active) {
-                  <span class="etiquette etiquette--inactive">Désactivée</span>
+                  <span class="vh-etiquette vh-etiquette--inactive">Désactivée</span>
                 }
               </p>
               <p class="vh-muted prestation__detail">
@@ -62,7 +58,7 @@
               </p>
             </div>
 
-            <div class="prestation__actions">
+            <div class="prestation__actions vh-actions">
               @if (peutGererTarifs()) {
                 <button
                   class="vh-button vh-button--ghost"
@@ -87,7 +83,7 @@
           </div>
 
           @if (ligne.tarifs.length === 0) {
-            <p class="prestation__sans-tarif" role="status">
+            <p class="vh-alert vh-alert--attention prestation__sans-tarif" role="status">
               Aucun tarif défini — cette prestation ne peut pas être facturée.
             </p>
           } @else {
@@ -97,7 +93,7 @@
                   <span class="tarif__montant">{{ t.montant }}</span>
                   <span class="vh-muted tarif__portee">{{ t.libelle }}</span>
                   @if (t.aVenir) {
-                    <span class="etiquette">À partir du {{ t.tarif.valid_from }}</span>
+                    <span class="vh-etiquette vh-etiquette--attente">À partir du {{ t.tarif.valid_from }}</span>
                   }
                   @if (peutGererTarifs()) {
                     <span class="tarif__actions">
@@ -161,7 +157,7 @@
             "
           />
           @if (formPrestation.controls.name.touched && formPrestation.controls.name.invalid) {
-            <p class="erreur-champ">Le nom est obligatoire (2 caractères minimum).</p>
+            <p class="vh-field__erreur">Le nom est obligatoire (2 caractères minimum).</p>
           }
         </div>
 
@@ -187,7 +183,7 @@
             formControlName="duration_minutes"
             placeholder="45"
           />
-          <p class="vh-muted aide-champ">
+          <p class="vh-aide">
             Sert à annoncer une attente au client. Laissez vide si elle varie trop.
           </p>
         </div>
@@ -243,7 +239,7 @@
           <label class="vh-label" for="montant-tarif">Montant ({{ symbole() }})</label>
           <input
             id="montant-tarif"
-            class="vh-input champ-montant"
+            class="vh-input vh-champ-montant"
             type="text"
             inputmode="numeric"
             formControlName="montant"
@@ -275,7 +271,7 @@
         <div class="vh-field">
           <label class="vh-label" for="debut-tarif">En vigueur à partir du</label>
           <input id="debut-tarif" class="vh-input" type="date" formControlName="valid_from" />
-          <p class="vh-muted aide-champ">
+          <p class="vh-aide">
             En vigueur à partir du
             <strong>{{ formaterDate(formTarif.controls.valid_from.value) }}</strong>. Un tarif
             plus précis l’emporte toujours sur un tarif plus général.
@@ -326,7 +322,7 @@
           </label>
           <input
             id="montant-remplacement"
-            class="vh-input champ-montant"
+            class="vh-input vh-champ-montant"
             type="text"
             inputmode="numeric"
             formControlName="montant"
@@ -342,7 +338,7 @@
             type="date"
             formControlName="valid_from"
           />
-          <p class="vh-muted aide-champ">
+          <p class="vh-aide">
             Nouveau prix appliqué à partir du
             <strong>{{ formaterDate(formRemplacement.controls.valid_from.value) }}</strong>.
             Par défaut demain : la journée en cours a déjà des dossiers ouverts au prix affiché

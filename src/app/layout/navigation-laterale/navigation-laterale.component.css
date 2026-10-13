@@ -1,0 +1,257 @@
+/* Barre latérale (≥ 1024 px) et tiroir (mobile) : sombre dans les deux
+   thèmes, trame de points et halos (skill « animations vivantes »). */
+
+:host {
+  display: contents;
+}
+
+.laterale {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: var(--vh-largeur-laterale);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--vh-nav);
+  color: var(--vh-nav-ink);
+  border-right: 1px solid var(--vh-nav-border);
+  /* Le tiroir glisse depuis la gauche (skill : `slide-in-left`). Fermé, il
+     est aussi INVISIBLE, pas seulement hors champ : ses quinze liens restaient
+     atteignables à la tabulation, et le focus partait dans un menu qu'on ne
+     voyait pas (trouvé par l'audit mobile, phase 24). La visibilité bascule
+     après la glissade, pour que la fermeture reste animée. */
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--vh-duration-base) var(--vh-ease),
+    visibility 0s linear var(--vh-duration-base);
+}
+
+.laterale--ouverte {
+  transform: translateX(0);
+  visibility: visible;
+  box-shadow: var(--vh-shadow-3);
+  transition:
+    transform var(--vh-duration-base) var(--vh-ease),
+    visibility 0s;
+}
+
+/* Le contenu de la barre passe au-dessus de ses halos. */
+.laterale > :not(vh-fond-vivant) {
+  position: relative;
+  z-index: 1;
+}
+
+.laterale__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vh-space-4) var(--vh-space-4) var(--vh-space-3);
+}
+
+.marque {
+  font-size: var(--vh-text-sm);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--vh-nav-accent);
+  animation: var(--vh-anime-fade-in);
+}
+
+.laterale__fermer {
+  display: grid;
+  place-items: center;
+  width: var(--vh-touch-min);
+  height: var(--vh-touch-min);
+  background: none;
+  border: none;
+  color: var(--vh-nav-muted);
+  cursor: pointer;
+  border-radius: var(--vh-radius-control);
+  transition:
+    transform var(--vh-duration-base) var(--vh-ease),
+    background-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+/* La croix fait un quart de tour (skill : bouton fermer). */
+.laterale__fermer:hover {
+  background: var(--vh-nav-raised);
+  color: var(--vh-nav-ink);
+  transform: rotate(90deg);
+}
+
+/* ---------- Navigation ---------- */
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--vh-space-2) var(--vh-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-1);
+}
+
+/* Élément de menu : il glisse vers la droite au survol, son icône tourne un
+   peu (skill : `navItem` / `navIcon`). */
+.nav__lien {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3) 0 var(--vh-space-2);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-nav-muted);
+  text-decoration: none;
+  font-size: var(--vh-text-sm);
+  font-weight: 500;
+  transition:
+    transform var(--vh-duration-fast) var(--vh-ease),
+    background-color var(--vh-duration-fast) var(--vh-ease),
+    color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.nav__icone {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--vh-radius-pill);
+  transition:
+    transform var(--vh-duration-base) var(--vh-ease),
+    background-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.nav__libelle {
+  min-width: 0;
+  flex: 1;
+}
+
+.nav__lien:hover {
+  background: var(--vh-nav-raised);
+  color: var(--vh-nav-ink);
+  transform: translateX(4px);
+}
+
+.nav__lien:hover .nav__icone {
+  transform: scale(1.1) rotate(-8deg);
+}
+
+.nav__lien:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
+/* L'écran courant : fond relevé, trait de marque, icône sur pastille, et un
+   point qui respire (skill : « élément actif : pastille `animate-pulse` »). */
+.nav__lien--actif {
+  background: var(--vh-nav-raised);
+  color: var(--vh-nav-ink);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--vh-nav-accent);
+}
+
+.nav__lien--actif .nav__icone {
+  background: rgb(var(--vh-vivant-rgb) / 0.16);
+  color: var(--vh-nav-accent);
+}
+
+.nav__point {
+  display: none;
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: var(--vh-radius-pill);
+  background: var(--vh-nav-accent);
+}
+
+.nav__lien--actif .nav__point {
+  display: block;
+}
+
+.nav__lien--bientot {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.nav__lien--bientot:hover {
+  background: none;
+  color: var(--vh-nav-muted);
+  transform: none;
+}
+
+.nav__bientot {
+  margin-left: auto;
+  font-size: var(--vh-text-xs);
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-nav-border);
+  border-radius: var(--vh-radius-pill);
+}
+
+/* ---------- Pied de barre latérale ---------- */
+
+.laterale__pied {
+  padding: var(--vh-space-4);
+  border-top: 1px solid var(--vh-nav-border);
+}
+
+.pied__nom {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.pied__role {
+  margin: 0 0 var(--vh-space-3);
+  font-size: var(--vh-text-xs);
+  letter-spacing: 0.06em;
+  color: var(--vh-nav-muted);
+}
+
+/* Bouton secondaire, mais sur la navigation : ses propres jetons, sinon il
+   prendrait la surface claire du thème clair au milieu d'un aplat sombre. */
+.pied__sortie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vh-space-2);
+  width: 100%;
+  min-height: var(--vh-touch-min);
+  background: transparent;
+  color: var(--vh-nav-ink);
+  border: 1px solid var(--vh-nav-border);
+  border-radius: var(--vh-radius-control);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--vh-duration-fast) var(--vh-ease),
+    transform var(--vh-duration-fast) var(--vh-ease);
+}
+
+.pied__sortie:hover {
+  background: var(--vh-nav-raised);
+  transform: translateY(-2px);
+}
+
+.pied__sortie:active {
+  transform: scale(0.97);
+}
+
+@media (min-width: 1024px) {
+  .laterale {
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .laterale__fermer {
+    display: none;
+  }
+}
+
+@media print {
+  .laterale {
+    display: none !important;
+  }
+}

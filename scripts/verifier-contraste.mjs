@@ -48,6 +48,10 @@ const paires = [
   ['--vh-text-muted', '--vh-surface-2'],
   ['--vh-text-muted', '--vh-surface-3'],
   ['--vh-primary-ink', '--vh-primary'],
+  // Le bouton principal est un dégradé : le libellé blanc doit tenir sur
+  // CHAQUE arrêt, pas seulement sur la couleur de départ.
+  ['--vh-primary-ink', '--vh-primary-mid'],
+  ['--vh-primary-ink', '--vh-primary-fin'],
   ['--vh-primary-bright', '--vh-bg'],
   ['--vh-primary-bright', '--vh-surface-1'],
   ['--vh-money', '--vh-bg'],
@@ -59,6 +63,14 @@ const paires = [
   ['--vh-error-text', '--vh-bg'],
   ['--vh-error-text', '--vh-surface-1'],
   ['--vh-primary-ink', '--vh-error'],
+  // La navigation reste sombre dans les deux thèmes : ses paires sont les
+  // mêmes en clair, et c'est justement ce qu'on vérifie.
+  ['--vh-nav-ink', '--vh-nav'],
+  ['--vh-nav-ink', '--vh-nav-raised'],
+  ['--vh-nav-muted', '--vh-nav'],
+  ['--vh-nav-muted', '--vh-nav-raised'],
+  ['--vh-nav-accent', '--vh-nav'],
+  ['--vh-nav-accent', '--vh-nav-raised'],
 ];
 
 const SEUIL = 4.5;

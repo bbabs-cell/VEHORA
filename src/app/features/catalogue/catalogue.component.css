@@ -1,38 +1,121 @@
-.catalogue {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
-}
+/* Catalogue et tarifs.
 
-.catalogue__entete {
+   Phase 24 : les fiches de prestation et leurs tarifs avaient perdu leurs
+   styles en phase 15 (mutualisation des modales) ; ils sont rétablis. */
+
+.prestation {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
 }
 
-.catalogue__entete > .vh-button {
-  white-space: nowrap;
+.prestation__entete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
 }
 
-.catalogue__titre {
-  font-size: var(--vh-text-xl);
+.prestation__identite {
+  min-width: 0;
 }
 
-.catalogue__sous-titre {
+.prestation__nom {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.prestation__detail {
   margin: var(--vh-space-1) 0 0;
   font-size: var(--vh-text-sm);
 }
 
-.liste {
+.prestation__actions .vh-button {
+  padding: 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+}
+
+.prestation__sans-tarif {
+  margin: 0;
+}
+
+/* ---------- Tarifs ---------- */
+
+.tarifs {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.tarif {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vh-space-1);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-3);
+}
+
+/* Un prix est de l'argent : il est en laiton. */
+.tarif__montant {
+  color: var(--vh-money);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tarif__portee {
+  min-width: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.tarif__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  align-self: flex-end;
+}
+
+.tarif__action {
+  min-height: var(--vh-touch-min);
+  padding: var(--vh-space-1) var(--vh-space-2);
+  background: none;
+  border: none;
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tarif__action:hover {
+  color: var(--vh-text);
+  background: var(--vh-surface-2);
+}
+
+.tarif__action--retirer:hover {
+  color: var(--vh-error-text);
+}
+
+.remplacement__rappel {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.bascule {
+  display: flex;
+  align-items: center;
   gap: var(--vh-space-3);
+  min-height: var(--vh-touch-min);
+  cursor: pointer;
 }
 
 @media (min-width: 640px) {
@@ -50,16 +133,9 @@
     align-self: auto;
   }
 
-  .catalogue__entete,
   .prestation__entete {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-  }
-}
-
-@media (min-width: 900px) {
-  .catalogue {
-    padding: var(--vh-space-6);
   }
 }

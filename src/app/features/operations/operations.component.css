@@ -1,20 +1,8 @@
-.operations {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-5);
-}
+/* Opérations — le travail à faire, dossier par dossier.
 
-.operations__titre {
-  font-size: var(--vh-text-xl);
-}
-
-.operations__sous-titre {
-  margin: var(--vh-space-1) 0 0;
-  font-size: var(--vh-text-sm);
-}
+   Phase 24 : les styles des actions, de la liste d'employés et de la mention
+   « Non assignée » avaient disparu en phase 15 avec les styles de modale. Ils
+   sont rétablis ; plaque, étiquette et liste viennent de `_base.css`. */
 
 .groupe {
   display: flex;
@@ -22,36 +10,15 @@
   gap: var(--vh-space-3);
 }
 
-.groupe__titre {
-  display: flex;
-  align-items: center;
-  gap: var(--vh-space-2);
-  font-size: var(--vh-text-base);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--vh-text-muted);
+/* Le rail d'état : à faire (ambre), en cours (azur), terminée (vert). */
+.operation[data-statut='PENDING'] {
+  --vh-rail: var(--vh-warning);
 }
-
-.groupe__compte {
-  display: grid;
-  place-items: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--vh-surface-3);
-  color: var(--vh-text);
-  font-size: var(--vh-text-xs);
-  font-variant-numeric: tabular-nums;
+.operation[data-statut='IN_PROGRESS'] {
+  --vh-rail: var(--vh-status-in-progress);
 }
-
-.liste {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-3);
+.operation[data-statut='DONE'] {
+  --vh-rail: var(--vh-success);
 }
 
 .operation {
@@ -60,16 +27,21 @@
   gap: var(--vh-space-3);
 }
 
+.operation__identite {
+  min-width: 0;
+}
+
 .operation__ligne1 {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: var(--vh-space-2);
   flex-wrap: wrap;
+  gap: var(--vh-space-2);
 }
 
 .operation__prestation {
-  font-weight: 600;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .operation__ligne2 {
@@ -77,10 +49,61 @@
   font-size: var(--vh-text-sm);
 }
 
+/* Une opération sans employé ne démarre pas : ça doit se voir de loin. */
+.non-assignee {
+  color: var(--vh-warning);
+  font-weight: 600;
+}
+
+.operation__actions .vh-button {
+  padding: 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+}
+
 .modale__contenu {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-4);
+}
+
+/* ---------- Choix de l'employé ---------- */
+
+.employes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  overflow: hidden;
+}
+
+.employes__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  width: 100%;
+  min-height: var(--vh-touch-primary);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--vh-border);
+  color: var(--vh-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+.employes li:last-child .employes__item {
+  border-bottom: none;
+}
+
+.employes__item:hover:not(:disabled) {
+  background: var(--vh-surface-3);
+}
+
+.employes__item--actuel {
+  background: var(--vh-primary-soft);
+  font-weight: 600;
 }
 
 @media (min-width: 640px) {
@@ -92,12 +115,5 @@
 
   .operation__identite {
     flex: 1 1 auto;
-    min-width: 0;
-  }
-}
-
-@media (min-width: 900px) {
-  .operations {
-    padding: var(--vh-space-6);
   }
 }

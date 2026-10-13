@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Recu = Tables<'receipts'>;
 
@@ -67,33 +68,22 @@ export interface LigneRapportPrestations {
   readonly montant_minor: number;
 }
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_DOSSIER_SANS_LIGNE: 'Ce dossier n’a aucune prestation : il n’y a rien à imprimer.',
+    VEHORA_DOSSIER_ANNULE: 'Un dossier annulé ne donne pas lieu à un reçu.',
+    VEHORA_RECU_DEJA_CORRIGE: 'Ce reçu a déjà été corrigé. Le reçu correctif fait foi.',
+    VEHORA_RECU_INTROUVABLE: 'Le reçu à corriger n’appartient pas à ce dossier.',
+    VEHORA_DOSSIER_INTROUVABLE: 'Ce dossier est introuvable.',
+    // Le refus de la fonction de rapport nomme la permission qui manque.
+    'reports.read': 'Vous n’avez pas le droit de consulter les rapports.',
+    VEHORA_PERIODE: 'La période demandée est invalide : au maximum 366 jours, dans l’ordre.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_DOSSIER_SANS_LIGNE')) {
-    return 'Ce dossier n’a aucune prestation : il n’y a rien à imprimer.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_ANNULE')) {
-    return 'Un dossier annulé ne donne pas lieu à un reçu.';
-  }
-  if (brut.includes('VEHORA_RECU_DEJA_CORRIGE')) {
-    return 'Ce reçu a déjà été corrigé. Le reçu correctif fait foi.';
-  }
-  if (brut.includes('VEHORA_RECU_INTROUVABLE')) {
-    return 'Le reçu à corriger n’appartient pas à ce dossier.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_INTROUVABLE')) {
-    return 'Ce dossier n’est pas dans votre périmètre.';
-  }
-  if (brut.includes('reports.read')) {
-    return 'Vous n’avez pas le droit de consulter les rapports.';
-  }
-  if (brut.includes('VEHORA_PERIODE')) {
-    return 'La période demandée est invalide : au maximum 366 jours, dans l’ordre.';
-  }
-  if (code === '42501') return 'Vous n’avez pas le droit d’effectuer cette action.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

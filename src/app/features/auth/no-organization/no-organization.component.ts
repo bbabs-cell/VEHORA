@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ProvisioningService } from '../../../core/organization/provisioning.service';
+import { SceneComponent } from '../../../shared/ui/scene.component';
 
 /**
  * Deux chemins possibles pour un compte sans organisation :
@@ -13,7 +14,7 @@ import { ProvisioningService } from '../../../core/organization/provisioning.ser
 @Component({
   selector: 'vh-no-organization',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [SceneComponent, ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './no-organization.component.html',
   styleUrl: './no-organization.component.css',

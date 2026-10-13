@@ -11,11 +11,12 @@ import { EmployeeService, type Employe } from '../../core/employees/employee.ser
 import { StationService } from '../../core/stations/station.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-employes',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
+  imports: [EntetePageComponent, ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './employes.component.html',
   styleUrl: './employes.component.css',

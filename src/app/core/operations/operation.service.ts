@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Operation = Tables<'service_order_operations'>;
 export type StatutOperation = Enums<'operation_status'>;
@@ -21,29 +22,19 @@ export const LIBELLES_OPERATION: Readonly<Record<StatutOperation, string>> = {
 
 export const ORDRE_OPERATIONS: readonly StatutOperation[] = ['PENDING', 'IN_PROGRESS', 'DONE'];
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_OPERATION_SANS_EMPLOYE: 'Assignez un employé avant de démarrer le travail.',
+    VEHORA_EMPLOYE_INACTIF: 'Cet employé n’est plus actif.',
+    VEHORA_COMPETENCE_MANQUANTE: 'Cet employé n’est pas déclaré pour cette prestation.',
+    VEHORA_OPERATION_TRANSITION: 'Ce changement d’état n’est pas prévu depuis l’état actuel.',
+    VEHORA_DOSSIER_CLOS: 'Ce dossier est restitué ou annulé : il n’est plus modifiable.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_OPERATION_SANS_EMPLOYE')) {
-    return 'Assignez un employé avant de démarrer le travail.';
-  }
-  if (brut.includes('VEHORA_EMPLOYE_INACTIF')) {
-    return 'Cet employé n’est plus actif.';
-  }
-  if (brut.includes('VEHORA_COMPETENCE_MANQUANTE')) {
-    return 'Cet employé n’est pas déclaré pour cette prestation.';
-  }
-  if (brut.includes('VEHORA_OPERATION_TRANSITION')) {
-    return 'Ce changement d’état n’est pas prévu depuis l’état actuel.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_CLOS')) {
-    return 'Ce dossier est restitué ou annulé : il n’est plus modifiable.';
-  }
-  if (brut.includes('VEHORA_PERMISSION') || code === '42501') {
-    return 'Vous n’avez pas le droit d’effectuer cette action.';
-  }
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /**

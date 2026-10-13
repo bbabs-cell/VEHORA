@@ -1,9 +1,5 @@
 .connexion {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100dvh;
-  padding: var(--vh-space-4);
 }
 
 .connexion__carte {
@@ -15,21 +11,16 @@
   margin-bottom: var(--vh-space-8);
 }
 
-.connexion__marque {
-  margin: 0 0 var(--vh-space-4);
-  font-size: var(--vh-text-sm);
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  color: var(--vh-accent);
-}
-
-.connexion__titre {
-  font-size: var(--vh-text-xl);
-}
-
 .connexion__sous-titre {
-  margin: var(--vh-space-2) 0 0;
-  font-size: var(--vh-text-sm);
+  margin: var(--vh-space-3) 0 0;
+}
+
+.connexion__mot {
+  font-weight: 700;
+}
+
+.connexion__carte {
+  box-shadow: var(--vh-shadow-3);
 }
 
 form {
@@ -41,9 +32,12 @@ form {
 .connexion__erreur-champ {
   margin: 0;
   font-size: var(--vh-text-sm);
-  color: var(--vh-error);
+  color: var(--vh-error-text);
 }
 
 .connexion__valider {
+  width: 100%;
+  min-height: var(--vh-touch-primary);
   margin-top: var(--vh-space-2);
+  font-size: var(--vh-text-lg);
 }

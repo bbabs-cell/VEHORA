@@ -3,8 +3,12 @@
    Manrope est auto-hébergée (paquet npm), jamais appelée chez un tiers : la
    CSP de `vercel.json` n'autorise que `font-src 'self'`, et un fournisseur de
    polices externe verrait passer l'adresse IP de chaque station à chaque
-   ouverture. Les `unicode-range` du paquet font que seul le sous-ensemble
-   latin part sur le réseau — 25 Ko, une fois. */
-@import '@fontsource-variable/manrope/wght.css';
+   ouverture. Seuls les sous-ensembles latin et latin étendu sont déclarés
+   (`_police.css`) — 25 Ko, une fois. */
+@import './styles/_police.css';
 @import './styles/_tokens.css';
 @import './styles/_base.css';
+/* Après la base : comme les utilitaires de Tailwind, une classe d'animation
+   posée sur un élément l'emporte sur l'animation par défaut de son composant
+   (une carte dans une cascade prend le délai de la cascade). */
+@import './styles/_animations.css';

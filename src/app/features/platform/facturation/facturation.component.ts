@@ -9,6 +9,8 @@ import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { SkeletonComponent } from '../../../shared/ui/skeleton.component';
 import { formaterDate, formaterMontant, versSaisie } from '../../../shared/format/montant';
 import { nomFichierCsv, nombreCsv, telechargerCsv, versCsv } from '../../../shared/export/csv';
+import { retour, type Retour } from '../../../shared/ui/retour';
+import { EntetePageComponent } from '../../../shared/ui/entete-page.component';
 
 /** Le premier jour du mois courant, dans le fuseau de l'appareil. */
 function moisCourant(): string {
@@ -21,7 +23,7 @@ type Filtre = 'TOUTES' | 'RETARD' | 'ISSUED' | 'PAID' | 'VOID';
 @Component({
   selector: 'vh-platform-facturation',
   standalone: true,
-  imports: [ConfirmationComponent, EmptyStateComponent, SkeletonComponent],
+  imports: [EntetePageComponent, ConfirmationComponent, EmptyStateComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './facturation.component.html',
   styleUrl: './facturation.component.css',
@@ -32,7 +34,7 @@ export class PlatformFacturationComponent {
   readonly periode = signal(moisCourant());
   readonly filtre = signal<Filtre>('TOUTES');
   readonly enCours = signal(false);
-  readonly message = signal<string | null>(null);
+  readonly message = signal<Retour | null>(null);
 
   /** Facture dont on demande l'annulation — la confirmation porte son motif. */
   readonly aAnnuler = signal<FacturePlateforme | null>(null);
@@ -141,7 +143,7 @@ export class PlatformFacturationComponent {
     this.message.set(null);
     const erreur = await this.plateforme.emettreFactures(this.periode());
     this.enCours.set(false);
-    this.message.set(erreur ?? `Échéances de ${this.periodeLisible()} émises.`);
+    this.message.set(retour(erreur, `Échéances de ${this.periodeLisible()} émises.`));
   }
 
   async relancer(): Promise<void> {
@@ -149,9 +151,7 @@ export class PlatformFacturationComponent {
     this.message.set(null);
     const erreur = await this.plateforme.relancerImpayes();
     this.enCours.set(false);
-    this.message.set(
-      erreur ?? `${this.enRetard().length} facture(s) en retard, abonnements passés en impayé.`,
-    );
+    this.message.set(retour(erreur, `${this.enRetard().length} facture(s) en retard, abonnements passés en impayé.`));
   }
 
   demanderReglement(f: FacturePlateforme): void {
@@ -170,7 +170,7 @@ export class PlatformFacturationComponent {
     const erreur = await this.plateforme.marquerPayee(f.id, this.referencePaiement().trim());
     this.enCours.set(false);
     this.aRegler.set(null);
-    this.message.set(erreur ?? `${f.reference} est réglée.`);
+    this.message.set(retour(erreur, `${f.reference} est réglée.`));
   }
 
   demanderAnnulation(f: FacturePlateforme): void {
@@ -192,7 +192,7 @@ export class PlatformFacturationComponent {
     const erreur = await this.plateforme.annulerFacture(f.id, this.motifAnnulation().trim());
     this.enCours.set(false);
     this.aAnnuler.set(null);
-    this.message.set(erreur ?? `${f.reference} est annulée.`);
+    this.message.set(retour(erreur, `${f.reference} est annulée.`));
   }
 
   exporter(): void {

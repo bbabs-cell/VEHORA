@@ -17,11 +17,12 @@ import {
 import { ScrollLockService } from '../../../core/ui/scroll-lock.service';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state.component';
 import { SkeletonComponent } from '../../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-platform-organisations',
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
+  imports: [EntetePageComponent, ReactiveFormsModule, EmptyStateComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organisations.component.html',
   styleUrl: './organisations.component.css',

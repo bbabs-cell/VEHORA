@@ -1,10 +1,10 @@
-<div class="rapports">
-  <header class="rapports__entete">
-    <h1 class="rapports__titre">Rapports</h1>
-    <p class="vh-muted rapports__sous-titre">
-      Ce qui est entré en caisse et ce qui est sorti de la station, {{ periodeLisible() }}.
-    </p>
-  </header>
+<div class="vh-page rapports">
+  <vh-entete-page
+    titre="Rapports"
+    [description]="
+      'Ce qui est entré en caisse et ce qui est sorti de la station, ' + periodeLisible() + '.'
+    "
+  />
 
   <form class="filtres" (submit)="$event.preventDefault(); actualiser()">
     <div class="vh-field">

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { SupabaseService } from '../supabase/supabase.client';
+import { traduireErreur } from '../erreurs/traduire-erreur';
 
 /**
  * Opérations d'entrée dans une organisation.
@@ -16,25 +17,17 @@ export class ProvisioningService {
 
   /** Traduit les erreurs nommées du serveur en messages pour l'utilisateur. */
   private message(erreur: { message: string }): string {
-    const m = erreur.message;
-    if (m.includes('VEHORA_DEJA_MEMBRE')) {
-      return 'Ce compte appartient déjà à une organisation.';
-    }
-    if (m.includes('VEHORA_NOM_INVALIDE')) return "Le nom de l'entreprise est requis.";
-    if (m.includes('VEHORA_PAYS_INVALIDE')) return 'Sélectionnez un pays.';
-    if (m.includes('VEHORA_INVITATION_INTROUVABLE')) {
-      return 'Ce code est inconnu, ou destiné à une autre adresse e-mail.';
-    }
-    if (m.includes('VEHORA_INVITATION_UTILISEE')) {
-      return 'Cette invitation a déjà été utilisée ou révoquée.';
-    }
-    if (m.includes('VEHORA_INVITATION_EXPIREE')) {
-      return 'Cette invitation a expiré. Demandez-en une nouvelle.';
-    }
-    if (m.toLowerCase().includes('failed to fetch')) {
-      return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-    }
-    return "L'opération a échoué. Réessayez dans un instant.";
+    return traduireErreur(erreur, {
+      marqueurs: {
+        VEHORA_DEJA_MEMBRE: 'Ce compte appartient déjà à une organisation.',
+        VEHORA_NOM_INVALIDE: "Le nom de l'entreprise est requis.",
+        VEHORA_PAYS_INVALIDE: 'Sélectionnez un pays.',
+        VEHORA_INVITATION_INTROUVABLE:
+          'Ce code est inconnu, ou destiné à une autre adresse e-mail.',
+        VEHORA_INVITATION_UTILISEE: 'Cette invitation a déjà été utilisée ou révoquée.',
+        VEHORA_INVITATION_EXPIREE: 'Cette invitation a expiré. Demandez-en une nouvelle.',
+      },
+    });
   }
 
   async creerOrganisation(entree: {

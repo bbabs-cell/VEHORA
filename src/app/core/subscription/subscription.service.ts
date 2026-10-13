@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import { uneLigneDeVue } from '../../types/frontiere';
+import { traduireErreur } from '../erreurs/traduire-erreur';
 
 /** Ce qu'une organisation a le droit de savoir d'elle-même. */
 export interface MonAbonnement {
@@ -81,9 +82,7 @@ export class SubscriptionService {
     const { data, error } = await this.supabase.client.rpc('mes_factures');
     if (error) {
       this._erreur.set(
-        error.message.toLowerCase().includes('failed to fetch')
-          ? 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.'
-          : 'Vos factures n’ont pas pu être chargées.',
+        traduireErreur(error, { parDefaut: 'Vos factures n’ont pas pu être chargées.' }),
       );
       this._factures.set([]);
       return;
@@ -106,9 +105,7 @@ export class SubscriptionService {
     if (abonnement.error || fonctionnalites.error) {
       const echec = abonnement.error ?? fonctionnalites.error!;
       this._erreur.set(
-        echec.message.toLowerCase().includes('failed to fetch')
-          ? 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.'
-          : 'Impossible de lire votre abonnement pour le moment.',
+        traduireErreur(echec, { parDefaut: 'Impossible de lire votre abonnement pour le moment.' }),
       );
       return;
     }

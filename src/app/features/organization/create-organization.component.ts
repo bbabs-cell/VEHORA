@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProvisioningService } from '../../core/organization/provisioning.service';
+import { SceneComponent } from '../../shared/ui/scene.component';
 
 /** Pays du marché initial. La liste s'étend sans toucher au code métier. */
 const PAYS = [
@@ -19,7 +20,7 @@ const PAYS = [
 @Component({
   selector: 'vh-create-organization',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [SceneComponent, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './create-organization.component.html',
   styleUrl: './create-organization.component.css',

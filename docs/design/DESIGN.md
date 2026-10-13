@@ -21,6 +21,14 @@ colors:
   etat-attente-sourd: "#2e220b"
   etat-mauvais: "#d04545"
   etat-mauvais-sourd: "#331517"
+  nav: "#070d13"
+  nav-releve: "#12202a"
+  nav-encre: "#eef5f8"
+  nav-attenue: "#93a8b4"
+  nav-accent: "#2cc4e8"
+  vivant-clair: "#7fdcf2"
+  vivant: "#2cc4e8"
+  vivant-profond: "#0b86ad"
 typography:
   display:
     fontFamily: "Manrope Variable, ui-sans-serif, system-ui, sans-serif"
@@ -102,11 +110,28 @@ voiture, qui travaille dessus, combien reste à encaisser.
 - **Encre pâle** (`#6b808d`) : texte d'invite et désactivé **seulement**. Jamais
   une donnée métier.
 
+### Navigation et lumière (phase 24)
+
+- **Navigation** (`#070d13`, relevé `#12202a`) : la barre latérale, le tiroir,
+  le bandeau d'accueil du tableau de bord et le bandeau de la plateforme sont
+  **sombres dans les deux thèmes**, comme ceux de MagyaPro. En clair, l'aplat
+  sépare l'outil du contenu ; en sombre, il descend d'un cran sous le fond. Ses
+  jetons sont fixes, avec leur propre accent (`--vh-nav-accent`) : le trait de
+  marque du thème clair y serait illisible.
+- **Lumière** (`--vh-vivant*`) : les azurs sans texte posé dessus — halos du
+  fond vivant, contour animé d'une carte, point final des titres. Ils peuvent
+  être clairs : aucun libellé n'en dépend.
+- **Dégradé du bouton principal** (`--vh-degrade-primaire`) : trois azurs
+  profonds, chaque arrêt au-dessus de 4,5:1 avec du blanc.
+
 ### Règles nommées
 
 **La règle de l'azur unique.** Un seul élément à fond azur par écran : l'action
 principale. Deux boutons pleins n'attirent pas deux fois l'attention, ils
-s'annulent.
+s'annulent. Ce qui est propre à une ligne de liste — l'étape suivante d'un
+dossier, « Démarrer » une opération — prend la marque **en trait**
+(`.vh-button--trait`) : il se distingue des actions neutres sans concurrencer
+l'action de l'écran. `npm run audit:mobile` échoue au deuxième bouton plein.
 
 **La règle du laiton réservé.** Le laiton dit « argent ». L'employer pour un
 avertissement le vide de son sens, et l'ambre d'alerte existe pour ça.
@@ -182,29 +207,59 @@ d'un téléphone à 60 000 F CFA, et c'est précisément l'appareil visé.
 
 ## Mouvement
 
-Vocabulaire repris du skill **« animations vivantes »** des dépôts
-`ATELIERFLOW` et `MagyaPro`, avec la même retenue que MagyaPro applique à ses
-tableaux de bord : **vivant, mais calme**.
+Vocabulaire du skill **« animations vivantes »** d'Atelier Flow
+(`.claude/skills/animations-vivantes/`), porté en CSS pur dans
+`src/styles/_animations.css`. Une interface **vivante mais calme** : ce qui
+apparaît glisse, ce qui se touche répond, le fond respire lentement, et rien ne
+gêne la lecture ni la saisie.
 
-- **Ce qui arrive glisse** : entrée de page en fondu-montée de 12 px, 300 ms.
-- **Ce qui se touche répond** : bouton qui se soulève d'un demi-cran au survol
-  et se comprime à 97 % à l'appui ; retour visible en moins de 100 ms, même si
-  le serveur met une seconde.
-- **Ce qui change rebondit une fois** : une pastille de compteur, un total de
-  caisse — la valeur en `key`, jamais en boucle.
-- **Ce qui attend scintille** : squelette aux dimensions du contenu final
-  au-delà de 300 ms.
-- **Les listes entrent en cascade** : 50 ms par élément, plafonné à 300 ms.
+- **Ce qui arrive glisse** : titre de page en fondu-montée, cartes qui
+  s'ouvrent (`scale-in`), listes en cascade (50 ms par élément, plafonnée à
+  0,42 s). L'écran entier n'entre qu'en **fondu d'opacité** : une
+  transformation sur le conteneur capturerait la barre fixée de l'inspection.
+- **Ce qui se touche répond** : bouton qui se soulève de 2 px et se comprime à
+  97 % ; reflet qui balaie le bouton principal ; carte cliquable qui se soulève
+  de 4 px, contour qui s'allume, icône qui pivote, flèche en diagonale ; entrée
+  de menu qui glisse à droite ; croix qui fait un quart de tour.
+- **Ce qui change rebondit une fois** : compteurs de groupe, icône de la barre
+  basse — la valeur sert de clé.
+- **Ce qui est refusé tremble une fois** : le bandeau d'erreur fait un
+  va-et-vient horizontal (le « wiggle » du skill, adapté à un bloc).
+- **Le fond respire** : halos flous derrière le contenu et dans la navigation,
+  trame de points. Décor pur : `aria-hidden`, sous des cartes opaques.
+- **Les chiffres défilent** sur le tableau de bord seulement, et finissent
+  exactement sur leur valeur.
+- **Le titre porte un point final en dégradé animé** (`page-title`), décoratif
+  pour les lecteurs d'écran.
+- **Ce qui attend scintille** : squelette aux dimensions du contenu final.
+
+Durées : survol 0,2 s, ouverture 0,3 s, entrée 0,45–0,5 s, décor 6–28 s.
+Courbe d'entrée `cubic-bezier(0.22, 1, 0.36, 1)`, rebond réservé aux pastilles.
 
 ### Règles nommées
 
-**La règle du calme opérationnel.** Aucune animation décorative sur un écran de
-travail : pas de forme qui dérive en fond, pas de contour en dégradé, pas de
-boucle. La file d'attente et la caisse sont consultées cent fois par jour.
+**La règle du `backwards`.** Une entrée n'est jamais en `animation-fill-mode:
+both` : une transformation restée appliquée capture les `position: fixed`
+descendants (méthode MagyaPro — sur MagyaPro, des barres fixées disparaissaient).
+
+**La règle de l'œil unique.** Une seule chose qui attire l'œil par écran. Pas
+d'animation continue sur un texte à lire, sauf le point final du titre et le
+bandeau défilant.
+
+**La règle du montant immobile.** Un montant ne défile jamais sur un document
+(reçu, export, impression) ni sur l'écran de caisse : un chiffre qui bouge sur
+ce qu'on remet au client est un chiffre faux pendant une seconde.
+
+**La règle de la présentation.** La méthode l'autorise : « les pages de
+présentation peuvent faire plus, une fois ». Connexion, compte sans entreprise
+et création d'entreprise ont la scène complète (`vh-scene`) : fond vivant,
+carte qui s'ouvre, champs en cascade, marque et mot clé en dégradé, 👋 qui
+s'agite une fois.
 
 **La règle du mouvement réduit.** `prefers-reduced-motion` coupe les durées
-**et les délais**. Une entrée retardée dont on n'annule que la durée laisse du
-contenu invisible — c'est un contenu perdu, pas une animation économisée.
+**et les délais** — une entrée retardée dont on n'annule que la durée laisse du
+contenu invisible —, fige les halos et retire le bandeau défilant, dont chaque
+chiffre reste lisible dans sa tuile.
 
 ## Composants
 
@@ -212,12 +267,18 @@ contenu invisible — c'est un contenu perdu, pas une animation économisée.
 
 - Hauteur 44 px, **56 px** pour l'action opérationnelle primaire. Rayon
   0,625 rem.
-- **Primaire** : fond azur, texte blanc, halo azur à 25 %. Au survol la
-  luminosité monte ; la teinte ne change pas — la couleur s'active, elle ne
-  devient pas une autre couleur.
+- **Primaire** : dégradé d'azurs profonds, texte blanc, halo azur en deux
+  couches, reflet qui balaie au survol. Au survol le dégradé glisse vers sa
+  moitié claire : la luminosité monte, la teinte ne change pas. Un seul par
+  écran.
+- **Trait** : la marque en contour (azur vif, fond transparent). L'action
+  propre à une ligne de liste.
 - **Secondaire** : fond surface 2, filet, texte encre.
-- **Fantôme** : texte atténué, fond au survol seulement.
+- **Discret** : texte atténué, fond au survol seulement.
 - **Danger** : rouge franc, réservé à l'irréversible, et jamais une icône seule.
+- Un libellé ne se casse jamais lettre par lettre : la **rangée** passe à la
+  ligne (`vh-actions`), pas le bouton. Dans un formulaire sur téléphone, les
+  boutons prennent toute la largeur et l'action principale finit en bas.
 
 ### Pastilles de statut
 
@@ -232,9 +293,19 @@ intérieure. Pas de carte dans une carte : un encart en surface 3 suffit.
 
 ### Le rail d'état
 
-Signature du système : une barre de 3 px collée au bord gauche d'une carte de
-dossier, colorée selon le statut. Une file de vingt véhicules se balaie sans
-lire un mot.
+Signature du système : une barre de 3 px au bord gauche d'une carte, colorée
+selon le statut. Une file de vingt véhicules se balaie sans lire un mot.
+Appliquée en phase 24 à la file d'attente, aux opérations (à faire, en cours,
+terminée) et à la session de caisse ouverte — elle était documentée ici depuis
+la phase de l'identité, et utilisée nulle part.
+
+### La barre basse
+
+Quatre écrans **choisis selon les droits** de la personne (accueil, file,
+travaux, caisse, clients, véhicules — dans cet ordre), puis « **Plus** », qui
+ouvre une feuille posée au-dessus de la barre avec tout le reste. Libellés à
+13 px, le plancher ; l'écran courant en trait de marque, avec une barre qui
+pousse au-dessus de l'icône.
 
 ### Champs
 
@@ -251,5 +322,7 @@ qu'une date à décompter.
 
 **À ne pas faire** — poser du gris neutre froid · colorer une carte avec la
 couleur de marque pour dire un état · empiler une carte dans une carte ·
-descendre une donnée métier sous 14 px · animer quoi que ce soit en continu sur
-un écran opérationnel · employer le laiton ailleurs que sur de l'argent.
+descendre une donnée métier sous 14 px · animer en continu un texte à lire ·
+faire défiler un montant sur un document ou à la caisse · employer le laiton
+ailleurs que sur de l'argent · écrire du texte avec un jeton de fond
+(`--vh-error`, `--vh-primary`) · afficher une réussite dans le bandeau rouge.

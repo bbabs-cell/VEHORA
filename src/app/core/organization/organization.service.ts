@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Organisation = Pick<
   Tables<'organizations'>,
@@ -46,22 +47,23 @@ export interface ReglagesModifiables {
   readonly max_discount_percent: number;
 }
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_ORG_DEVISE:
+      'La devise ne se change pas ici : aucun montant déjà enregistré ne serait converti.',
+    VEHORA_ORG_IDENTITE: 'Cette information identifie votre organisation et ne se modifie pas.',
+    VEHORA_ORG_STATUT: 'L’état de votre organisation est géré par VEHORA.',
+  },
+  codes: {
+    '23514': 'Une valeur saisie est hors des limites autorisées.',
+    '42501': 'Vous n’avez pas le droit de modifier ces paramètres.',
+  },
+  parDefaut: 'L’enregistrement a échoué. Réessayez dans un instant.',
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_ORG_DEVISE')) {
-    return 'La devise ne se change pas ici : aucun montant déjà enregistré ne serait converti.';
-  }
-  if (brut.includes('VEHORA_ORG_IDENTITE')) {
-    return 'Cette information identifie votre organisation et ne se modifie pas.';
-  }
-  if (brut.includes('VEHORA_ORG_STATUT')) {
-    return 'L’état de votre organisation est géré par VEHORA.';
-  }
-  if (code === '23514') return 'Une valeur saisie est hors des limites autorisées.';
-  if (code === '42501') return 'Vous n’avez pas le droit de modifier ces paramètres.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’enregistrement a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /**

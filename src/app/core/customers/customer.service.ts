@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Client = Tables<'customers'>;
 export interface ClientSaisi {
@@ -18,14 +19,16 @@ export interface ClientSaisi {
 /** Taille de page : assez pour remplir un écran, assez peu pour un réseau lent. */
 const PAGE = 25;
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  codes: {
+    '23505': 'Un client existe déjà avec ce numéro de téléphone.',
+    '23514': 'Le nom doit comporter entre 2 et 120 caractères.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (code === '23505') return 'Un client existe déjà avec ce numéro de téléphone.';
-  if (code === '23514') return 'Le nom doit comporter entre 2 et 120 caractères.';
-  if (code === '42501') return "Vous n'avez pas le droit d'effectuer cette action.";
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'opération a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

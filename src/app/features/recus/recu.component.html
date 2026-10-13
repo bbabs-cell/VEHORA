@@ -6,7 +6,7 @@
   } @else if (!recu()) {
     <p class="vh-alert" role="alert">Ce reçu est introuvable, ou hors de votre périmètre.</p>
   } @else {
-    <div class="actions">
+    <div class="actions vh-actions">
       <a class="vh-button vh-button--ghost" routerLink="/caisse">Retour à la caisse</a>
       <button class="vh-button" type="button" (click)="imprimer()">Imprimer</button>
     </div>
@@ -90,7 +90,7 @@
       </table>
 
       @if (paiements().length > 0) {
-        <section class="recu__paiements">
+        <section>
           <h2 class="recu__section">Paiements</h2>
           <ul class="paiements">
             @for (p of paiements(); track p.le) {

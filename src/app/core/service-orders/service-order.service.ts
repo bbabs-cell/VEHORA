@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables, TablesInsert } from '../../types/database.types';
 import { ligneDeVue, rempliParLaBase } from '../../types/frontiere';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type StatutDossier = Enums<'service_order_status'>;
 export type LigneDossier = Tables<'service_order_items'>;
@@ -59,41 +60,24 @@ export const ORDRE_FILE: readonly StatutDossier[] = [
  * d'erreur seul (« 42501 ») ne dit rien au réceptionniste qui a un client
  * devant lui.
  */
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_INSPECTION_ABSENTE:
+      'Enregistrez l’inspection avant de mettre le véhicule en file d’attente.',
+    VEHORA_INSPECTION_REQUISE: 'Votre organisation exige une inspection avant la file d’attente.',
+    VEHORA_TRANSITION_INTERDITE: 'Ce changement d’état n’est pas prévu depuis le statut actuel.',
+    VEHORA_SANS_TARIF: 'Aucun tarif n’est défini pour cette prestation sur ce type de véhicule.',
+    VEHORA_DOSSIER_ENGAGE: 'Le travail a commencé : les prestations du dossier ne changent plus.',
+    VEHORA_DOSSIER_CLOS: 'Ce dossier est restitué ou annulé : il n’est plus modifiable.',
+    VEHORA_REMISE_EXCESSIVE: 'Cette remise dépasse le plafond de votre organisation.',
+    VEHORA_HORS_PERIMETRE: 'Vous n’avez pas le droit d’effectuer cette action.',
+  },
+  codes: { '23505': 'Cette prestation est déjà dans le dossier.' },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_INSPECTION_ABSENTE')) {
-    return 'Enregistrez l’inspection avant de mettre le véhicule en file d’attente.';
-  }
-  if (brut.includes('VEHORA_INSPECTION_REQUISE')) {
-    return 'Votre organisation exige une inspection avant la file d’attente.';
-  }
-  if (brut.includes('VEHORA_MOTIF_REQUIS')) return 'Un motif est obligatoire.';
-  if (brut.includes('VEHORA_TRANSITION_INTERDITE')) {
-    return 'Ce changement d’état n’est pas prévu depuis le statut actuel.';
-  }
-  if (brut.includes('VEHORA_SANS_TARIF')) {
-    return 'Aucun tarif n’est défini pour cette prestation sur ce type de véhicule.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_ENGAGE')) {
-    return 'Le travail a commencé : les prestations du dossier ne changent plus.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_CLOS')) {
-    return 'Ce dossier est restitué ou annulé : il n’est plus modifiable.';
-  }
-  if (brut.includes('VEHORA_REMISE_EXCESSIVE')) {
-    return 'Cette remise dépasse le plafond de votre organisation.';
-  }
-  if (brut.includes('VEHORA_HORS_PERIMETRE') || brut.includes('VEHORA_PERMISSION')) {
-    return 'Vous n’avez pas le droit d’effectuer cette action.';
-  }
-  if (brut.includes('VEHORA_TENANCY_VIOLATION')) {
-    return 'Cet élément n’appartient pas à votre organisation.';
-  }
-  if (code === '23505') return 'Cette prestation est déjà dans le dossier.';
-  if (code === '42501') return 'Vous n’avez pas le droit d’effectuer cette action.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 // Les jointures PostgREST sont des littéraux : sortis en constante, le typage

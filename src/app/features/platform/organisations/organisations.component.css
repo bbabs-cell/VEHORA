@@ -1,24 +1,56 @@
-.organisations {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
+/* Organisations clientes — volumes seulement, jamais les données d'un client.
+
+   Phase 24 : la fiche d'organisation, ses volumes et ses actions avaient perdu
+   leurs styles en phase 15 (mutualisation des modales) ; ils sont rétablis. */
+
+.recherche__champ {
+  width: 100%;
+  min-height: var(--vh-touch-primary);
 }
 
-.organisations__entete {
+.organisation {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
 }
 
-.organisations__titre {
-  font-size: var(--vh-text-xl);
+/* Une organisation suspendue se voit de loin, et pas par la couleur seule :
+   l'étiquette dit « Suspendue ». */
+.organisation--suspendue {
+  border-color: var(--vh-warning);
 }
 
-.organisations__sous-titre {
-  margin: var(--vh-space-1) 0 0;
+.organisation__volumes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-2) var(--vh-space-4);
+  margin: 0;
+}
+
+.organisation__volumes > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-2);
+}
+
+.organisation__volumes dt,
+.organisation__volumes dd {
+  margin: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.organisation__volumes dt {
+  color: var(--vh-text-muted);
+  white-space: nowrap;
+}
+
+.organisation__volumes dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.organisation__actions .vh-button {
+  padding: 0 var(--vh-space-4);
   font-size: var(--vh-text-sm);
 }
 
@@ -48,36 +80,20 @@
     align-items: flex-start;
     gap: 0;
   }
-
-  .organisations__entete {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
 }
-
-@media (min-width: 900px) {
-  .organisations {
-    padding: var(--vh-space-6);
-  }
-}
-
 .abonnement-detail {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
   gap: var(--vh-space-3);
   margin: 0 0 var(--vh-space-3);
 }
-
 .abonnement-detail dt {
   font-size: var(--vh-text-sm);
 }
-
 .abonnement-detail dd {
   margin: var(--vh-space-1) 0 0;
   font-variant-numeric: tabular-nums;
 }
-
 .raison {
   margin: 0;
   font-size: var(--vh-text-sm);

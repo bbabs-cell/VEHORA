@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Tables, TablesInsert } from '../../types/database.types';
 import { rempliParLaBase, uneLigneDeVue } from '../../types/frontiere';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type CategorieService = Tables<'service_categories'>;
 export type PrestationService = Tables<'services'>;
@@ -32,20 +33,21 @@ export interface PrixResolu {
   readonly specificite: 'SERVICE_TYPE_STATION' | 'SERVICE_TYPE' | 'SERVICE_STATION' | 'SERVICE';
 }
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    service_prices_no_overlap:
+      'Un tarif identique couvre déjà cette période. Fermez-le avant d’en ouvrir un autre.',
+  },
+  codes: {
+    '23505': 'Ce nom est déjà utilisé dans votre catalogue.',
+    '23P01': 'Un tarif identique couvre déjà cette période. Fermez-le avant d’en ouvrir un autre.',
+    '23514': 'Vérifiez le montant et les dates saisis.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (code === '23505') return 'Ce nom est déjà utilisé dans votre catalogue.';
-  if (code === '23P01' || brut.includes('service_prices_no_overlap')) {
-    return 'Un tarif identique couvre déjà cette période. Fermez-le avant d’en ouvrir un autre.';
-  }
-  if (brut.includes('VEHORA_TENANCY_VIOLATION')) {
-    return "Cet élément n'appartient pas à votre organisation.";
-  }
-  if (code === '42501') return "Vous n'avez pas le droit d'effectuer cette action.";
-  if (code === '23514') return 'Vérifiez le montant et les dates saisis.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'opération a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

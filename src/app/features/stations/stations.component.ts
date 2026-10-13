@@ -6,11 +6,13 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-stations',
   standalone: true,
   imports: [
+    EntetePageComponent,
     ReactiveFormsModule,
     EmptyStateComponent,
     IconComponent,

@@ -1,30 +1,11 @@
-.file {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-5);
-}
+/* File d'attente — l'écran le plus ouvert du produit.
 
-.file__entete {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-3);
-}
-
-.file__entete > .vh-button {
-  white-space: nowrap;
-}
-
-.file__titre {
-  font-size: var(--vh-text-xl);
-}
-
-.file__sous-titre {
-  margin: var(--vh-space-1) 0 0;
-  font-size: var(--vh-text-sm);
-}
+   Phase 24 : ses styles de liste avaient disparu en phase 15, emportés avec
+   les styles de modale qu'on mutualisait (« 1 499 lignes supprimées ») — la
+   file s'affichait depuis en texte brut, puces de liste comprises, et aucun
+   test ne le voyait. C'est la capture à 375 px de l'audit mobile qui l'a
+   montré. Ils sont rétablis ici, et ce qui était recopié ailleurs (plaque,
+   étiquette, liste) vit désormais dans `_base.css`. */
 
 .modale__contenu {
   display: flex;
@@ -32,24 +13,286 @@
   gap: var(--vh-space-4);
 }
 
-@media (min-width: 640px) {
-  .file__entete,
-  .dossier {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.groupe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
 
-  .dossier__identite {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
+/* ---------- Dossier ----------
+   Le rail d'état (3 px au bord gauche) prend la couleur du statut : une file
+   de vingt véhicules se balaie sans lire un mot (DESIGN.md, signature). */
+
+.dossier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.dossier[data-statut='ARRIVED'] {
+  --vh-rail: var(--vh-status-arrived);
+}
+.dossier[data-statut='INSPECTION'] {
+  --vh-rail: var(--vh-status-inspection);
+}
+.dossier[data-statut='WAITING'] {
+  --vh-rail: var(--vh-status-waiting);
+}
+.dossier[data-statut='IN_PROGRESS'] {
+  --vh-rail: var(--vh-status-in-progress);
+}
+.dossier[data-statut='CONTROL'] {
+  --vh-rail: var(--vh-status-control);
+}
+.dossier[data-statut='READY'] {
+  --vh-rail: var(--vh-status-ready);
+}
+
+.dossier__identite {
+  min-width: 0;
+}
+
+.dossier__ligne1 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+}
+
+.dossier__numero {
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dossier__ligne1 .vh-plaque {
+  font-size: var(--vh-text-lg);
+}
+
+.dossier__ligne2 {
+  margin: var(--vh-space-1) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.dossier__montant {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2) var(--vh-space-3);
+}
+
+.dossier__total {
+  font-size: var(--vh-text-lg);
+  white-space: nowrap;
+}
+
+.dossier__lignes {
+  font-size: var(--vh-text-sm);
+}
+
+/* Un dossier sans prestation n'a pas de prix à annoncer au client : il faut
+   que ça se voie de loin, pas qu'on le découvre à la caisse. */
+.sans-prestation {
+  font-size: var(--vh-text-sm);
+  color: var(--vh-warning);
+}
+
+.dossier__actions .vh-button {
+  padding: 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+}
+
+.dossier__actions .dossier__annuler {
+  padding: 0 var(--vh-space-3);
+}
+
+.dossier__annuler:hover:not(:disabled) {
+  color: var(--vh-error-text);
 }
 
 @media (min-width: 900px) {
-  .file {
-    padding: var(--vh-space-6);
+  .dossier {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--vh-space-6);
   }
+
+  .dossier__montant {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+
+  .dossier__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Contenu du dossier (modale) ---------- */
+
+.lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-2);
+}
+
+.ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  border-radius: var(--vh-radius-control);
+  background: var(--vh-surface-3);
+  animation: var(--vh-anime-fade-up);
+}
+
+.ligne__nom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ligne__montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ligne__retirer {
+  min-height: var(--vh-touch-min);
+  padding: var(--vh-space-1) var(--vh-space-2);
+  background: none;
+  border: none;
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ligne__retirer:hover {
+  color: var(--vh-error-text);
+  background: var(--vh-surface-2);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--vh-space-3);
+  margin: 0;
+  padding-top: var(--vh-space-2);
+  border-top: 1px solid var(--vh-border);
+}
+
+.total__montant {
+  color: var(--vh-money);
+  font-size: var(--vh-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.catalogue-rapide {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+}
+
+/* Cibles larges : on ajoute une prestation debout, à côté du véhicule. */
+.catalogue-rapide__item {
+  min-height: var(--vh-touch-min);
+  padding: 0 var(--vh-space-3);
+  background: var(--vh-surface-3);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  color: var(--vh-text);
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--vh-duration-fast) var(--vh-ease),
+    transform var(--vh-duration-fast) var(--vh-ease);
+}
+
+.catalogue-rapide__item:hover:not(:disabled) {
+  border-color: var(--vh-primary-bright);
+  transform: translateY(-2px);
+}
+
+.catalogue-rapide__item:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.catalogue-rapide__item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dire pourquoi le bouton est inerte, pas seulement qu'il l'est. */
+.catalogue-rapide__sans-tarif {
+  margin-left: var(--vh-space-2);
+  font-size: var(--vh-text-xs);
+  color: var(--vh-warning);
+}
+
+/* ---------- Choix du véhicule ---------- */
+
+.choix {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+}
+
+.choix__valeur {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--vh-text-sm);
+}
+
+.suggestions {
+  list-style: none;
+  margin: var(--vh-space-2) 0 0;
+  padding: 0;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-control);
+  overflow: hidden;
+  animation: var(--vh-anime-scale-in);
+}
+
+.suggestions__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vh-space-3);
+  width: 100%;
+  min-height: var(--vh-touch-min);
+  padding: var(--vh-space-2) var(--vh-space-3);
+  background: var(--vh-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--vh-border);
+  color: var(--vh-text);
+  text-align: left;
+  font-size: var(--vh-text-sm);
+  cursor: pointer;
+}
+
+.suggestions li:last-child .suggestions__item {
+  border-bottom: none;
+}
+
+.suggestions__item:hover {
+  background: var(--vh-surface-3);
 }
 
 /* ---------- Encaissement ---------- */
@@ -125,7 +368,7 @@
 /* Un remboursement se lit comme un mouvement inverse, pas comme une ligne
    ordinaire : il doit sauter aux yeux dans l'historique du dossier. */
 .paiement--remboursement .paiement__montant {
-  color: var(--vh-error);
+  color: var(--vh-error-text);
 }
 
 .paiement__methode {
@@ -147,18 +390,6 @@
 }
 
 .paiement__rembourser:hover:not(:disabled) {
-  color: var(--vh-error);
+  color: var(--vh-error-text);
   background: var(--vh-surface-3);
-}
-
-/* Un montant se saisit et se relit en chiffres alignés. */
-.champ-montant {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--vh-text-lg);
-  min-height: var(--vh-touch-primary);
-}
-
-.aide-champ {
-  margin: 0;
-  font-size: var(--vh-text-xs);
 }

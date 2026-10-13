@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Database, Enums, Tables, TablesInsert } from '../../types/database.types';
 import { rempliParLaBase, uneLigneDeVue } from '../../types/frontiere';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Paiement = Tables<'payments'>;
 export type Caisse = Tables<'cash_registers'>;
@@ -42,41 +43,25 @@ export const LIBELLES_ETAT: Readonly<Record<EtatFinancier['payment_status'], str
   OVERPAID: 'Trop-perçu',
 };
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_CAISSE_FERMEE: 'Ouvrez votre caisse avant d’encaisser en espèces.',
+    VEHORA_CAISSE_CLOTUREE: 'Cette session de caisse est clôturée.',
+    VEHORA_CLOTURE_DIRECTE: 'La clôture passe par le bouton de clôture, pas autrement.',
+    VEHORA_COMPTAGE_REQUIS: 'Déclarez le montant compté dans le tiroir.',
+    VEHORA_REMBOURSEMENT_NON_AUTORISE: 'Vous n’avez pas le droit de rembourser.',
+    VEHORA_REMBOURSEMENT_EXCESSIF: 'Le remboursement dépasse le paiement d’origine.',
+    VEHORA_DOSSIER_ANNULE: 'Un dossier annulé ne s’encaisse pas.',
+    VEHORA_SOLDE_RESTANT: 'Votre organisation exige un dossier soldé avant restitution.',
+    VEHORA_CREANCE_NON_AUTORISEE:
+      'Vous n’avez pas le droit de restituer un véhicule avec un solde.',
+  },
+  codes: { '23505': 'Une caisse est déjà ouverte à cette station pour vous.' },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_CAISSE_FERMEE')) {
-    return 'Ouvrez votre caisse avant d’encaisser en espèces.';
-  }
-  if (brut.includes('VEHORA_CAISSE_CLOTUREE')) {
-    return 'Cette session de caisse est clôturée.';
-  }
-  if (brut.includes('VEHORA_CLOTURE_DIRECTE')) {
-    return 'La clôture passe par le bouton de clôture, pas autrement.';
-  }
-  if (brut.includes('VEHORA_COMPTAGE_REQUIS')) {
-    return 'Déclarez le montant compté dans le tiroir.';
-  }
-  if (brut.includes('VEHORA_REMBOURSEMENT_NON_AUTORISE')) {
-    return 'Vous n’avez pas le droit de rembourser.';
-  }
-  if (brut.includes('VEHORA_REMBOURSEMENT_EXCESSIF')) {
-    return 'Le remboursement dépasse le paiement d’origine.';
-  }
-  if (brut.includes('VEHORA_DOSSIER_ANNULE')) {
-    return 'Un dossier annulé ne s’encaisse pas.';
-  }
-  if (brut.includes('VEHORA_SOLDE_RESTANT')) {
-    return 'Votre organisation exige un dossier soldé avant restitution.';
-  }
-  if (brut.includes('VEHORA_CREANCE_NON_AUTORISEE')) {
-    return 'Vous n’avez pas le droit de restituer un véhicule avec un solde.';
-  }
-  if (brut.includes('VEHORA_MOTIF_REQUIS')) return 'Un motif est obligatoire.';
-  if (code === '23505') return 'Une caisse est déjà ouverte à cette station pour vous.';
-  if (code === '42501') return 'Vous n’avez pas le droit d’effectuer cette action.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /** Une page d'historique. Au-delà, l'écran le dit au lieu de faire croire. */

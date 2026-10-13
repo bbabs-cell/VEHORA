@@ -1,17 +1,12 @@
-<div class="clients">
-  <header class="clients__entete">
-    <div>
-      <h1 class="clients__titre">Clients</h1>
-      <p class="vh-muted clients__sous-titre">
-        Recherchez par nom ou par numéro. L’orthographe approximative fonctionne.
-      </p>
-    </div>
+<div class="vh-page clients">
+  <vh-entete-page
+    titre="Clients"
+    description="Recherchez par nom ou par numéro. L’orthographe approximative fonctionne."
+  >
     @if (peutEcrire()) {
-      <button class="vh-button" type="button" (click)="ouvrirCreation()">
-        Nouveau client
-      </button>
+      <button class="vh-button" type="button" (click)="ouvrirCreation()">Nouveau client</button>
     }
-  </header>
+  </vh-entete-page>
 
   <div class="recherche">
     <label class="vh-sr-only" for="recherche">Rechercher un client</label>
@@ -31,7 +26,7 @@
   }
 
   @if (clients.chargement() && clients.clients().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3, 4]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
       }
@@ -45,7 +40,7 @@
                  ou créez la fiche si c’est un nouveau client."
         >
           @if (peutEcrire()) {
-            <button class="vh-button" type="button" (click)="ouvrirCreation()">
+            <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreation()">
               Créer ce client
             </button>
           }
@@ -57,7 +52,7 @@
                  véhicules et leurs prestations en un coup d’œil."
         >
           @if (peutEcrire()) {
-            <button class="vh-button" type="button" (click)="ouvrirCreation()">
+            <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreation()">
               Créer le premier client
             </button>
           }
@@ -65,12 +60,12 @@
       }
     </div>
   } @else {
-    <ul class="liste" aria-label="Liste des clients">
+    <ul class="vh-liste vh-stagger" aria-label="Liste des clients">
       @for (client of clients.clients(); track client.id) {
-        <li class="vh-card carte">
-          <div class="carte__infos">
-            <p class="carte__nom">{{ client.full_name }}</p>
-            <p class="vh-muted carte__detail">
+        <li class="vh-card vh-fiche carte">
+          <div class="vh-fiche__infos carte__infos">
+            <p class="vh-fiche__nom carte__nom">{{ client.full_name }}</p>
+            <p class="vh-fiche__detail carte__detail">
               {{ telephoneLisible(client) }}
               @if (client.email) {
                 · {{ client.email }}
@@ -79,7 +74,7 @@
           </div>
 
           @if (peutEcrire()) {
-            <div class="carte__actions">
+            <div class="vh-actions carte__actions">
               <button
                 class="vh-button vh-button--ghost"
                 type="button"
@@ -139,7 +134,7 @@
             [attr.aria-invalid]="form.controls.full_name.touched && form.controls.full_name.invalid"
           />
           @if (form.controls.full_name.touched && form.controls.full_name.invalid) {
-            <p class="erreur-champ">Le nom comporte entre 2 et 120 caractères.</p>
+            <p class="vh-field__erreur">Le nom comporte entre 2 et 120 caractères.</p>
           }
         </div>
 
@@ -154,7 +149,7 @@
             autocomplete="tel"
             placeholder="77 123 45 67"
           />
-          <p class="vh-muted aide-champ">
+          <p class="vh-aide">
             Peu importe la forme : l’indicatif est ajouté automatiquement.
           </p>
         </div>
@@ -171,7 +166,7 @@
             [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
           />
           @if (form.controls.email.touched && form.controls.email.invalid) {
-            <p class="erreur-champ">Saisissez une adresse e-mail valide, ou laissez vide.</p>
+            <p class="vh-field__erreur">Saisissez une adresse e-mail valide, ou laissez vide.</p>
           }
         </div>
 

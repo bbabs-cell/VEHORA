@@ -9,6 +9,9 @@ SaaS multi-tenant — Angular + Supabase.
 - `docs/architecture/` — les cinq fondations, design system, sécurité
 - `docs/decisions/` — décisions d'architecture (ADR)
 - `docs/phases/` — rapports de phase
+- `docs/design/DESIGN.md` — système visuel ; `docs/SECURITE.md` — registre de sécurité
+- `.claude/skills/` — dont `methode-magyapro` et `animations-vivantes`, la méthode
+  et le style de mouvement du propriétaire
 
 ## Vérifier la base sans projet Supabase
 
@@ -24,7 +27,18 @@ Nécessite les binaires PostgreSQL 16 et un utilisateur non-root.
 
 ## État
 
-Phase 0 terminée — voir `docs/phases/phase-00.md`.
+Phase 24 terminée — voir `docs/phases/phase-24.md` et `CLAUDE.md`.
+
+## Regarder tous les écrans sur un téléphone, sans compte
+
+```bash
+npm run build && npm run audit:mobile
+```
+
+Ouvre chaque écran de chaque profil à 375 px avec un Supabase **simulé**
+(`scripts/maquette/`), signale débordements, boutons écrasés, textes coupés ou
+trop petits et second bouton principal, et enregistre une capture par écran —
+à regarder.
 
 ## Lancer les tests de parcours (Playwright)
 

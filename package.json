@@ -7,12 +7,13 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:unit": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-csv.mjs",
+    "test:unit": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-csv.mjs && node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/verifier-erreurs.mjs && node scripts/verifier-jetons.mjs",
     "test:csp": "node scripts/verifier-csp.mjs",
     "e2e": "node scripts/e2e.mjs",
     "validate:sql": "bash scripts/validate-sql.sh",
     "types:check": "tsc -p tsconfig.app.json --noEmit",
-    "test:contraste": "node scripts/verifier-contraste.mjs"
+    "test:contraste": "node scripts/verifier-contraste.mjs",
+    "audit:mobile": "node scripts/audit-mobile.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

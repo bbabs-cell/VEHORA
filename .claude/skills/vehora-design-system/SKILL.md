@@ -37,25 +37,48 @@ RESTITUÉ `--vh-status-delivered` · ANNULÉ `--vh-status-cancelled`.
 ## Mesures
 
 - Espacement : échelle 4px, `--vh-space-*`. Rien hors échelle.
-- Rayons : `--vh-radius-control` (6), `--vh-radius-card` (10), `--vh-radius-modal` (16).
+- Rayons : `--vh-radius-control` (10), `--vh-radius-card` (14), `--vh-radius-modal` (18).
 - Cibles tactiles : **44px minimum**, 56px (`--vh-touch-primary`) pour les
   actions opérationnelles primaires, placées en bas d'écran sur mobile.
 - Texte : 16px de base, **jamais en dessous de 14px** pour une donnée métier.
 - Profondeur : surface + bordure d'abord, ombre ensuite. Pas de glassmorphism
   sur les listes opérationnelles (coût GPU sur Android d'entrée de gamme).
 
+## Boutons
+
+**Un seul bouton à fond de marque par écran** (méthode MagyaPro, règle 1) :
+`.vh-button`. L'action propre à une ligne de liste prend la marque en trait :
+`.vh-button--trait`. Le reste : `--ghost` (secondaire), `--discret`,
+`--danger`. L'audit mobile échoue au deuxième bouton plein.
+
 ## Mouvement
 
-150–300 ms (`--vh-duration-*`), `ease-out`. Skeleton au-delà de 300 ms de
-chargement. Retour visuel en moins de 100 ms sur toute action, même si la
-requête est lente. `prefers-reduced-motion` déjà géré par les tokens.
+Skill **`animations-vivantes`** (Atelier Flow), porté dans
+`src/styles/_animations.css` avec le préfixe `vh-`. Le charger pour tout
+travail d'animation. Résumé applicable :
+
+- entrées en `animation-fill-mode: backwards`, **jamais `both`** ; l'écran
+  entier n'entre qu'en fondu d'opacité (une transformation capturerait les
+  barres fixées) ;
+- `transform` et `opacity` seulement ; survol 0,2 s, entrée 0,45–0,5 s ;
+- une seule chose qui attire l'œil par écran ; aucune animation continue sur un
+  texte à lire (sauf le point final du titre et le bandeau défilant) ;
+- un montant ne défile jamais sur un document ni à la caisse ;
+- décor (`vh-fond-vivant`, trames) : `aria-hidden`, sous des cartes opaques ;
+- écrans de présentation (connexion, création) : scène complète `vh-scene` ;
+- `prefers-reduced-motion` coupe durées ET délais (`_animations.css`).
+
+Un effet du skill absent de `_animations.css` n'est pas interdit : il n'est
+simplement employé nulle part. On le reprend du skill le jour où un écran en a
+besoin — pas avant.
 
 ## Interdits
 
 Fond majoritairement blanc · dashboard clinique · couleurs criardes ·
-empilement de cartes · glassmorphism généralisé · néomorphisme · animation
-décorative sur un écran opérationnel · icône sans libellé sur une action
-destructive.
+empilement de cartes · glassmorphism généralisé · néomorphisme · deux boutons
+pleins sur un écran · jeton de fond (`--vh-error`, `--vh-primary`) employé en
+texte · réussite affichée dans le bandeau rouge · icône sans libellé sur une
+action destructive.
 
 ## Vérification avant de dire qu'un écran est terminé
 
@@ -64,4 +87,5 @@ destructive.
 - [ ] aucune cible tactile sous 44px
 - [ ] statuts distinguables sans la couleur
 - [ ] aucun texte métier sous 14px
-- [ ] correct à 360px de large
+- [ ] correct à 320 et 375 px de large : `npm run audit:mobile`, captures
+      regardées

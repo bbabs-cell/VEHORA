@@ -1,11 +1,8 @@
-<div class="historique">
-  <header class="historique__entete">
-    <h1 class="historique__titre">Historique de caisse</h1>
-    <p class="vh-muted historique__sous-titre">
-      Les sessions clôturées, {{ periodeLisible() }}. Vous voyez les vôtres, et celles de
-      la station si vous validez les écarts.
-    </p>
-  </header>
+<div class="vh-page historique">
+  <vh-entete-page
+    titre="Historique de caisse"
+    [description]="'Les sessions clôturées, ' + periodeLisible() + '. Vous voyez les vôtres, et celles de la station si vous validez les écarts.'"
+  />
 
   <form class="filtres" (submit)="$event.preventDefault(); actualiser()">
     <div class="vh-field">

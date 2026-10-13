@@ -1,10 +1,8 @@
-<div class="parametres">
-  <header class="parametres__entete">
-    <h1 class="parametres__titre">Paramètres</h1>
-    <p class="vh-muted parametres__sous-titre">
-      Votre fiche et la façon dont vos stations travaillent.
-    </p>
-  </header>
+<div class="vh-page parametres">
+  <vh-entete-page
+    titre="Paramètres"
+    description="Votre fiche et la façon dont vos stations travaillent."
+  />
 
   @if (organisation.erreur(); as erreur) {
     <p class="vh-alert" role="alert">{{ erreur }}</p>
@@ -32,7 +30,7 @@
           autocomplete="organization"
         />
         @if (formFiche.controls.name.touched && formFiche.controls.name.invalid) {
-          <p class="erreur-champ">Le nom comporte entre 2 et 120 caractères.</p>
+          <p class="vh-field__erreur">Le nom comporte entre 2 et 120 caractères.</p>
         }
       </div>
 
@@ -65,7 +63,7 @@
             numéros déjà enregistrés ne changent pas.
           </p>
           @if (formFiche.controls.country_code.touched && formFiche.controls.country_code.invalid) {
-            <p class="erreur-champ">Indiquez un code de deux lettres.</p>
+            <p class="vh-field__erreur">Indiquez un code de deux lettres.</p>
           }
         </div>
       </div>
@@ -102,7 +100,7 @@
             autocomplete="email"
           />
           @if (formFiche.controls.email.touched && formFiche.controls.email.invalid) {
-            <p class="erreur-champ">Saisissez une adresse e-mail valide.</p>
+            <p class="vh-field__erreur">Saisissez une adresse e-mail valide.</p>
           }
         </div>
       </div>
@@ -124,12 +122,22 @@
         converti. L’état du compte est géré par VEHORA.
       </p>
 
-      @if (messageFiche(); as texte) {
-        <p class="vh-alert" role="status">{{ texte }}</p>
+      @if (messageFiche(); as r) {
+        <p class="vh-alert" [class.vh-alert--succes]="r.ok" [attr.role]="r.ok ? 'status' : 'alert'">
+          {{ r.texte }}
+        </p>
       }
 
       <div class="bloc__actions">
-        <button class="vh-button" type="submit" [disabled]="enregistrementFiche()">
+        <!-- Deux formulaires sur l'écran : seul celui qu'on vient de modifier
+             porte le bouton principal (méthode, règle n°1). Deux boutons
+             « Enregistrer » pleins ne disaient plus lequel attendait. -->
+        <button
+          class="vh-button"
+          [class.vh-button--ghost]="formFiche.pristine"
+          type="submit"
+          [disabled]="enregistrementFiche()"
+        >
           {{ enregistrementFiche() ? 'Enregistrement…' : 'Enregistrer la fiche' }}
         </button>
       </div>
@@ -192,16 +200,23 @@
           Au-delà, la remise exige la permission de remboursement et rejoint le journal d’audit.
         </p>
         @if (formReglages.controls.max_discount_percent.invalid) {
-          <p class="erreur-champ">La remise va de 0 à 100 %.</p>
+          <p class="vh-field__erreur">La remise va de 0 à 100 %.</p>
         }
       </div>
 
-      @if (messageReglages(); as texte) {
-        <p class="vh-alert" role="status">{{ texte }}</p>
+      @if (messageReglages(); as r) {
+        <p class="vh-alert" [class.vh-alert--succes]="r.ok" [attr.role]="r.ok ? 'status' : 'alert'">
+          {{ r.texte }}
+        </p>
       }
 
       <div class="bloc__actions">
-        <button class="vh-button" type="submit" [disabled]="enregistrementReglages()">
+        <button
+          class="vh-button"
+          [class.vh-button--ghost]="formReglages.pristine"
+          type="submit"
+          [disabled]="enregistrementReglages()"
+        >
           {{ enregistrementReglages() ? 'Enregistrement…' : 'Enregistrer les règles' }}
         </button>
       </div>

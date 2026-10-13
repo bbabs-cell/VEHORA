@@ -1,0 +1,386 @@
+/* VEHORA — animations vivantes.
+
+   Portage en CSS pur (Angular, sans Tailwind) du skill « animations vivantes »
+   d'Atelier Flow et de MagyaPro : `.claude/skills/animations-vivantes/`.
+   Une interface vivante mais calme — ce qui apparaît glisse, ce qui se touche
+   répond, le fond respire lentement, et rien ne gêne la lecture ni la saisie.
+
+   Trois écarts assumés avec le fichier d'origine, chacun pour une raison :
+
+   1. Préfixe `vh-` sur toutes les classes et tous les @keyframes : le projet
+      n'a pas de Tailwind, et un nom nu (`pop`, `float`) finirait par entrer en
+      collision avec un composant.
+   2. Les entrées sont en `animation-fill-mode: backwards`, jamais `both`
+      (méthode MagyaPro, design §6) : une transformation restée appliquée après
+      l'animation capture les `position: fixed` descendants — sur MagyaPro, des
+      barres fixées en bas disparaissaient. `backwards` donne le même rendu,
+      puisque chaque entrée finit sur l'état naturel de l'élément.
+   3. Les couleurs viennent des jetons (`--vh-vivant*`, `--vh-degrade-*`) :
+      règle n°2 de la méthode, aucune couleur écrite ici.
+
+   Seul ce que l'application EMPLOIE est ici : le reflet du bouton principal
+   vit dans `.vh-button`, et les effets sans usage (anneau pulsé, barres qui
+   poussent, tiroir latéral animé) restent dans le fichier du skill, à
+   reprendre le jour où un écran en a besoin. Une classe que rien n'utilise
+   est du poids envoyé à chaque téléphone.
+
+   Règles du skill, rappelées parce qu'elles décident de ce qu'on a le droit
+   d'ajouter ici :
+   - n'animer que `transform` et `opacity` (et `background-position` pour un
+     dégradé) : le reste fait recalculer la mise en page, et le téléphone visé
+     n'en a pas les moyens ;
+   - une seule chose qui attire l'œil par écran (`pulse-ring`, `wiggle`) ;
+   - aucune animation continue sur un texte à lire, sauf le point final du
+     titre et le bandeau défilant ;
+   - un nombre animé finit exactement sur sa valeur, et un montant ne s'anime
+     jamais dans un document (reçu, export). */
+
+/* ---------- Courbes et durées ------------------------------------------- */
+
+:root {
+  --vh-anime-fade-up: vh-fade-up 0.5s var(--vh-ease) backwards;
+  --vh-anime-fade-in: vh-fade-in 0.35s ease-out backwards;
+  --vh-anime-scale-in: vh-scale-in 0.35s var(--vh-ease) backwards;
+  --vh-anime-pop: vh-pop 0.45s var(--vh-ease-pop) backwards;
+  --vh-anime-gradient: vh-gradient-pan 6s ease infinite;
+}
+
+/* ---------- @keyframes --------------------------------------------------- */
+
+@keyframes vh-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vh-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vh-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes vh-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vh-slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vh-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.12) rotate(20deg);
+  }
+  66% {
+    transform: translate(-30px, 25px) scale(0.92) rotate(-15deg);
+  }
+}
+
+@keyframes vh-float {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-8px) rotate(-2deg);
+  }
+}
+
+@keyframes vh-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes vh-gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes vh-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes vh-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-10deg);
+  }
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
+/* Le « wiggle » du skill fait tourner une icône de 10°. Appliqué tel quel à un
+   bandeau d'erreur pleine largeur, il le ferait basculer comme un cadre mal
+   accroché : pour un bloc, la même intention — « ceci vient d'être refusé » —
+   se dit par un léger va-et-vient horizontal, une seule fois. */
+@keyframes vh-refus {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes vh-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes vh-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---------- Utilitaires d'animation -------------------------------------- */
+
+.vh-anim-fade-up {
+  animation: var(--vh-anime-fade-up);
+}
+.vh-anim-float {
+  animation: vh-float 5s ease-in-out infinite;
+}
+.vh-anim-wiggle {
+  display: inline-block;
+  transform-origin: 70% 70%;
+  animation: vh-wiggle 0.6s ease-in-out;
+}
+/* Une seule par écran : c'est l'icône « à faire maintenant ». */
+.vh-anim-pulse {
+  animation: vh-pulse 2s ease-in-out infinite;
+}
+
+/* Entrée en cascade : 50 ms par enfant, plafonnée à 0,42 s. Au-delà, le
+   dernier véhicule d'une file de trente arriverait une seconde et demie après
+   le premier. */
+.vh-stagger > * {
+  animation: var(--vh-anime-fade-up);
+}
+.vh-stagger > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.vh-stagger > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+.vh-stagger > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.vh-stagger > *:nth-child(4) {
+  animation-delay: 0.17s;
+}
+.vh-stagger > *:nth-child(5) {
+  animation-delay: 0.22s;
+}
+.vh-stagger > *:nth-child(6) {
+  animation-delay: 0.27s;
+}
+.vh-stagger > *:nth-child(7) {
+  animation-delay: 0.32s;
+}
+.vh-stagger > *:nth-child(8) {
+  animation-delay: 0.37s;
+}
+.vh-stagger > *:nth-child(n + 9) {
+  animation-delay: 0.42s;
+}
+
+/* ---------- Décors -------------------------------------------------------- */
+
+/* Mot ou chiffre en dégradé animé. Jamais sur une phrase à lire. */
+.vh-text-gradient {
+  background-image: var(--vh-degrade-trait);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--vh-anime-gradient);
+}
+
+/* Trame de points : sur un fond toujours sombre (navigation) / sur le fond
+   du thème courant (contenu, bandeaux). */
+.vh-dot-grid {
+  background-image: radial-gradient(var(--vh-nav-trame) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.vh-dot-grid-ink {
+  background-image: radial-gradient(var(--vh-trame) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Contour en dégradé animé, visible au survol et au focus clavier. Seul le
+   contour est peint (masque) : le contenu reste lisible. */
+.vh-gradient-border {
+  position: relative;
+  isolation: isolate;
+}
+.vh-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  padding: 2px;
+  border-radius: inherit;
+  background: var(--vh-degrade-aurore);
+  background-size: 300% 300%;
+  animation: var(--vh-anime-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.vh-gradient-border:hover::before,
+.vh-gradient-border:focus-within::before {
+  opacity: 1;
+}
+
+/* Titre de page : entrée douce + point final en dégradé animé. Le point est
+   décoratif : `/ ""` lui donne un texte alternatif vide, pour qu'un lecteur
+   d'écran (et une assertion qui cherche le titre par son nom) lise
+   « File d'attente », pas « File d'attente point ». */
+.vh-page-title {
+  animation: var(--vh-anime-fade-up);
+}
+.vh-page-title::after {
+  content: '.';
+  content: '.' / '';
+  background-image: var(--vh-degrade-trait);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--vh-anime-gradient);
+}
+
+/* Squelette de chargement aux dimensions du contenu final. */
+.vh-squelette {
+  display: block;
+  border-radius: var(--vh-radius-control);
+  background: linear-gradient(
+    90deg,
+    var(--vh-surface-2) 25%,
+    var(--vh-surface-3) 50%,
+    var(--vh-surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: vh-shimmer 1.6s linear infinite;
+}
+
+/* Bandeau défilant : la piste est dupliquée dans le gabarit, la boucle se
+   referme donc sans saut. */
+.vh-marquee {
+  display: flex;
+  width: max-content;
+  animation: vh-marquee 28s linear infinite;
+}
+
+/* ---------- Impression ------------------------------------------------------
+   Aucun décor ni mouvement sur papier. */
+@media print {
+  .vh-page-title::after,
+  .vh-fond-vivant,
+  .vh-dot-grid,
+  .vh-dot-grid-ink {
+    display: none !important;
+  }
+}
+
+/* ---------- Mouvement réduit -----------------------------------------------
+   Qui a demandé moins d'animations n'a plus AUCUN mouvement continu, et les
+   transitions deviennent instantanées. Les DÉLAIS sont annulés aussi : une
+   entrée retardée dont on n'annule que la durée laisse du contenu invisible
+   pendant son attente — c'est un contenu perdu, pas une animation économisée. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .vh-squelette {
+    animation: none !important;
+    background: var(--vh-surface-2);
+  }
+}

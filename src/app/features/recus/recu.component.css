@@ -83,8 +83,19 @@
 .recu__lignes th,
 .recu__lignes td {
   text-align: left;
-  padding: var(--vh-space-2) 0;
+  padding: var(--vh-space-2) 0 var(--vh-space-2) var(--vh-space-3);
   border-bottom: 1px solid var(--vh-border);
+}
+
+/* Sans marge entre les colonnes, l'en-tête se lisait « QtéMontant ». Les
+   colonnes de chiffres s'alignent à droite, intitulé compris. */
+.recu__lignes th:first-child,
+.recu__lignes td:first-child {
+  padding-left: 0;
+}
+
+.recu__lignes thead th:not(:first-child) {
+  text-align: right;
 }
 
 .recu__lignes tfoot th,
@@ -147,19 +158,27 @@
  * produit destiné à sortir sur papier.
  */
 @media print {
+  /* Une imprimante thermique de caisse fait 58 ou 80 mm : le reçu tient dans
+     80 mm (méthode MagyaPro, impression). Sur une feuille A4, il sort en
+     ticket au centre plutôt qu'étiré sur 21 cm. */
+  @page {
+    margin: 4mm;
+  }
   .actions {
     display: none;
   }
   .page {
+    max-width: 80mm;
     padding: 0;
   }
   .recu {
-    background: #fff;
-    color: #000;
+    background: var(--vh-print-papier);
+    color: var(--vh-print-encre);
     border: none;
+    box-shadow: none;
   }
   .recu__lignes th,
   .recu__lignes td {
-    border-color: #999;
+    border-color: var(--vh-print-filet);
   }
 }

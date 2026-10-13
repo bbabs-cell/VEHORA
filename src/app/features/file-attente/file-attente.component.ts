@@ -22,6 +22,7 @@ import { StationService } from '../../core/stations/station.service';
 import { ScrollLockService } from '../../core/ui/scroll-lock.service';
 import { VehicleService, type VehiculeListe } from '../../core/vehicles/vehicle.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import {
   LIBELLES_ETAT,
@@ -59,7 +60,7 @@ const DELAI_RECHERCHE = 300;
 @Component({
   selector: 'vh-file-attente',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, SkeletonComponent],
+  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, EntetePageComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './file-attente.component.html',
   styleUrl: './file-attente.component.css',

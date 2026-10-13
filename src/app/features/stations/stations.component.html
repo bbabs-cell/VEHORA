@@ -1,24 +1,19 @@
-<div class="stations">
-  <header class="stations__entete">
-    <div>
-      <h1 class="stations__titre">Stations</h1>
-      <p class="vh-muted stations__sous-titre">
-        Les sites où vous recevez des véhicules, y compris vos équipes mobiles.
-      </p>
-    </div>
+<div class="vh-page stations">
+  <vh-entete-page
+    titre="Stations"
+    description="Les sites où vous recevez des véhicules, y compris vos équipes mobiles."
+  >
     @if (peutGerer()) {
-      <button class="vh-button" type="button" (click)="ouvrirCreation()">
-        Ajouter une station
-      </button>
+      <button class="vh-button" type="button" (click)="ouvrirCreation()">Ajouter une station</button>
     }
-  </header>
+  </vh-entete-page>
 
   @if (stations.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
   }
 
   @if (stations.chargement() && stations.stations().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
       }
@@ -31,27 +26,27 @@
                Une équipe qui se déplace chez le client est aussi une station, de type mobile."
       >
         @if (peutGerer()) {
-          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+          <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreation()">
             Créer une station
           </button>
         }
       </vh-empty-state>
     </div>
   } @else {
-    <ul class="liste" aria-label="Liste des stations">
+    <ul class="vh-liste vh-stagger" aria-label="Liste des stations">
       @for (station of stations.stations(); track station.id) {
-        <li class="vh-card carte">
-          <div class="carte__infos">
-            <p class="carte__nom">
+        <li class="vh-card vh-fiche carte">
+          <div class="vh-fiche__infos carte__infos">
+            <p class="vh-fiche__nom carte__nom">
               {{ station.name }}
               @if (station.kind === 'MOBILE') {
-                <span class="etiquette">Mobile</span>
+                <span class="vh-etiquette">Mobile</span>
               }
               @if (station.status === 'INACTIVE') {
-                <span class="etiquette etiquette--inactive">Inactive</span>
+                <span class="vh-etiquette vh-etiquette--inactive">Inactive</span>
               }
             </p>
-            <p class="vh-muted carte__detail">
+            <p class="vh-fiche__detail carte__detail">
               {{ station.city || 'Ville non renseignée' }}
               @if (station.phone) {
                 · {{ station.phone }}
@@ -60,7 +55,7 @@
           </div>
 
           @if (peutGerer()) {
-            <div class="carte__actions">
+            <div class="vh-actions carte__actions">
               <button
                 class="vh-button vh-button--ghost"
                 type="button"
@@ -116,7 +111,7 @@
             [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
           />
           @if (form.controls.name.touched && form.controls.name.invalid) {
-            <p class="erreur-champ">Le nom est obligatoire (80 caractères maximum).</p>
+            <p class="vh-field__erreur">Le nom est obligatoire (80 caractères maximum).</p>
           }
         </div>
 

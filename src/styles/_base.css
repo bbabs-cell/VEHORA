@@ -90,14 +90,15 @@ textarea {
 }
 
 .vh-input:hover:not(:disabled):not(:focus) {
-  border-color: var(--vh-text-faint);
+  border-color: color-mix(in srgb, var(--vh-primary-bright) 45%, var(--vh-border));
 }
 
-/* Le champ actif se distingue par le contraste et un anneau, pas par une
-   couleur de plus : un halo coloré sur chaque champ fait un écran bariolé. */
+/* Le champ actif : filet de marque et anneau doux de 4 px (skill « animations
+   vivantes »). Un seul champ l'a à la fois — ce n'est donc pas un écran
+   bariolé, c'est l'endroit où l'on écrit. */
 .vh-input:focus {
   border-color: var(--vh-primary-bright);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vh-primary-bright) 22%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vh-primary-bright) 18%, transparent);
   outline: none;
 }
 
@@ -117,37 +118,131 @@ textarea {
 
 /* Le message d'un champ en erreur se lit SOUS le champ, en toutes lettres.
    Un contour rouge seul ne dit pas quoi corriger, et ne se voit pas du tout
-   pour qui ne distingue pas le rouge. */
+   pour qui ne distingue pas le rouge. (Il s'appelait aussi `erreur-champ`,
+   défini six fois, et `vh-error`, défini nulle part.) */
 .vh-field__erreur {
+  margin: 0;
   font-size: var(--vh-text-sm);
   color: var(--vh-error-text);
 }
 
+/* L'aide sous un champ : ce qu'on attend, dit avant l'erreur. */
+.vh-aide {
+  margin: 0;
+  font-size: var(--vh-text-xs);
+  color: var(--vh-text-muted);
+}
+
+/* Un montant se saisit et se relit en chiffres alignés, en grand. */
+.vh-champ-montant {
+  min-height: var(--vh-touch-primary);
+  font-size: var(--vh-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La plaque se lit comme une plaque, pas comme du texte courant : c'est
+   l'information qu'on cherche des yeux dans une file de vingt véhicules. */
+.vh-plaque {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* Étiquette : un fait secondaire (« Berline », « Inactif »), en contour. */
+.vh-etiquette {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--vh-space-2);
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-pill);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.vh-etiquette--inactive,
+.vh-etiquette--attente {
+  border-color: var(--vh-warning);
+  color: var(--vh-warning);
+}
+
+.vh-etiquette--suspendu {
+  border-color: var(--vh-error-text);
+  color: var(--vh-error-text);
+}
+
+.vh-etiquette--marque {
+  border-color: var(--vh-primary-bright);
+  color: var(--vh-primary-bright);
+}
+
+.vh-etiquette--ok {
+  border-color: var(--vh-success);
+  color: var(--vh-success);
+}
+
 .vh-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--vh-space-2);
   min-height: var(--vh-touch-min);
   padding: 0 var(--vh-space-6);
-  background: var(--vh-primary);
+  /* Dégradé d'azurs profonds, deux fois plus large que le bouton : au repos on
+     en voit la moitié sombre, au survol il glisse vers la claire. */
+  background: var(--vh-degrade-primaire);
+  background-size: 200% 200%;
+  background-position: 0% 50%;
   color: var(--vh-primary-ink);
   border: none;
   border-radius: var(--vh-radius-control);
   font-weight: 600;
+  text-decoration: none;
+  /* Un libellé ne se casse jamais lettre par lettre : la rangée qui contient
+     le bouton passe à la ligne (méthode MagyaPro, « boutons écrasés »). */
+  white-space: nowrap;
   cursor: pointer;
   box-shadow: var(--vh-glow-primary);
   transition:
-    background var(--vh-duration-fast) var(--vh-ease),
+    background-position var(--vh-duration-base) var(--vh-ease),
+    background-color var(--vh-duration-fast) var(--vh-ease),
     transform var(--vh-duration-fast) var(--vh-ease),
-    box-shadow var(--vh-duration-fast) var(--vh-ease);
+    box-shadow var(--vh-duration-fast) var(--vh-ease),
+    border-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+/* Le reflet qui balaie l'action principale au survol (skill : `shine`). Sous
+   le libellé, dans un contexte isolé : le texte n'est jamais voilé. */
+.vh-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.28) 50%,
+    transparent 80%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--vh-ease);
+  pointer-events: none;
 }
 
 /* Au survol, la LUMINOSITÉ monte ; la teinte ne bouge pas. La couleur
    s'active, elle ne devient pas une autre couleur. */
 .vh-button:hover:not(:disabled) {
-  background: var(--vh-primary-hover);
-  transform: translateY(-1px);
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+}
+
+.vh-button:hover:not(:disabled)::after {
+  transform: translateX(120%);
 }
 
 /* Le bouton se comprime sous le doigt. C'est la seule réponse immédiate dont
@@ -164,14 +259,6 @@ textarea {
   box-shadow: none;
 }
 
-/* L'action opérationnelle primaire — encaisser, démarrer, restituer — posée
-   en bas de l'écran, là où arrive le pouce d'une main qui tient aussi un jet. */
-.vh-button--op {
-  min-height: var(--vh-touch-primary);
-  width: 100%;
-  font-size: var(--vh-text-lg);
-}
-
 .vh-button--ghost {
   background: var(--vh-surface-2);
   color: var(--vh-text);
@@ -183,6 +270,24 @@ textarea {
 .vh-button--ghost:hover:not(:disabled) {
   background: var(--vh-surface-3);
   border-color: var(--vh-text-faint);
+}
+
+/* La marque en TRAIT : l'étape suivante d'un dossier dans une liste.
+   Règle n°1 de la méthode : un seul bouton à fond de marque par écran. Sur la
+   file d'attente, c'était « Nouveau dossier » PLUS un bouton plein par
+   véhicule — vingt boutons azur qui ne désignaient plus rien. L'action propre
+   à une ligne garde la couleur de marque, mais en contour : elle se distingue
+   des actions neutres sans faire concurrence à l'action de l'écran. */
+.vh-button--trait {
+  background: transparent;
+  color: var(--vh-primary-bright);
+  border: 1px solid color-mix(in srgb, var(--vh-primary-bright) 55%, transparent);
+  box-shadow: none;
+}
+
+.vh-button--trait:hover:not(:disabled) {
+  background: var(--vh-primary-soft);
+  border-color: var(--vh-primary-bright);
 }
 
 /* Action de service — « Tout afficher », « Annuler ». Sans fond au repos :
@@ -214,6 +319,145 @@ textarea {
   filter: brightness(1.1);
 }
 
+/* Le reflet est réservé à l'action principale : sur un bouton secondaire, il
+   en ferait une seconde action principale. */
+.vh-button--ghost::after,
+.vh-button--trait::after,
+.vh-button--discret::after,
+.vh-button--danger::after {
+  content: none;
+}
+
+/* La marque, sur les écrans de présentation : le nom en dégradé (skill :
+   `text-gradient`, « mot clé d'un titre »). */
+.vh-marque {
+  display: inline-block;
+  margin: 0 0 var(--vh-space-4);
+  font-size: var(--vh-text-sm);
+  font-weight: 800;
+  letter-spacing: 0.24em;
+}
+
+/* Le titre d'un écran de présentation : le registre « page-title » du skill,
+   plus grand qu'un titre d'écran de travail. */
+.vh-titre-scene {
+  font-size: clamp(var(--vh-text-2xl), 8vw, var(--vh-text-3xl));
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+/* --- Pages et listes -------------------------------------------------------
+   Le conteneur d'un écran et la liste de fiches étaient recopiés dans chaque
+   feuille de composant (six copies identiques à un nom de classe près). */
+.vh-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--vh-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-6);
+}
+
+.vh-page--large {
+  max-width: 1200px;
+}
+
+@media (min-width: 1024px) {
+  .vh-page {
+    padding: var(--vh-space-6);
+  }
+}
+
+.vh-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+/* Titre d'un groupe de la page (« En attente 3 »). */
+.vh-section-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-2);
+  margin: 0;
+  font-size: var(--vh-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vh-text-muted);
+}
+
+/* Une fiche de liste : identité à gauche, actions à droite — empilées sur un
+   téléphone. Posée sur une `vh-card`. */
+.vh-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-3);
+}
+
+.vh-fiche__infos {
+  min-width: 0;
+}
+
+.vh-fiche__nom {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--vh-space-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.vh-fiche__detail {
+  margin: var(--vh-space-1) 0 0;
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-sm);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .vh-fiche {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Une rangée d'actions passe à la ligne au lieu de supposer la largeur d'un
+   ordinateur (méthode : « flex flex-wrap gap-2 »). */
+.vh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vh-space-2);
+}
+
+/* Sur un téléphone, les boutons d'une rangée « étirée » se partagent toute la
+   largeur : l'action d'un écran devient une cible pour le pouce. */
+@media (max-width: 639px) {
+  .vh-actions--etirees > .vh-button {
+    flex: 1 1 auto;
+  }
+}
+
+/* Chiffres clés : 2 × 2 sur un téléphone, 4 colonnes au-delà (méthode). */
+.vh-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vh-space-3);
+}
+
+@media (min-width: 1024px) {
+  .vh-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .vh-card {
   background: var(--vh-surface-1);
   border: 1px solid var(--vh-border);
@@ -222,13 +466,28 @@ textarea {
   /* Surface, filet, PUIS ombre — dans cet ordre. La carte se détache d'abord
      par son fond et son trait ; l'ombre ne fait que la décoller du plan. */
   box-shadow: var(--vh-shadow-1);
+  /* Une carte qui arrive s'ouvre (skill : `animate-scale-in`). En
+     `backwards` : une fois posée, elle ne garde aucune transformation qui
+     capturerait une barre fixée dans son contenu. */
+  animation: var(--vh-anime-scale-in);
 }
 
-/* Une carte sur laquelle on peut appuyer le dit en se soulevant. Deux pixels :
-   assez pour être perçu, jamais assez pour faire sauter la grille sous le
-   doigt. */
+/* Une carte sur un téléphone : 16 px de marge intérieure, pas 24 — chaque
+   pixel horizontal est une lettre de plus avant la coupure. */
+@media (max-width: 639px) {
+  .vh-card {
+    padding: var(--vh-space-4);
+  }
+}
+
+/* Une carte sur laquelle on peut appuyer le dit en se soulevant, et son
+   contour s'allume (skill : `gradient-border hover:-translate-y-1`). Quatre
+   pixels : assez pour être perçu, jamais assez pour faire sauter la grille
+   sous le doigt. Ajouter `vh-gradient-border` pour le contour animé. */
 .vh-card--cliquable {
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition:
     transform var(--vh-duration-fast) var(--vh-ease),
     box-shadow var(--vh-duration-fast) var(--vh-ease),
@@ -236,9 +495,8 @@ textarea {
 }
 
 .vh-card--cliquable:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--vh-shadow-2);
-  border-color: var(--vh-text-faint);
+  transform: translateY(-4px);
+  box-shadow: var(--vh-shadow-3);
 }
 
 .vh-card--cliquable:active {
@@ -246,13 +504,10 @@ textarea {
   transition-duration: 60ms;
 }
 
-/* Un encart À L'INTÉRIEUR d'une carte. Jamais une seconde carte : deux filets
-   et deux ombres imbriqués brouillent la lecture au lieu de la structurer. */
-.vh-encart {
-  background: var(--vh-surface-3);
-  border-radius: var(--vh-radius-control);
-  padding: var(--vh-space-4);
-}
+/* Un encart À L'INTÉRIEUR d'une carte se fait en surface 3, sans filet ni
+   ombre — jamais une seconde carte. (La classe `.vh-encart` n'était employée
+   par aucun écran ; chaque encart réel — ligne de dossier, tarif — porte ces
+   trois propriétés dans sa feuille.) */
 
 /* --- Pastilles d'état ----------------------------------------------------
    Fond sourd de l'état, texte dans la teinte pleine, ET une forme — le point.
@@ -317,21 +572,18 @@ textarea {
   content: '';
   position: absolute;
   left: 0;
-  top: 0;
-  bottom: 0;
+  /* Rentré du haut et du bas : collé de bout en bout, il débordait des coins
+     arrondis de la carte. */
+  top: var(--vh-space-3);
+  bottom: var(--vh-space-3);
   width: 3px;
   border-radius: var(--vh-radius-pill);
   background: var(--vh-rail, var(--vh-border));
 }
 
 /* --- Les chiffres --------------------------------------------------------
-   Tout nombre lu en colonne s'aligne. Deux totaux qui ne s'alignent pas se
-   comparent à l'œil, donc mal. */
-.vh-chiffre {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
+   Tout nombre lu en colonne s'aligne (`tabular-nums`). Deux totaux qui ne
+   s'alignent pas se comparent à l'œil, donc mal. */
 
 /* Un montant. Le laiton ne sert qu'à l'argent : un total se repère sans être
    lu, et employer cette teinte ailleurs la viderait de ce sens. */
@@ -347,6 +599,12 @@ textarea {
   border: 1px solid var(--vh-error);
   background: color-mix(in srgb, var(--vh-error) 12%, transparent);
   font-size: var(--vh-text-sm);
+  /* Une action refusée se voit : le bandeau arrive et marque un léger
+     va-et-vient, UNE fois (skill : « alerte visible », `wiggle`). Un refus
+     qui s'affiche sans bouger, sous le pouce, passe inaperçu. */
+  animation:
+    vh-fade-in 0.2s ease-out backwards,
+    vh-refus 0.45s var(--vh-ease) 0.05s backwards;
 }
 
 /* Une information n'est pas une panne. « Aucun message n'est envoyé » affiché
@@ -356,12 +614,22 @@ textarea {
   border-color: var(--vh-primary-bright);
   background: color-mix(in srgb, var(--vh-primary-bright) 10%, transparent);
   color: var(--vh-text);
+  /* Une information n'a rien été refusé : elle glisse, elle ne tremble pas. */
+  animation: var(--vh-anime-fade-up);
+}
+
+.vh-alert--succes {
+  border-color: var(--vh-success);
+  background: color-mix(in srgb, var(--vh-success) 10%, transparent);
+  color: var(--vh-text);
+  animation: var(--vh-anime-fade-up);
 }
 
 .vh-alert--attention {
   border-color: var(--vh-warning);
   background: color-mix(in srgb, var(--vh-warning) 12%, transparent);
   color: var(--vh-text);
+  animation: var(--vh-anime-fade-up);
 }
 
 .vh-muted {
@@ -404,16 +672,30 @@ textarea {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgb(0 0 0 / 0.6);
+  background: var(--vh-voile);
   padding: var(--vh-space-3);
 }
 
 .modale__contenu {
+  position: relative;
   width: 100%;
   max-width: 480px;
   max-height: 92dvh;
   overflow-y: auto;
   border-radius: var(--vh-radius-modal);
+  box-shadow: var(--vh-shadow-3);
+}
+
+/* Liseré de marque en tête de la fenêtre (skill : `modalPanel`). Il dit
+   « ceci vient d'au-dessus de la page » sans une ombre de plus. */
+.modale__contenu::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--vh-degrade-aurore);
+  background-size: 300% 300%;
+  pointer-events: none;
 }
 
 .modale__entete {
@@ -445,9 +727,17 @@ textarea {
   cursor: pointer;
 }
 
+.modale__fermer {
+  transition:
+    transform var(--vh-duration-base) var(--vh-ease),
+    background-color var(--vh-duration-fast) var(--vh-ease);
+}
+
+/* La croix fait un quart de tour au survol (skill : `hover:rotate-90`). */
 .modale__fermer:hover {
   background: var(--vh-surface-3);
   color: var(--vh-text);
+  transform: rotate(90deg);
 }
 
 .modale form {
@@ -465,6 +755,22 @@ textarea {
   flex-wrap: wrap;
 }
 
+/* Sur un téléphone, les boutons d'un formulaire prennent toute la largeur, et
+   l'action principale finit EN BAS, là où arrive le pouce (méthode : « bouton
+   principal en bas pleine largeur sur mobile »). L'ordre du DOM — Annuler,
+   puis l'action — donne cet ordre sans rien inverser : le clavier et le
+   lecteur d'écran lisent ce que l'œil voit. */
+@media (max-width: 639px) {
+  .modale__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modale__actions > .vh-button {
+    width: 100%;
+  }
+}
+
 /* Sur un écran large, la modale se centre au lieu de coller au bas : au pouce
    sur mobile, sous les yeux sur un bureau. Cette bascule était elle aussi
    recopiée dans les dix feuilles. */
@@ -475,150 +781,38 @@ textarea {
 }
 
 /* --- Mouvement -----------------------------------------------------------
-   Vivant, mais calme. Vocabulaire repris du skill « animations vivantes »
-   (dépôts ATELIERFLOW et MagyaPro), avec la retenue qu'impose un écran de
-   travail : rien ne boucle, rien ne dérive en fond, et aucune animation
-   décorative sur la file d'attente ou la caisse — elles sont consultées cent
-   fois par jour.
-
-   N'animer que `transform` et `opacity` : tout le reste fait recalculer la
-   mise en page, et le téléphone visé n'en a pas les moyens. */
-
-@keyframes vh-entree {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes vh-apparition {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes vh-ouverture {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes vh-pop {
-  0% {
-    transform: scale(0.85);
-  }
-  60% {
-    transform: scale(1.06);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes vh-scintillement {
-  from {
-    background-position: -160% 0;
-  }
-  to {
-    background-position: 260% 0;
-  }
-}
-
-/* L'arrivée d'une page. Un changement de filtre sur la même page ne la rejoue
-   pas : seul le contenu réellement inséré glisse. */
-.vh-entree {
-  animation: vh-entree var(--vh-duration-slow) var(--vh-ease) both;
-}
-
-.vh-ouverture {
-  animation: vh-ouverture var(--vh-duration-base) var(--vh-ease) both;
-}
-
-/* Une valeur qui change rebondit UNE fois. Mettre la valeur en `key` dans le
-   gabarit pour que l'animation se rejoue à chaque changement. */
-.vh-pop {
-  animation: vh-pop var(--vh-duration-base) var(--vh-ease-pop) both;
-}
-
-/* Entrée en cascade d'une liste : 50 ms par élément, plafonnés à 300 ms.
-   Au-delà, le dernier élément d'une file de trente voitures arriverait une
-   seconde et demie après le premier. */
-.vh-cascade > * {
-  animation: vh-entree var(--vh-duration-slow) var(--vh-ease) both;
-}
-.vh-cascade > *:nth-child(1) {
-  animation-delay: 0ms;
-}
-.vh-cascade > *:nth-child(2) {
-  animation-delay: 50ms;
-}
-.vh-cascade > *:nth-child(3) {
-  animation-delay: 100ms;
-}
-.vh-cascade > *:nth-child(4) {
-  animation-delay: 150ms;
-}
-.vh-cascade > *:nth-child(5) {
-  animation-delay: 200ms;
-}
-.vh-cascade > *:nth-child(6) {
-  animation-delay: 250ms;
-}
-.vh-cascade > *:nth-child(n + 7) {
-  animation-delay: 300ms;
-}
-
-/* Attente : un squelette aux dimensions du contenu final, pas un tourniquet
-   au centre de l'écran. On voit arriver la forme de ce qu'on attend. */
-.vh-squelette {
-  border-radius: var(--vh-radius-control);
-  background: linear-gradient(
-    90deg,
-    var(--vh-surface-2) 0%,
-    var(--vh-surface-3) 40%,
-    var(--vh-surface-2) 80%
-  );
-  background-size: 220% 100%;
-  animation: vh-scintillement 1.4s linear infinite;
-}
+   Le vocabulaire vit dans `_animations.css` (skill « animations vivantes »).
+   Ici, seulement ce que les composants de base en font. */
 
 /* Le voile d'une modale apparaît en fondu, son contenu s'ouvre. */
 .modale {
-  animation: vh-apparition var(--vh-duration-fast) var(--vh-ease) both;
+  animation: var(--vh-anime-fade-in);
 }
 
 .modale__contenu {
-  animation: vh-ouverture var(--vh-duration-base) var(--vh-ease) both;
+  animation: var(--vh-anime-scale-in);
 }
 
-/* La coupure du mouvement annule les durées PUIS les délais. N'annuler que la
-   durée laisserait une entrée retardée invisible pendant son attente : ce
-   n'est pas une animation économisée, c'est un contenu perdu. */
-@media (prefers-reduced-motion: reduce) {
-  .vh-entree,
-  .vh-ouverture,
-  .vh-pop,
-  .vh-cascade > *,
-  .modale,
-  .modale__contenu {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0ms !important;
-  }
-
-  .vh-squelette {
-    animation: none;
-    background: var(--vh-surface-2);
-  }
+/* Un compteur (pastille de groupe, badge de navigation) rebondit à son
+   arrivée. Mettre la valeur en `@for … track` ou dans un `@if` qui la change
+   pour que l'animation se rejoue quand le nombre bouge. */
+.vh-compteur {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  padding: 0 var(--vh-space-2);
+  border-radius: var(--vh-radius-pill);
+  background: var(--vh-surface-3);
+  color: var(--vh-text-muted);
+  font-size: var(--vh-text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  animation: var(--vh-anime-pop);
 }
+
+/* --- Tableaux en fiches ---------------------------------------------------
+   Aucun tableau de données dans l'application : les listes sont des fiches.
+   Le jour où un écran en a besoin, le gabarit `table-stack` de la méthode
+   (`.claude/skills/methode-magyapro/assets/table-stack.css`) se reprend ici —
+   chaque cellule avec son `data-label`. Pas avant : une règle que rien
+   n'utilise est du poids envoyé à chaque téléphone. */

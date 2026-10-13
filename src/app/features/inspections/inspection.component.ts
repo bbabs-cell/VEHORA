@@ -1,10 +1,35 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { InspectionService, type ConstatSaisi } from '../../core/inspections/inspection.service';
 import { VehicleService } from '../../core/vehicles/vehicle.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
+import {
+  cleBrouillon,
+  effacerBrouillon,
+  ecrireBrouillon,
+  lireBrouillon,
+} from '../../shared/brouillon/brouillon';
+
+/** Au-delà, un brouillon décrit un autre passage du véhicule : on l'ignore. */
+const BROUILLON_AGE_MAX_MS = 12 * 60 * 60 * 1000;
+
+/** Ce qui survit à un rechargement : les constats et les remarques, pas les photos. */
+interface BrouillonInspection {
+  readonly etats: Record<string, { condition: 'OK' | 'ANOMALY' | null; commentaire: string }>;
+  readonly notes: string;
+}
 
 /** État local d'une zone pendant la saisie. */
 interface EtatZone {
@@ -16,7 +41,7 @@ interface EtatZone {
 @Component({
   selector: 'vh-inspection',
   standalone: true,
-  imports: [IconComponent, SkeletonComponent],
+  imports: [EntetePageComponent, IconComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inspection.component.html',
   styleUrl: './inspection.component.css',
@@ -34,6 +59,13 @@ export class InspectionComponent {
   readonly notes = signal('');
   readonly erreur = signal<string | null>(null);
   readonly avertissement = signal<string | null>(null);
+  /** Heure d'un brouillon retrouvé à l'ouverture, pour le dire à l'écran. */
+  readonly brouillonRetrouve = signal<Date | null>(null);
+
+  /** Clé du brouillon : l'organisation ET le véhicule. */
+  private readonly cle = computed(() =>
+    cleBrouillon(this.auth.claims().orgId, 'inspection', this.id()),
+  );
 
   readonly peutInspecter = computed(() => this.auth.hasPermission('inspections.write'));
 
@@ -56,6 +88,62 @@ export class InspectionComponent {
   constructor() {
     void this.inspections.chargerZones();
     void this.vehicules.rechercher('');
+
+    // Restauration, une fois la clé connue (l'identifiant vient de la route).
+    let restaure = false;
+    effect(() => {
+      const cle = this.cle();
+      if (restaure || !cle) return;
+      restaure = true;
+      const trouve = lireBrouillon<BrouillonInspection>(cle, BROUILLON_AGE_MAX_MS);
+      if (!trouve) return;
+      untracked(() => {
+        const etats: Record<string, EtatZone> = {};
+        for (const [zone, e] of Object.entries(trouve.valeur.etats ?? {})) {
+          etats[zone] = { condition: e.condition, commentaire: e.commentaire ?? '', photos: [] };
+        }
+        this.etats.set(etats);
+        this.notes.set(trouve.valeur.notes ?? '');
+        this.brouillonRetrouve.set(trouve.le);
+      });
+    });
+
+    // Sauvegarde à chaque changement. Les photos ne se mettent pas dans le
+    // stockage local (plusieurs mégaoctets) : elles sont à reprendre.
+    effect(() => {
+      const etats = this.etats();
+      const notes = this.notes();
+      const cle = untracked(this.cle);
+      if (!restaure) return;
+      const constats = Object.entries(etats).filter(
+        ([, e]) => e.condition !== null || e.commentaire,
+      );
+      if (constats.length === 0 && !notes) {
+        effacerBrouillon(cle);
+        return;
+      }
+      ecrireBrouillon<BrouillonInspection>(cle, {
+        etats: Object.fromEntries(
+          constats.map(([zone, e]) => [
+            zone,
+            { condition: e.condition, commentaire: e.commentaire },
+          ]),
+        ),
+        notes,
+      });
+    });
+  }
+
+  /** « Repartir de zéro » : le brouillon retrouvé n'était pas le bon. */
+  oublierBrouillon(): void {
+    effacerBrouillon(this.cle());
+    this.etats.set({});
+    this.notes.set('');
+    this.brouillonRetrouve.set(null);
+  }
+
+  heureBrouillon(date: Date): string {
+    return new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(date);
   }
 
   etat(zoneId: string): EtatZone {
@@ -130,6 +218,9 @@ export class InspectionComponent {
       this.erreur.set(erreur);
       return;
     }
+
+    // Le constat est en base : le brouillon n'a plus de raison d'être.
+    effacerBrouillon(this.cle());
 
     if (photosEchouees > 0) {
       // Le constat est enregistré : on ne le perd pas pour des photos. On le

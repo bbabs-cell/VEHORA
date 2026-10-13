@@ -1,18 +1,14 @@
-<div class="organisations">
-  <header class="organisations__entete">
-    <div>
-      <h1 class="organisations__titre">Organisations</h1>
-      <p class="vh-muted organisations__sous-titre">
-        Les entreprises clientes de VEHORA. Cet écran montre des volumes, jamais les données d’un
-        client ni son chiffre d’affaires.
-      </p>
-    </div>
+<div class="vh-page vh-page--large organisations">
+  <vh-entete-page
+    titre="Organisations"
+    description="Les entreprises clientes de VEHORA. Cet écran montre des volumes, jamais les données d’un client ni son chiffre d’affaires."
+  >
     @if (suspendues() > 0) {
-      <span class="compteur-suspendues">
+      <span class="vh-etiquette vh-etiquette--attente compteur-suspendues">
         {{ suspendues() }} suspendue{{ suspendues() > 1 ? 's' : '' }}
       </span>
     }
-  </header>
+  </vh-entete-page>
 
   <div class="recherche">
     <label class="vh-sr-only" for="recherche-organisation">Rechercher une organisation</label>
@@ -36,7 +32,7 @@
   }
 
   @if (plateforme.chargement() && plateforme.organisations().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
       }
@@ -49,24 +45,24 @@
       />
     </div>
   } @else {
-    <ul class="liste" aria-label="Organisations clientes">
+    <ul class="vh-liste vh-stagger" aria-label="Organisations clientes">
       @for (organisation of listees(); track organisation.id) {
         <li
           class="vh-card organisation"
           [class.organisation--suspendue]="organisation.status === 'SUSPENDED'"
         >
           <div class="organisation__identite">
-            <p class="organisation__nom">
+            <p class="vh-fiche__nom organisation__nom">
               {{ organisation.name }}
               <span
-                class="statut"
-                [class.statut--suspendu]="organisation.status === 'SUSPENDED'"
-                [class.statut--essai]="organisation.status === 'TRIAL'"
+                class="vh-etiquette"
+                [class.vh-etiquette--attente]="organisation.status === 'SUSPENDED'"
+                [class.vh-etiquette--marque]="organisation.status === 'TRIAL'"
               >
                 {{ libelleStatut(organisation) }}
               </span>
             </p>
-            <p class="vh-muted organisation__lieu">
+            <p class="vh-fiche__detail organisation__lieu">
               @if (organisation.city) {
                 {{ organisation.city }} ·
               }
@@ -97,7 +93,7 @@
             </div>
           </dl>
 
-          <div class="organisation__actions">
+          <div class="vh-actions organisation__actions">
             <button
               class="vh-button vh-button--ghost"
               type="button"
@@ -109,7 +105,7 @@
             </button>
             @if (organisation.status === 'SUSPENDED') {
               <button
-                class="vh-button"
+                class="vh-button vh-button--trait"
                 type="button"
                 (click)="ouvrirDecision(organisation, 'reactiver')"
                 [attr.aria-label]="'Réactiver ' + organisation.name"
@@ -148,7 +144,7 @@
 
       <form [formGroup]="formMotif" (ngSubmit)="confirmer()" novalidate>
         @if (decision.sens === 'suspendre') {
-          <p class="vh-alert" role="status">
+          <p class="vh-alert vh-alert--attention" role="status">
             {{ consequenceSuspension(decision.organisation) }}
             Aucune donnée n’est supprimée ni modifiée : la réactivation rend tout tel quel.
           </p>
@@ -177,7 +173,7 @@
             "
           />
           @if (formMotif.controls.motif.touched && formMotif.controls.motif.invalid) {
-            <p class="erreur-champ">
+            <p class="vh-field__erreur">
               Le motif est obligatoire : il rejoint le journal de plateforme.
             </p>
           }
@@ -263,7 +259,7 @@
             placeholder="Passage au plan payant"
           />
           @if (formPlan.controls.motif.touched && formPlan.controls.motif.invalid) {
-            <p class="vh-error" role="alert">
+            <p class="vh-field__erreur" role="alert">
               Un motif d’au moins trois caractères est obligatoire : il rejoint le journal.
             </p>
           }

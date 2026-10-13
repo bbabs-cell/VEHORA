@@ -1,0 +1,48 @@
+<aside class="laterale vh-dot-grid" [class.laterale--ouverte]="ouvert()" id="navigation-principale">
+  <vh-fond-vivant [sombre]="true" />
+
+  <div class="laterale__entete">
+    <span class="marque">VEHORA</span>
+    <button
+      class="laterale__fermer"
+      type="button"
+      (click)="fermer.emit()"
+      aria-label="Fermer le menu"
+    >
+      <vh-icon nom="fermer" />
+    </button>
+  </div>
+
+  <nav class="nav vh-stagger" aria-label="Navigation principale">
+    @for (entree of entrees(); track entree.chemin) {
+      @if (entree.disponible) {
+        <a
+          class="nav__lien"
+          [routerLink]="entree.chemin"
+          routerLinkActive="nav__lien--actif"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="fermer.emit()"
+        >
+          <span class="nav__icone"><vh-icon [nom]="entree.icone" /></span>
+          <span class="nav__libelle">{{ entree.libelle }}</span>
+          <span class="nav__point vh-anim-pulse" aria-hidden="true"></span>
+        </a>
+      } @else {
+        <span class="nav__lien nav__lien--bientot" aria-disabled="true">
+          <span class="nav__icone"><vh-icon [nom]="entree.icone" /></span>
+          <span class="nav__libelle">{{ entree.libelle }}</span>
+          <span class="nav__bientot">Bientôt</span>
+        </span>
+      }
+    }
+  </nav>
+
+  <div class="laterale__pied">
+    <p class="pied__nom">{{ session()?.user?.email }}</p>
+    <p class="pied__role">{{ libelleRole(claims().role) }}</p>
+    <button class="pied__sortie" type="button" (click)="deconnecter()">
+      <vh-icon nom="sortie" />
+      <span>Se déconnecter</span>
+    </button>
+  </div>
+</aside>

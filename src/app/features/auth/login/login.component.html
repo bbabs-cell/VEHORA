@@ -1,14 +1,16 @@
 <main class="connexion">
+  <vh-scene>
   <section class="connexion__carte vh-card" aria-labelledby="titre-connexion">
     <header class="connexion__entete">
-      <p class="connexion__marque">VEHORA</p>
-      <h1 id="titre-connexion" class="connexion__titre">Connexion</h1>
+      <p class="vh-marque vh-text-gradient">VEHORA</p>
+      <h1 id="titre-connexion" class="vh-page-title vh-titre-scene">Connexion</h1>
       <p class="vh-muted connexion__sous-titre">
-        Pilotez votre station depuis un seul endroit.
+        Pilotez votre station depuis
+        <span class="vh-text-gradient connexion__mot">un seul endroit</span>.
       </p>
     </header>
 
-    <form [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
+    <form class="vh-stagger" [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
       <div class="vh-field">
         <label class="vh-label" for="email">Adresse e-mail</label>
         <input
@@ -67,4 +69,5 @@
       </p>
     </form>
   </section>
+  </vh-scene>
 </main>

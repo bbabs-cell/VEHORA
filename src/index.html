@@ -10,8 +10,20 @@
       content="VEHORA — système de gestion opérationnelle des centres de lavage et services automobiles."
     />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b1120" />
+    <!-- La seule couleur littérale hors des jetons : une balise <meta> ne lit
+         pas les variables CSS. Elle vaut --vh-bg du thème sombre. -->
+    <meta name="theme-color" content="#0a1016" />
     <link rel="icon" href="favicon.ico" />
+    <!-- Thème posé AVANT le premier rendu (méthode MagyaPro, design §3) : sans
+         cela, un utilisateur en thème clair voyait l'écran sombre, puis la
+         bascule au démarrage d'Angular. Script en ligne autorisé par son
+         empreinte SHA-256 dans la CSP de vercel.json — le modifier d'un seul
+         caractère impose de recalculer l'empreinte, et `npm run test:csp`
+         échoue tant qu'elle ne correspond pas. D'où `prettier-ignore` : un
+         formatage automatique l'avait déjà cassé une fois. Même clé et même règle que
+         ThemeService : sombre par défaut, « système » seulement si choisi. -->
+    <!-- prettier-ignore -->
+    <script>try{var t=localStorage.getItem('vehora.theme'),c=t==='clair'||(t==='systeme'&&matchMedia('(prefers-color-scheme: light)').matches),r=document.documentElement;r.setAttribute('data-theme',c?'light':'dark');r.style.colorScheme=c?'light':'dark'}catch(e){}</script>
     <style>
       .vh-demarrage {
         display: flex;
@@ -20,15 +32,17 @@
         align-items: center;
         justify-content: center;
         min-height: 100dvh;
-        background: #0b1120;
-        color: #94a3b8;
-        font-family: system-ui, sans-serif;
+        /* Les jetons sont déjà là : la feuille globale est liée dans <head>
+           et bloque le premier rendu. */
+        background: var(--vh-bg);
+        color: var(--vh-text-muted);
+        font-family: var(--vh-font);
       }
       .vh-demarrage__marque {
         font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.18em;
-        color: #06b6d4;
+        color: var(--vh-primary-bright);
       }
       .vh-demarrage__texte {
         font-size: 14px;

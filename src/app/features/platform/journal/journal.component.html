@@ -1,18 +1,15 @@
-<div class="journal">
-  <header>
-    <h1 class="journal__titre">Journal de la plateforme</h1>
-    <p class="vh-muted journal__sous-titre">
-      Les actions de VEHORA sur les organisations clientes. Le journal métier
-      d’une organisation lui appartient et n’apparaît pas ici.
-    </p>
-  </header>
+<div class="vh-page journal">
+  <vh-entete-page
+    titre="Journal de la plateforme"
+    description="Les actions de VEHORA sur les organisations clientes. Le journal métier d’une organisation lui appartient et n’apparaît pas ici."
+  />
 
   @if (plateforme.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
   }
 
   @if (plateforme.chargement() && plateforme.journal().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
       }
@@ -26,7 +23,7 @@
       />
     </div>
   } @else {
-    <ul class="liste" aria-label="Actions de plateforme">
+    <ul class="vh-liste vh-stagger" aria-label="Actions de plateforme">
       @for (entree of plateforme.journal(); track entree.id) {
         <li class="vh-card entree">
           <div class="entree__ligne1">

@@ -3,6 +3,7 @@ import { AuthService } from '../auth/auth.service';
 import { compresserPhoto } from '../photos/image-compression';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Zone = Tables<'inspection_zones'>;
 
@@ -37,15 +38,15 @@ export interface InspectionResume {
 
 const BUCKET = 'inspections';
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: { VEHORA_TENANCY_VIOLATION: 'Ce véhicule est introuvable.' },
+  codes: { '42501': 'Vous n’avez pas le droit de réaliser une inspection.' },
+  parDefaut: 'L’enregistrement a échoué. Réessayez dans un instant.',
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_TENANCY_VIOLATION')) {
-    return "Ce véhicule n'appartient pas à votre organisation.";
-  }
-  if (code === '42501') return "Vous n'avez pas le droit de réaliser une inspection.";
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'enregistrement a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

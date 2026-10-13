@@ -1,7 +1,11 @@
+<vh-barre-progression />
+
 <div class="plateforme">
   <!-- Bandeau permanent : on sait toujours qu'on est côté VEHORA, pas chez un
        client. C'est la même exigence que pour une future session d'assistance. -->
-  <header class="plateforme__bandeau">
+  <header class="plateforme__bandeau vh-dot-grid">
+    <vh-fond-vivant [sombre]="true" />
+
     <div class="plateforme__identite">
       <span class="plateforme__marque">VEHORA</span>
       <span class="plateforme__espace">Espace plateforme</span>
@@ -40,16 +44,17 @@
           theme.themeApplique() === 'sombre' ? 'Passer en thème clair' : 'Passer en thème sombre'
         "
       >
-        {{ theme.themeApplique() === 'sombre' ? '☀' : '☾' }}
+        <vh-icon [nom]="theme.themeApplique() === 'sombre' ? 'soleil' : 'lune'" />
       </button>
       <span class="plateforme__email">{{ session()?.user?.email }}</span>
-      <button class="vh-button vh-button--ghost" type="button" (click)="seDeconnecter()">
+      <button class="plateforme__sortie" type="button" (click)="seDeconnecter()">
         Se déconnecter
       </button>
     </div>
   </header>
 
   <main class="plateforme__contenu" id="contenu">
+    <vh-fond-vivant class="plateforme__fond" />
     <router-outlet />
   </main>
 </div>

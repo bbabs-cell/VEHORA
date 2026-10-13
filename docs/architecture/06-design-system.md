@@ -52,8 +52,10 @@ Jamais la couleur seule : daltonisme, et écran de mauvaise qualité en plein jo
 
 ## Typographie
 
-**Inter**, chargée en local (`woff2`, sous-ensemble latin) — pas de CDN de
-polices : latence et fiabilité réseau sur le marché visé.
+**Manrope Variable**, chargée en local (`woff2`, sous-ensembles latin et latin
+étendu, `src/styles/_police.css`) — pas de CDN de polices : latence et
+fiabilité réseau sur le marché visé. (Ce document a nommé « Inter » jusqu'en
+phase 24 ; elle n'a jamais été servie.)
 Échelle : 12 / 14 / 16 / 20 / 24 / 32 / 40. Corps à 16px sur mobile — jamais en
 dessous de 14px pour une donnée métier.
 
@@ -73,9 +75,12 @@ dans la moitié basse de l'écran, atteignables au pouce.
 
 ## Micro-interactions
 
-150–300 ms, `ease-out`. Skeletons pour tout chargement > 300 ms. Retour visuel
-immédiat sur toute action (< 100 ms), même si la requête réseau est lente.
-`prefers-reduced-motion: reduce` supprime toutes les animations non essentielles.
+Vocabulaire du skill « animations vivantes » (phase 24), détaillé dans
+`docs/design/DESIGN.md` § Mouvement : survol 0,2 s, ouverture 0,3 s, entrée
+0,45–0,5 s, `transform` et `opacity` seulement. Skeletons pour tout chargement
+> 300 ms. Retour visuel immédiat sur toute action (< 100 ms), même si la
+requête réseau est lente. `prefers-reduced-motion: reduce` coupe durées ET
+délais, et fige tout décor continu.
 
 ## Budget de performance (vérifié à chaque build)
 

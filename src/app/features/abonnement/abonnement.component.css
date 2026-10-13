@@ -1,33 +1,16 @@
 .abonnement {
   max-width: 720px;
-  margin: 0 auto;
-  padding: var(--vh-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vh-space-4);
-}
-
-.abonnement__titre {
-  font-size: var(--vh-text-xl);
-  margin: 0;
-}
-
-.abonnement__sous-titre {
-  margin: var(--vh-space-1) 0 0;
-  font-size: var(--vh-text-sm);
 }
 
 .abonnement__section {
   font-size: var(--vh-text-lg);
   margin: 0 0 var(--vh-space-3);
 }
-
 .plan {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
 }
-
 .plan__entete {
   display: flex;
   flex-wrap: wrap;
@@ -35,33 +18,27 @@
   justify-content: space-between;
   gap: var(--vh-space-2);
 }
-
 .plan__nom {
   margin: 0;
   font-size: var(--vh-text-lg);
 }
-
 .plan__essai {
   margin: 0;
   font-size: var(--vh-text-sm);
 }
-
 .quotas {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--vh-space-3);
   margin: 0;
 }
-
 .quota dt {
   font-size: var(--vh-text-sm);
 }
-
 .quota dd {
   margin: var(--vh-space-1) 0 0;
   font-variant-numeric: tabular-nums;
 }
-
 .jauge {
   display: block;
   height: 6px;
@@ -70,13 +47,11 @@
   background: var(--vh-surface-3);
   overflow: hidden;
 }
-
 .jauge__remplie {
   display: block;
   height: 100%;
   background: var(--vh-accent);
 }
-
 .liste {
   list-style: none;
   margin: 0;
@@ -85,18 +60,15 @@
   flex-direction: column;
   gap: var(--vh-space-2);
 }
-
 .fonctionnalite {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--vh-space-3);
 }
-
 .fonctionnalite__nom {
   font-weight: 600;
 }
-
 .etiquette {
   font-size: var(--vh-text-sm);
   padding: 2px var(--vh-space-2);
@@ -104,18 +76,15 @@
   border: 1px solid var(--vh-border);
   white-space: nowrap;
 }
-
 .reste {
   margin: 0 0 var(--vh-space-3);
   font-size: var(--vh-text-sm);
 }
-
 .facture {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-1);
 }
-
 .facture__tete {
   display: flex;
   flex-wrap: wrap;
@@ -123,26 +92,22 @@
   align-items: center;
   justify-content: space-between;
 }
-
 .facture__reference {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-
 .facture__periode {
   margin: 0;
   font-size: var(--vh-text-sm);
 }
-
 .facture__montant {
   margin: 0;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-
 /* Une échéance dépassée se voit, et le mot le dit aussi — jamais la couleur
    seule. */
 .etiquette--retard {
   background: color-mix(in srgb, var(--vh-error) 18%, transparent);
-  color: var(--vh-error);
+  color: var(--vh-error-text);
 }

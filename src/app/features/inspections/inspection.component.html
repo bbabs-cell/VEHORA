@@ -1,25 +1,36 @@
-<div class="inspection">
-  <header class="inspection__entete">
-    <div>
-      <h1 class="inspection__titre">Inspection</h1>
-      @if (vehicule(); as v) {
-        <p class="vh-muted inspection__sous-titre">
-          <span class="plaque">{{ v.plate }}</span>
-          · {{ v.type_label }}
-          @if (v.customer_name) {
-            · {{ v.customer_name }}
-          }
-        </p>
-      } @else {
-        <vh-skeleton largeur="180px" hauteur="1rem" />
-      }
-    </div>
-  </header>
+<div class="vh-page inspection">
+  <vh-entete-page titre="Inspection">
+    @if (vehicule(); as v) {
+      <p vhSousTitre class="vh-muted inspection__sous-titre">
+        <span class="vh-plaque">{{ v.plate }}</span>
+        · {{ v.type_label }}
+        @if (v.customer_name) {
+          · {{ v.customer_name }}
+        }
+      </p>
+    } @else {
+      <vh-skeleton vhSousTitre largeur="180px" hauteur="1rem" />
+    }
+  </vh-entete-page>
 
   <p class="vh-muted inspection__aide">
     Faites le tour du véhicule et marquez chaque zone. Ce constat protège votre
     station comme votre client : il fixe l’état d’arrivée.
   </p>
+
+  @if (brouillonRetrouve(); as le) {
+    <!-- Une saisie interrompue (réseau coupé, onglet rechargé) revient d'elle-
+         même. Les photos, elles, ne survivent pas : on le dit. -->
+    <div class="vh-alert vh-alert--info brouillon" role="status">
+      <p class="brouillon__texte">
+        Saisie reprise là où elle s’était arrêtée, à {{ heureBrouillon(le) }}. Les photos sont à
+        reprendre.
+      </p>
+      <button class="vh-button vh-button--discret" type="button" (click)="oublierBrouillon()">
+        Repartir de zéro
+      </button>
+    </div>
+  }
 
   <!-- Compteur : le responsable voit l'avancement d'un coup d'œil. -->
   <div class="compteur" role="status" aria-live="polite">
@@ -33,13 +44,13 @@
   </div>
 
   @if (inspections.zones().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3, 4, 5]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
       }
     </div>
   } @else {
-    <ul class="liste" aria-label="Zones à contrôler">
+    <ul class="vh-liste vh-stagger" aria-label="Zones à contrôler">
       @for (zone of inspections.zones(); track zone.id) {
         <li class="vh-card zone" [class.zone--anomalie]="etat(zone.id).condition === 'ANOMALY'">
           <p class="zone__nom">{{ zone.label }}</p>

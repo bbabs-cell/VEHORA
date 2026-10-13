@@ -1,12 +1,8 @@
-<div class="utilisateurs">
-  <header class="utilisateurs__entete">
-    <div>
-      <h1 class="utilisateurs__titre">Utilisateurs</h1>
-      <p class="vh-muted utilisateurs__sous-titre">
-        Les personnes qui peuvent se connecter à votre entreprise, et ce qu’elles
-        ont le droit de faire.
-      </p>
-    </div>
+<div class="vh-page utilisateurs">
+  <vh-entete-page
+    titre="Utilisateurs"
+    description="Les personnes qui peuvent se connecter à votre entreprise, et ce qu’elles ont le droit de faire."
+  >
     <button
       class="vh-button"
       type="button"
@@ -15,7 +11,7 @@
     >
       Inviter quelqu’un
     </button>
-  </header>
+  </vh-entete-page>
 
   @if (membres.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
@@ -28,15 +24,15 @@
   @if (membres.invitations().length > 0) {
     <section aria-labelledby="titre-invitations">
       <h2 id="titre-invitations" class="utilisateurs__section">Invitations en attente</h2>
-      <ul class="liste">
+      <ul class="vh-liste vh-stagger">
         @for (invitation of membres.invitations(); track invitation.id) {
-          <li class="vh-card carte">
-            <div class="carte__infos">
-              <p class="carte__nom">{{ invitation.email }}</p>
-              <p class="vh-muted carte__detail">{{ invitation.roleLabel }}</p>
+          <li class="vh-card vh-fiche carte">
+            <div class="vh-fiche__infos carte__infos">
+              <p class="vh-fiche__nom carte__nom">{{ invitation.email }}</p>
+              <p class="vh-fiche__detail carte__detail">{{ invitation.roleLabel }}</p>
               <code class="code">{{ invitation.token }}</code>
             </div>
-            <div class="carte__actions">
+            <div class="vh-actions carte__actions">
               <button class="vh-button vh-button--ghost" type="button" (click)="copier(invitation)">
                 {{ codeCopie() === invitation.id ? 'Copié' : 'Copier le code' }}
               </button>
@@ -59,7 +55,7 @@
     <h2 id="titre-membres" class="utilisateurs__section">Membres</h2>
 
     @if (membres.chargement() && membres.membres().length === 0) {
-      <div class="liste">
+      <div class="vh-liste">
         @for (i of [1, 2, 3]; track i) {
           <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
         }
@@ -72,23 +68,23 @@
         />
       </div>
     } @else {
-      <ul class="liste" aria-label="Liste des membres">
+      <ul class="vh-liste vh-stagger" aria-label="Liste des membres">
         @for (membre of membres.membres(); track membre.id) {
-          <li class="vh-card carte">
-            <div class="carte__infos">
-              <p class="carte__nom">
+          <li class="vh-card vh-fiche carte">
+            <div class="vh-fiche__infos carte__infos">
+              <p class="vh-fiche__nom carte__nom">
                 {{ membre.nom }}
                 @if (membre.profileId === moi()) {
-                  <span class="etiquette">Vous</span>
+                  <span class="vh-etiquette">Vous</span>
                 }
                 @if (membre.statut === 'SUSPENDED') {
-                  <span class="etiquette etiquette--suspendu">Suspendu</span>
+                  <span class="vh-etiquette vh-etiquette--suspendu">Suspendu</span>
                 }
               </p>
-              <p class="vh-muted carte__detail">{{ membre.roleLabel }}</p>
+              <p class="vh-fiche__detail carte__detail">{{ membre.roleLabel }}</p>
             </div>
 
-            <div class="carte__actions">
+            <div class="vh-actions carte__actions">
               <label class="vh-sr-only" [attr.for]="'role-' + membre.id">
                 Rôle de {{ membre.nom }}
               </label>
@@ -159,7 +155,7 @@
             [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
           />
           @if (form.controls.email.touched && form.controls.email.invalid) {
-            <p class="erreur-champ">Saisissez une adresse e-mail valide.</p>
+            <p class="vh-field__erreur">Saisissez une adresse e-mail valide.</p>
           }
         </div>
 

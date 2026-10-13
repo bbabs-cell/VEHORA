@@ -19,6 +19,7 @@ import {
   ServiceOrderService,
 } from '../../core/service-orders/service-order.service';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 
 interface GroupeOperations {
@@ -36,7 +37,7 @@ const SUITE: Partial<Record<StatutOperation, { vers: StatutOperation; libelle: s
 @Component({
   selector: 'vh-operations',
   standalone: true,
-  imports: [EmptyStateComponent, SkeletonComponent],
+  imports: [EmptyStateComponent, EntetePageComponent, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './operations.component.html',
   styleUrl: './operations.component.css',

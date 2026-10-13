@@ -7,10 +7,12 @@ import {
   type MonAbonnement,
 } from '../../core/subscription/subscription.service';
 import { formaterDate, formaterMontant } from '../../shared/format/montant';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
 
 @Component({
   selector: 'vh-abonnement',
   standalone: true,
+  imports: [EntetePageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './abonnement.component.html',
   styleUrl: './abonnement.component.css',

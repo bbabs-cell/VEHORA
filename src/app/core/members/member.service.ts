@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export interface Membre {
   readonly id: string;
@@ -24,16 +25,16 @@ export interface Invitation {
 
 export type Role = Pick<Tables<'roles'>, 'id' | 'code' | 'label' | 'scope' | 'description'>;
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_LAST_OWNER: 'Votre organisation doit conserver au moins un propriétaire actif.',
+  },
+  codes: { '23505': 'Une invitation est déjà en attente pour cette adresse.' },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (code === '23505') return 'Une invitation est déjà en attente pour cette adresse.';
-  if (code === '42501') return "Vous n'avez pas le droit d'effectuer cette action.";
-  if (brut.includes('VEHORA_LAST_OWNER')) {
-    return 'Votre organisation doit conserver au moins un propriétaire actif.';
-  }
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return "L'opération a échoué. Réessayez dans un instant.";
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 @Injectable({ providedIn: 'root' })

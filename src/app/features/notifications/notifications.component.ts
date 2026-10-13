@@ -11,11 +11,13 @@ import { SubscriptionService } from '../../core/subscription/subscription.servic
 import { ConfirmationComponent } from '../../shared/ui/confirmation.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { formaterDate } from '../../shared/format/montant';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
+import { retour, type Retour } from '../../shared/ui/retour';
 
 @Component({
   selector: 'vh-notifications',
   standalone: true,
-  imports: [ConfirmationComponent, EmptyStateComponent],
+  imports: [EntetePageComponent, ConfirmationComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css',
@@ -32,7 +34,7 @@ export class NotificationsComponent {
   readonly aAnnuler = signal<Notification | null>(null);
   readonly motif = signal('');
   readonly enCours = signal(false);
-  readonly message = signal<string | null>(null);
+  readonly message = signal<Retour | null>(null);
 
   /**
    * La fonctionnalité est fermée par défaut, et l'écran le dit au lieu de
@@ -122,7 +124,7 @@ export class NotificationsComponent {
     const erreur = await this.service.annuler(m.id, this.motif().trim());
     this.enCours.set(false);
     this.aAnnuler.set(null);
-    this.message.set(erreur ?? 'Ce message ne partira pas.');
+    this.message.set(retour(erreur, 'Ce message ne partira pas.'));
     if (!erreur) await this.actualiser();
   }
 }

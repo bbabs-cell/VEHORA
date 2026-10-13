@@ -1,15 +1,16 @@
 <main class="creation">
+  <vh-scene>
   <section class="creation__carte vh-card" aria-labelledby="titre-creation">
     <header class="creation__entete">
-      <p class="creation__marque">VEHORA</p>
-      <h1 id="titre-creation" class="creation__titre">Créer votre entreprise</h1>
+      <p class="vh-marque vh-text-gradient">VEHORA</p>
+      <h1 id="titre-creation" class="vh-page-title vh-titre-scene">Créer votre entreprise</h1>
       <p class="vh-muted creation__sous-titre">
         Vous en serez le propriétaire. Une première station est créée
         automatiquement, vous pourrez la renommer ensuite.
       </p>
     </header>
 
-    <form [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
+    <form class="vh-stagger" [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
       <div class="vh-field">
         <label class="vh-label" for="nom">Nom de l’entreprise</label>
         <input
@@ -21,7 +22,7 @@
           [attr.aria-invalid]="form.controls.nom.touched && form.controls.nom.invalid"
         />
         @if (form.controls.nom.touched && form.controls.nom.invalid) {
-          <p class="erreur-champ">Indiquez le nom de votre entreprise.</p>
+          <p class="vh-field__erreur">Indiquez le nom de votre entreprise.</p>
         }
       </div>
 
@@ -59,4 +60,5 @@
       </button>
     </form>
   </section>
+  </vh-scene>
 </main>

@@ -1,11 +1,8 @@
-<div class="vehicules">
-  <header class="vehicules__entete">
-    <div>
-      <h1 class="vehicules__titre">Véhicules</h1>
-      <p class="vh-muted vehicules__sous-titre">
-        Recherchez par plaque, marque, modèle ou nom du propriétaire.
-      </p>
-    </div>
+<div class="vh-page vehicules">
+  <vh-entete-page
+    titre="Véhicules"
+    description="Recherchez par plaque, marque, modèle ou nom du propriétaire."
+  >
     @if (peutEcrire()) {
       <button
         class="vh-button"
@@ -16,7 +13,7 @@
         Nouveau véhicule
       </button>
     }
-  </header>
+  </vh-entete-page>
 
   <div class="recherche">
     <label class="vh-sr-only" for="recherche-vehicule">Rechercher un véhicule</label>
@@ -36,7 +33,7 @@
   }
 
   @if (vehicules.chargement() && vehicules.vehicules().length === 0) {
-    <div class="liste">
+    <div class="vh-liste">
       @for (i of [1, 2, 3, 4]; track i) {
         <div class="vh-card"><vh-skeleton hauteur="2.4rem" /></div>
       }
@@ -49,22 +46,22 @@
                retrouver, avec tout leur historique."
       >
         @if (peutEcrire()) {
-          <button class="vh-button" type="button" (click)="ouvrirCreation()">
+          <button class="vh-button vh-button--trait" type="button" (click)="ouvrirCreation()">
             Enregistrer un véhicule
           </button>
         }
       </vh-empty-state>
     </div>
   } @else {
-    <ul class="liste" aria-label="Liste des véhicules">
+    <ul class="vh-liste vh-stagger" aria-label="Liste des véhicules">
       @for (vehicule of vehicules.vehicules(); track vehicule.id) {
-        <li class="vh-card carte">
-          <div class="carte__infos">
-            <p class="carte__nom">
-              <span class="plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
-              <span class="etiquette">{{ vehicule.type_label }}</span>
+        <li class="vh-card vh-fiche carte">
+          <div class="vh-fiche__infos carte__infos">
+            <p class="vh-fiche__nom carte__nom">
+              <span class="vh-plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
+              <span class="vh-etiquette">{{ vehicule.type_label }}</span>
             </p>
-            <p class="vh-muted carte__detail">
+            <p class="vh-fiche__detail carte__detail">
               {{ descriptionVehicule(vehicule) }}
               @if (vehicule.customer_name) {
                 · {{ vehicule.customer_name }}
@@ -74,7 +71,7 @@
             </p>
           </div>
 
-          <div class="carte__actions">
+          <div class="vh-actions carte__actions">
             @if (peutInspecter()) {
               <a
                 class="vh-button vh-button--ghost"
@@ -147,9 +144,9 @@
             [attr.aria-invalid]="form.controls.plate.touched && form.controls.plate.invalid"
           />
           @if (form.controls.plate.touched && form.controls.plate.invalid) {
-            <p class="erreur-champ">La plaque est obligatoire.</p>
+            <p class="vh-field__erreur">La plaque est obligatoire.</p>
           } @else {
-            <p class="vh-muted aide-champ">
+            <p class="vh-aide">
               Espaces et tirets sont ignorés : DK1234A et DK-1234-A sont le même véhicule.
             </p>
           }
@@ -205,7 +202,7 @@
                   }
                 </ul>
               } @else if (rechercheClientOuverte()) {
-                <p class="vh-muted aide-champ">
+                <p class="vh-aide">
                   Aucun client trouvé. Le véhicule peut être enregistré sans propriétaire.
                 </p>
               }

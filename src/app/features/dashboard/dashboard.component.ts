@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { libellePortee, libelleRole } from '../../core/auth/libelles-roles';
 import { OrganizationService } from '../../core/organization/organization.service';
 import {
   LIBELLES_STATUT,
@@ -11,7 +12,9 @@ import {
 import { ReceiptService } from '../../core/receipts/receipt.service';
 import { StationService } from '../../core/stations/station.service';
 import { SubscriptionService } from '../../core/subscription/subscription.service';
+import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { NombreAnimeComponent } from '../../shared/ui/nombre-anime.component';
 import { StatTileComponent } from '../../shared/ui/stat-tile.component';
 import { formaterMontant } from '../../shared/format/montant';
 
@@ -47,7 +50,13 @@ interface CompteStatut {
 @Component({
   selector: 'vh-dashboard',
   standalone: true,
-  imports: [RouterLink, IconComponent, StatTileComponent],
+  imports: [
+    RouterLink,
+    IconComponent,
+    StatTileComponent,
+    FondVivantComponent,
+    NombreAnimeComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -67,6 +76,16 @@ export class DashboardComponent {
   readonly peutGererUtilisateurs = computed(() => this.auth.hasPermission('users.manage'));
   readonly peutVoirClients = computed(() => this.auth.hasPermission('customers.read'));
   readonly peutVoirFile = computed(() => this.auth.hasPermission('service_orders.read'));
+  readonly peutVoirCaisse = computed(() => this.auth.hasPermission('payments.read'));
+
+  readonly libelleRole = libelleRole;
+  readonly libellePortee = libellePortee;
+
+  /** Mise en forme d'un montant pour une tuile qui défile. */
+  readonly formatMontant = (mineur: number): string => this.montant(mineur);
+
+  /** « Bonjour » le jour, « Bonsoir » à partir de 18 h — l'heure de l'appareil. */
+  readonly salutation = computed(() => (new Date().getHours() >= 18 ? 'Bonsoir' : 'Bonjour'));
 
   /**
    * Le chiffre du jour demande la permission ET la fonctionnalité : la même
@@ -119,6 +138,28 @@ export class DashboardComponent {
 
   readonly encaisseDuJour = computed(() => this.jour().encaisse);
   readonly restitutionsDuJour = computed(() => this.jour().livres);
+
+  /**
+   * Les chiffres du jour pour le bandeau défilant. Mêmes règles que les
+   * tuiles : un montant n'y figure que pour qui a le droit de le savoir.
+   */
+  readonly bandeau = computed<string[]>(() => {
+    const infos: string[] = [];
+    if (this.peutVoirChiffre() && !this.rapports.chargement()) {
+      infos.push(`Encaissé aujourd’hui : ${this.montant(this.encaisseDuJour())}`);
+      infos.push(`${this.restitutionsDuJour()} restitué(s)`);
+    }
+    if (this.peutVoirFile() && !this.dossiers.chargement()) {
+      const prets = this.parStatut().find((l) => l.statut === 'READY')?.nombre ?? 0;
+      const attente = this.parStatut().find((l) => l.statut === 'WAITING')?.nombre ?? 0;
+      infos.push(`${prets} prêt(s) à partir`, `${attente} en attente`);
+      if (this.impayesPrets() > 0) infos.push(`${this.montant(this.impayesPrets())} à encaisser`);
+    }
+    return infos;
+  });
+
+  /** La piste dupliquée : la boucle se referme sans saut. */
+  readonly bandeauDouble = computed(() => [...this.bandeau(), ...this.bandeau()]);
 
   constructor() {
     void this.stations.charger();

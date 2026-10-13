@@ -71,6 +71,8 @@ skills qui apportent une valeur directe, vérifier le résultat.
 | Espace Super Admin, abonnements, flags | `vehora-super-admin` + `vehora-security` + `vehora-supabase` |
 | Paiements, caisse, devises, réseau, terrain | `vehora-west-africa` (+ `vehora-ux`) |
 | Tests, validation, clôture de phase | `vehora-qa` |
+| Toute construction, refonte, revue d'écran ou de sécurité | `methode-magyapro` (méthode du propriétaire, à appliquer à la lettre en adaptant les noms) |
+| Animation, transition, micro-interaction, effet | `animations-vivantes` (style Atelier Flow) + `vehora-design-system` |
 
 Skills natifs utiles : `/security-review` (revue de sécurité d'un diff),
 `/code-review`, `/simplify`, `update-config`, `session-start-hook`.
@@ -128,19 +130,27 @@ Chaque fonctionnalité est testée sous trois angles :
 | Build de production (budgets appliqués) | `npm run build` |
 | Migrations + tests de sécurité SQL | `npm run validate:sql` |
 | Tests de parcours | `npm run e2e` |
-| Assertions unitaires | `npm run test:unit` |
+| Assertions unitaires (CSV, erreurs, jetons) | `npm run test:unit` |
+| Contraste AA des jetons, deux thèmes | `npm run test:contraste` |
+| Audit mobile 375 px, captures (Supabase simulé) | `npm run build && npm run audit:mobile` |
 | Application sous sa CSP réelle | `npm run build && npm run test:csp` |
 | Vérification des types | `npm run types:check` |
 
 **Node ≥ 22.22.3 requis** par Angular 22. En environnement cloud, le hook
-`SessionStart` bascule automatiquement sur `/opt/node24`.
+`SessionStart` bascule automatiquement sur `/opt/node24` — **s'il existe**. En
+phase 24 il n'existait pas (Node 22.22.0 seulement) : Node 24.15.0 a été
+téléchargé depuis nodejs.org, somme SHA-256 vérifiée contre `SHASUMS256.txt`,
+et extrait dans `/opt/node24`.
 Pour Playwright en cloud, exporter
 `VEHORA_CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (le
 Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
-**Phase 23 validée** (sous réserve : voir ci-dessous). Cycle métier complet, espace Super Admin, reçus immuables,
+**Phase 24 validée** — refonte selon la méthode MagyaPro et les animations
+vivantes d'Atelier Flow (`docs/refonte-interface.md`, `docs/phases/phase-24.md`,
+`docs/SECURITE.md`). Sous réserve : la suite `npm run e2e` n'a pas pu être
+rejouée (secrets absents). **Phase 23 validée** (sous réserve : voir ci-dessous). Cycle métier complet, espace Super Admin, reçus immuables,
 rapports, abonnements et feature flags, dette d'interface traitée, tableau de
 bord chiffré, dette d'outillage de test traitée, historique des sessions de
 caisse, export CSV des rapports et des sessions, facturation des abonnements
@@ -154,6 +164,60 @@ lui-même a été vérifié sur la base réelle au moment de son application.
 Tout le reste des notifications est fait ; il ne manque que l'envoi
 (`docs/notifications.md`).
 
+- **Une mutualisation de styles se vérifie à l'écran, pas au diff.** En phase
+  15, remonter les styles de modale dans `_base.css` a supprimé avec eux les
+  styles NON modaux de cinq écrans (file d'attente, caisse, catalogue,
+  opérations, organisations). Neuf phases en texte brut, puces comprises, sur
+  l'écran le plus ouvert du produit ; tous les tests verts, parce qu'ils lisent
+  des libellés. Trouvé en phase 24 par la première capture à 375 px. D'où
+  `npm run audit:mobile`, en intégration continue, et la règle : **les
+  captures se regardent.**
+- **`npm run audit:mobile` simule Supabase** (`scripts/maquette/`) : tous les
+  écrans de tous les profils, sans compte ni secret, sous la CSP réelle. Il
+  échoue sur débordement, bouton écrasé, **deuxième bouton plein**, texte coupé
+  par un `overflow: hidden`, texte sous 13 px, violation de CSP, erreur JS. Un
+  écran ajouté = un chemin dans `PARCOURS` et ses lignes dans `donnees.mjs`.
+- **Un seul bouton à fond de marque par écran** (méthode, règle 1). L'action
+  propre à une ligne (« Démarrer », l'étape suivante d'un dossier) est en
+  **trait** : `.vh-button--trait`. La file en avait un plein par véhicule.
+  Deux formulaires sur un écran : seul celui qu'on modifie porte le bouton
+  principal (`[class.vh-button--ghost]="form.pristine"`).
+- **`var()` d'un jeton absent ne lève rien** : la propriété retombe sur sa
+  valeur initiale. `--vh-space-5` a valu 0 sur trois écrans. `test:unit`
+  lance `verifier-jetons.mjs` : jeton inconnu, couleur littérale hors de
+  `src/styles/`, et jeton de FOND employé en texte (`--vh-error`,
+  `--vh-primary` : ≈ 4:1 — neuf feuilles) sont refusés.
+- **Une réussite ne s'affiche pas dans le bandeau rouge** : `Retour` typé
+  (`shared/ui/retour.ts`) et `vh-alert--succes`. Quatre écrans mêlaient
+  « Fiche enregistrée. » et les refus dans le même signal.
+- **Les erreurs serveur se traduisent en UN point** : `traduireErreur`
+  (`core/erreurs/`). Un service ne déclare que ses marqueurs et le sens de ses
+  codes. « Failed to fetch » n'est que le mot de Chrome : Safari dit « Load
+  failed », Firefox « NetworkError ». Une donnée d'un autre client est
+  « introuvable ».
+- **Animations : `backwards`, jamais `both`** — une transformation restée
+  appliquée capture les `position: fixed` descendants. L'entrée d'un écran est
+  un fondu d'**opacité** sur le conteneur (la barre d'actions de l'inspection
+  est fixée). Le vocabulaire est dans `_animations.css` ; un effet du skill
+  sans usage n'y entre pas. Un montant ne défile jamais à la caisse ni sur un
+  reçu. Décor vivant dans la navigation et les écrans de présentation.
+- **La navigation est sombre dans les deux thèmes** et a ses propres jetons
+  (`--vh-nav-*`, accent compris) : le trait de marque du thème clair y serait
+  illisible. Barre basse : quatre écrans **selon les droits** + « Plus ».
+- **Le thème est posé avant le premier rendu** par un script en ligne de
+  `index.html`, autorisé par son **empreinte SHA-256** dans la CSP. Le modifier
+  d'un caractère impose de recalculer l'empreinte : `test:csp` échoue sinon.
+- **Angular supprime l'espace seul entre deux balises.** Entre le nombre et
+  l'unité d'un montant, c'est lui qui laisse « F CFA » passer à la ligne :
+  `&ngsp;`. Sans lui, « 976 500 FCFA » sortait de sa tuile.
+- **Le bundle initial est à 150 octets de son seuil d'alerte** (499,85 Ko bruts,
+  124 Ko transférés). Une règle globale que rien n'utilise est du poids pour
+  chaque téléphone : `.vh-table-stack` a été retiré faute de tableau — le
+  gabarit attend dans le skill de la méthode.
+- **Brouillon des saisies longues** : `shared/brouillon/`, clé
+  `vehora:<organisation>:…`, ignoré après 12 h, effacé à la réussite et à la
+  déconnexion. L'inspection l'utilise ; ses photos ne survivent pas, l'écran
+  le dit.
 - Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
 - 47 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
   9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
@@ -487,7 +551,9 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite
   n'a pas empêché la seconde.
-- **Leçon récurrente** : vingt-quatre défauts d'interface (thème par défaut, sélecteur
+- **Leçon récurrente** : vingt-quatre défauts d'interface (trente et un depuis
+  la phase 24 : file, caisse, catalogue, opérations et organisations sans
+  styles, réussite en rouge, « QtéMontant » sur le reçu) (thème par défaut, sélecteur
   de rôle, affichage des numéros, groupement des chiffres, débordement de
   modale, actions sur deux lignes, deux mises en page pour la même liste, date
   au format américain, code ISO au lieu du symbole, erreur affichée nulle part,

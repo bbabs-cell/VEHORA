@@ -33,21 +33,35 @@ export const NAVIGATION: readonly EntreeNavigation[] = [
   { libelle: 'Opérations', libelleCourt: 'Travaux', chemin: '/operations', icone: 'prestation', permission: 'service_orders.read', disponible: true },
   { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
   { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },
-  { libelle: 'Stations', chemin: '/stations', icone: 'accueil', permission: 'stations.manage', disponible: true },
-  { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'service', disponible: true },
+  { libelle: 'Stations', chemin: '/stations', icone: 'station', permission: 'stations.manage', disponible: true },
+  { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'catalogue', disponible: true },
   { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
   { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true },
   { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'payments.read', disponible: true },
-  { libelle: 'Rapports', chemin: '/rapports', icone: 'caisse', permission: 'reports.read', fonctionnalite: 'rapports', disponible: true },
-  { libelle: 'Messages aux clients', libelleCourt: 'Messages', chemin: '/messages', icone: 'client', permission: 'service_orders.read', fonctionnalite: 'notifications', disponible: true },
-  { libelle: 'Abonnement', chemin: '/abonnement', icone: 'parametres', permission: 'organization.manage', disponible: true },
+  { libelle: 'Rapports', chemin: '/rapports', icone: 'rapport', permission: 'reports.read', fonctionnalite: 'rapports', disponible: true },
+  { libelle: 'Messages aux clients', libelleCourt: 'Messages', chemin: '/messages', icone: 'message', permission: 'service_orders.read', fonctionnalite: 'notifications', disponible: true },
+  { libelle: 'Abonnement', chemin: '/abonnement', icone: 'abonnement', permission: 'organization.manage', disponible: true },
   { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: true },
 ];
 
-/** Entrées mises en avant sur mobile : les gestes quotidiens, rien d'autre. */
-export const NAVIGATION_MOBILE: readonly string[] = [
+/**
+ * Barre basse mobile : les QUATRE écrans les plus ouverts parmi ceux que la
+ * personne a le droit de voir, dans cet ordre de priorité, puis « Plus »
+ * (méthode MagyaPro, `BottomNav`).
+ *
+ * La liste était figée à quatre chemins : un rôle sans le droit « Opérations »
+ * n'avait que trois entrées, et la caisse — ouverte cent fois par jour par un
+ * caissier — n'y figurait jamais. Tout le reste passait par ☰ : deux gestes
+ * par changement d'écran, des dizaines de fois par jour.
+ */
+export const PRIORITE_MOBILE: readonly string[] = [
   '/tableau-de-bord',
   '/file-attente',
   '/operations',
+  '/caisse',
   '/clients',
+  '/vehicules',
 ];
+
+/** Nombre d'entrées directes de la barre basse, « Plus » non compris. */
+export const ENTREES_BARRE_BASSE = 4;

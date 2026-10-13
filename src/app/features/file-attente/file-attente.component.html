@@ -1,23 +1,17 @@
-<div class="file">
-  <header class="file__entete">
-    <div>
-      <h1 class="file__titre">File d’attente</h1>
-      <p class="vh-muted file__sous-titre">
-        Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué ou annulé sort de
-        cet écran.
-      </p>
-    </div>
+<div class="vh-page file">
+  <vh-entete-page
+    titre="File d’attente"
+    description="Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué ou annulé sort de cet écran."
+  >
+    <!-- Toujours là, même file vide : c'est le geste de l'arrivée d'un
+         véhicule, et l'on ne doit pas avoir à le chercher. Le bouton de l'état
+         vide passe donc en trait (un seul bouton plein par écran). -->
     @if (peutOuvrir()) {
-      <button
-        class="vh-button"
-        type="button"
-        (click)="ouvrirFormulaire()"
-        [disabled]="!pretAOuvrir()"
-      >
+      <button class="vh-button" type="button" (click)="ouvrirFormulaire()" [disabled]="!pretAOuvrir()">
         Nouveau dossier
       </button>
     }
-  </header>
+  </vh-entete-page>
 
   @if (dossiers.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
@@ -33,9 +27,9 @@
   }
 
   @if (dossiers.chargement() && fileVide()) {
-    <div class="groupe">
+    <div class="vh-liste">
       @for (i of [1, 2, 3]; track i) {
-        <div class="vh-card"><vh-skeleton hauteur="3rem" /></div>
+        <div class="vh-card"><vh-skeleton hauteur="4.5rem" /></div>
       }
     </div>
   } @else if (fileVide()) {
@@ -47,7 +41,7 @@
       >
         @if (peutOuvrir()) {
           <button
-            class="vh-button"
+            class="vh-button vh-button--trait"
             type="button"
             (click)="ouvrirFormulaire()"
             [disabled]="!pretAOuvrir()"
@@ -60,19 +54,22 @@
   } @else {
     @for (groupe of groupes(); track groupe.statut) {
       <section class="groupe" [attr.aria-label]="groupe.libelle">
-        <h2 class="groupe__titre">
+        <h2 class="vh-section-titre">
           {{ groupe.libelle }}
-          <span class="groupe__compte">{{ groupe.dossiers.length }}</span>
+          <!-- Le compteur rebondit quand il change : la valeur sert de clé. -->
+          @for (n of [groupe.dossiers.length]; track n) {
+            <span class="vh-compteur">{{ n }}</span>
+          }
         </h2>
 
-        <ul class="liste" [attr.aria-label]="'Dossiers — ' + groupe.libelle">
+        <ul class="vh-liste vh-stagger" [attr.aria-label]="'Dossiers — ' + groupe.libelle">
           @for (dossier of groupe.dossiers; track dossier.id) {
-            <li class="vh-card dossier">
+            <li class="vh-card vh-rail dossier" [attr.data-statut]="dossier.status">
               <div class="dossier__identite">
                 <p class="dossier__ligne1">
                   <span class="dossier__numero">N° {{ dossier.number }}</span>
-                  <span class="plaque">{{ dossier.plaque || 'Sans plaque' }}</span>
-                  <span class="etiquette">{{ dossier.type_vehicule }}</span>
+                  <span class="vh-plaque">{{ dossier.plaque || 'Sans plaque' }}</span>
+                  <span class="vh-etiquette">{{ dossier.type_vehicule }}</span>
                 </p>
                 <p class="vh-muted dossier__ligne2">
                   {{ dossier.client || 'Client non renseigné' }} · arrivé il y a
@@ -87,7 +84,7 @@
                 @if (dossier.lignes === 0) {
                   <span class="sans-prestation">Aucune prestation</span>
                 } @else {
-                  <span class="dossier__total">{{ total(dossier) }}</span>
+                  <span class="dossier__total vh-montant">{{ total(dossier) }}</span>
                   @if (peutVoirPaiements()) {
                     @if (dossier.balance_minor > 0) {
                       <span class="solde-du">reste {{ solde(dossier) }}</span>
@@ -102,20 +99,24 @@
                 }
               </div>
 
-              <div class="dossier__actions">
-                @if (peutOuvrir()) {
+              <!-- L'étape suivante d'un dossier est en TRAIT de marque : un seul
+                   bouton plein par écran (« Nouveau dossier »), sinon vingt
+                   boutons azur ne désignent plus rien. -->
+              <div class="dossier__actions vh-actions">
+                @if (actionSuivante(dossier); as suite) {
                   <button
-                    class="vh-button vh-button--ghost"
+                    class="vh-button vh-button--trait"
                     type="button"
-                    (click)="ouvrirPrestations(dossier)"
-                    [attr.aria-label]="'Prestations du dossier ' + dossier.number"
+                    (click)="avancer(dossier)"
+                    [disabled]="enregistrement()"
+                    [attr.aria-label]="suite.libelle + ' — dossier ' + dossier.number"
                   >
-                    Prestations
+                    {{ suite.libelle }}
                   </button>
                 }
                 @if (dossier.status === 'INSPECTION' && peutInspecter()) {
                   <a
-                    class="vh-button vh-button--ghost"
+                    class="vh-button vh-button--trait"
                     [routerLink]="['/vehicules', dossier.vehicle_id, 'inspection']"
                     [attr.aria-label]="'Inspecter le véhicule du dossier ' + dossier.number"
                   >
@@ -132,6 +133,16 @@
                     Encaisser
                   </button>
                 }
+                @if (peutOuvrir()) {
+                  <button
+                    class="vh-button vh-button--ghost"
+                    type="button"
+                    (click)="ouvrirPrestations(dossier)"
+                    [attr.aria-label]="'Prestations du dossier ' + dossier.number"
+                  >
+                    Prestations
+                  </button>
+                }
                 @if (peutEncaisser() && dossier.lignes > 0 && dossier.status !== 'CANCELLED') {
                   <button
                     class="vh-button vh-button--ghost"
@@ -143,20 +154,9 @@
                     Reçu
                   </button>
                 }
-                @if (actionSuivante(dossier); as suite) {
-                  <button
-                    class="vh-button"
-                    type="button"
-                    (click)="avancer(dossier)"
-                    [disabled]="enregistrement()"
-                    [attr.aria-label]="suite.libelle + ' — dossier ' + dossier.number"
-                  >
-                    {{ suite.libelle }}
-                  </button>
-                }
                 @if (peutAnnuler()) {
                   <button
-                    class="dossier__annuler"
+                    class="vh-button vh-button--discret dossier__annuler"
                     type="button"
                     (click)="ouvrirAnnulation(dossier)"
                     [attr.aria-label]="'Annuler le dossier ' + dossier.number"
@@ -194,7 +194,7 @@
           @if (vehiculeChoisi(); as choisi) {
             <div class="choix">
               <span class="choix__valeur">
-                <span class="plaque">{{ choisi.plate || 'Sans plaque' }}</span>
+                <span class="vh-plaque">{{ choisi.plate || 'Sans plaque' }}</span>
                 <span class="vh-muted">
                   {{ choisi.type_label }}
                   @if (choisi.customer_name) {
@@ -224,7 +224,7 @@
                       type="button"
                       (click)="choisirVehicule(vehicule)"
                     >
-                      <span class="plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
+                      <span class="vh-plaque">{{ vehicule.plate || 'Sans plaque' }}</span>
                       <span class="vh-muted">
                         {{ vehicule.type_label }}
                         @if (vehicule.customer_name) {
@@ -396,7 +396,7 @@
             "
           />
           @if (formAnnulation.controls.motif.touched && formAnnulation.controls.motif.invalid) {
-            <p class="erreur-champ">Le motif est obligatoire.</p>
+            <p class="vh-field__erreur">Le motif est obligatoire.</p>
           }
         </div>
 
@@ -540,13 +540,13 @@
           <label class="vh-label" for="montant-paiement">Montant reçu ({{ symbole() }})</label>
           <input
             id="montant-paiement"
-            class="vh-input champ-montant"
+            class="vh-input vh-champ-montant"
             type="text"
             inputmode="numeric"
             formControlName="montant"
             autocomplete="off"
           />
-          <p class="vh-muted aide-champ">
+          <p class="vh-aide">
             Un dossier peut être réglé en plusieurs fois, et par plusieurs moyens.
           </p>
         </div>
@@ -593,7 +593,7 @@
       </header>
 
       <form [formGroup]="formRestitution" (ngSubmit)="restituer()" novalidate>
-        <p class="vh-alert" role="status">
+        <p class="vh-alert vh-alert--attention" role="status">
           Il reste <strong>{{ solde(dossier) }}</strong> à encaisser. Le véhicule part avec une
           créance, tracée à votre nom.
         </p>
@@ -612,7 +612,7 @@
             "
           />
           @if (formRestitution.controls.motif.touched && formRestitution.controls.motif.invalid) {
-            <p class="erreur-champ">Le motif est obligatoire.</p>
+            <p class="vh-field__erreur">Le motif est obligatoire.</p>
           }
         </div>
 
@@ -666,7 +666,7 @@
           @if (
             formRemboursement.controls.motif.touched && formRemboursement.controls.motif.invalid
           ) {
-            <p class="vh-error" role="alert">
+            <p class="vh-field__erreur" role="alert">
               Un motif d’au moins trois caractères est obligatoire.
             </p>
           }

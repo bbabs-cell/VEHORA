@@ -1,21 +1,62 @@
-<div class="tdb">
-  <header class="tdb__entete">
-    <h1 class="tdb__titre">Tableau de bord</h1>
-    @if (organisations.organisation(); as org) {
-      <p class="vh-muted tdb__sous-titre">{{ org.name }} — {{ org.city }}</p>
+<div class="vh-page tdb">
+  <!-- ---------- Bandeau d'accueil ----------
+       Le seul décor « vivant » de l'écran (skill : `HeroExample`) : aplat
+       sombre, trame, halos, salut qui s'agite une fois, chiffre qui défile, et
+       l'action principale de l'écran avec son reflet. Toujours sombre, dans les
+       deux thèmes, comme la barre latérale. -->
+  <section class="accueil vh-dot-grid" aria-labelledby="titre-accueil">
+    <vh-fond-vivant [sombre]="true" />
+    <div class="accueil__contenu">
+      <p class="accueil__salut">
+        {{ salutation() }} <span class="vh-anim-wiggle" aria-hidden="true">👋</span>
+      </p>
+      <h1 id="titre-accueil" class="vh-page-title accueil__titre">Tableau de bord</h1>
+      @if (organisations.organisation(); as org) {
+        <p class="accueil__org">
+          {{ org.name }}
+          @if (org.city) {
+            — {{ org.city }}
+          }
+        </p>
+      }
+
+      @if (peutVoirFile()) {
+        <p class="accueil__chiffre">
+          <span class="vh-text-gradient accueil__nombre">
+            <vh-nombre-anime [valeur]="vehiculesPresents()" />
+          </span>
+          {{ vehiculesPresents() > 1 ? 'véhicules en cours' : 'véhicule en cours' }}
+        </p>
+        <a class="vh-button accueil__action" routerLink="/file-attente">
+          Ouvrir la file d’attente
+          <vh-icon nom="fleche" [taille]="18" />
+        </a>
+      }
+    </div>
+
+    <!-- Bandeau défilant des chiffres du jour (skill : `marquee`). Décoratif :
+         chaque chiffre est aussi dans une tuile, lisible et immobile. -->
+    @if (bandeau().length > 0) {
+      <div class="accueil__defilant" aria-hidden="true">
+        <div class="vh-marquee">
+          @for (texte of bandeauDouble(); track $index) {
+            <span class="accueil__info">{{ texte }} <span class="accueil__etoile">✦</span></span>
+          }
+        </div>
+      </div>
     }
-  </header>
+  </section>
 
   <!-- ---------- Ce qui se passe maintenant ---------- -->
   @if (peutVoirFile()) {
-    <section aria-labelledby="titre-maintenant">
-      <h2 id="titre-maintenant" class="tdb__section">En ce moment</h2>
-      <div class="tuiles">
+    <section class="tdb__section" aria-labelledby="titre-maintenant">
+      <h2 id="titre-maintenant" class="vh-section-titre">En ce moment</h2>
+      <div class="vh-kpis vh-stagger">
         <vh-stat-tile
           libelle="Véhicules présents"
           [valeur]="vehiculesPresents()"
           [chargement]="dossiers.chargement()"
-          precision="Dossiers ouverts, toutes étapes confondues"
+          precision="Toutes étapes confondues"
           [accent]="true"
         />
         @for (ligne of parStatut(); track ligne.statut) {
@@ -39,12 +80,14 @@
 
   <!-- ---------- Le chiffre du jour, pour qui a le droit de le savoir ------ -->
   @if (peutVoirChiffre()) {
-    <section aria-labelledby="titre-jour">
-      <h2 id="titre-jour" class="tdb__section">Aujourd’hui</h2>
-      <div class="tuiles">
+    <section class="tdb__section" aria-labelledby="titre-jour">
+      <h2 id="titre-jour" class="vh-section-titre">Aujourd’hui</h2>
+      <div class="vh-kpis vh-stagger">
         <vh-stat-tile
           libelle="Encaissé"
-          [valeur]="montant(encaisseDuJour())"
+          [valeur]="encaisseDuJour()"
+          [format]="formatMontant"
+          [argent]="true"
           [chargement]="rapports.chargement()"
           precision="Paiements reçus moins remboursements"
           [accent]="true"
@@ -62,39 +105,61 @@
     </section>
   }
 
-  <!-- ---------- Actions rapides : ce qu'on fait le plus souvent ---------- -->
-  <section aria-labelledby="titre-actions">
-    <h2 id="titre-actions" class="tdb__section">Actions rapides</h2>
-    <div class="actions">
+  <!-- ---------- Actions rapides : cartes cliquables ----------
+       Elles se soulèvent, leur contour s'allume, leur icône pivote et la
+       flèche part en diagonale (skill : « carte cliquable »). Ce sont des
+       liens : aucun n'est un bouton principal. -->
+  <section class="tdb__section" aria-labelledby="titre-actions">
+    <h2 id="titre-actions" class="vh-section-titre">Actions rapides</h2>
+    <div class="raccourcis vh-stagger">
       @if (peutVoirFile()) {
-        <a class="action" routerLink="/file-attente">
-          <vh-icon nom="file" [taille]="22" />
-          <span>File d’attente</span>
+        <a
+          class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          routerLink="/file-attente"
+        >
+          <span class="raccourci__halo" aria-hidden="true"></span>
+          <span class="raccourci__icone"><vh-icon nom="file" [taille]="22" /></span>
+          <span class="raccourci__libelle">File d’attente</span>
+          <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
         </a>
-        <a class="action" routerLink="/operations">
-          <vh-icon nom="prestation" [taille]="22" />
-          <span>Opérations</span>
+        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/operations">
+          <span class="raccourci__halo" aria-hidden="true"></span>
+          <span class="raccourci__icone"><vh-icon nom="prestation" [taille]="22" /></span>
+          <span class="raccourci__libelle">Opérations</span>
+          <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
+        </a>
+      }
+      @if (peutVoirCaisse()) {
+        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/caisse">
+          <span class="raccourci__halo" aria-hidden="true"></span>
+          <span class="raccourci__icone"><vh-icon nom="caisse" [taille]="22" /></span>
+          <span class="raccourci__libelle">Caisse</span>
+          <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
         </a>
       }
       @if (peutVoirClients()) {
-        <a class="action" routerLink="/clients">
-          <vh-icon nom="client" [taille]="22" />
-          <span>Clients</span>
+        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/clients">
+          <span class="raccourci__halo" aria-hidden="true"></span>
+          <span class="raccourci__icone"><vh-icon nom="client" [taille]="22" /></span>
+          <span class="raccourci__libelle">Clients</span>
+          <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
         </a>
       }
       @if (peutGererStations()) {
-        <a class="action" routerLink="/stations">
-          <vh-icon nom="accueil" [taille]="22" />
-          <span>Gérer les stations</span>
+        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/stations">
+          <span class="raccourci__halo" aria-hidden="true"></span>
+          <span class="raccourci__icone"><vh-icon nom="station" [taille]="22" /></span>
+          <span class="raccourci__libelle">Gérer les stations</span>
+          <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
         </a>
       }
     </div>
   </section>
 
   <!-- ---------- Votre entreprise ---------- -->
-  <section aria-labelledby="titre-chiffres">
-    <h2 id="titre-chiffres" class="tdb__section">Votre entreprise</h2>
-    <div class="tuiles">
+  <section class="tdb__section" aria-labelledby="titre-chiffres">
+    <h2 id="titre-chiffres" class="vh-section-titre">Votre entreprise</h2>
+    <div class="vh-kpis vh-stagger">
       <vh-stat-tile
         libelle="Stations actives"
         [valeur]="stationsActives()"
@@ -116,15 +181,15 @@
   </section>
 
   <section class="vh-card" aria-labelledby="titre-session">
-    <h2 id="titre-session" class="tdb__section">Votre accès</h2>
+    <h2 id="titre-session" class="vh-section-titre">Votre accès</h2>
     <dl class="tdb__liste">
       <dt class="vh-label">Compte</dt>
       <dd>{{ session()?.user?.email }}</dd>
       <dt class="vh-label">Rôle</dt>
-      <dd>{{ claims().role ?? '—' }}</dd>
+      <dd>{{ libelleRole(claims().role) }}</dd>
       <dt class="vh-label">Portée</dt>
-      <dd>{{ claims().roleScope ?? '—' }}</dd>
-      <dt class="vh-label">Permissions</dt>
+      <dd>{{ libellePortee(claims().roleScope) }}</dd>
+      <dt class="vh-label">Droits</dt>
       <dd>{{ claims().permissions.size }}</dd>
     </dl>
     <p class="vh-muted tdb__note">

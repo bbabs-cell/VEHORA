@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseService } from '../supabase/supabase.client';
 import type { Enums, Tables } from '../../types/database.types';
 import { ligneDeVue, nullAccepte } from '../../types/frontiere';
+import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 /** Une organisation cliente, vue de la plateforme : métadonnées et volumes. */
 export interface OrganisationPlateforme {
@@ -94,45 +95,29 @@ export const LIBELLES_STATUT_FACTURE: Readonly<Record<FacturePlateforme['status'
   VOID: 'Annulée',
 };
 
+/** Messages propres à ce service ; le reste vient de `traduireErreur`. */
+const MESSAGES: MessagesErreur = {
+  marqueurs: {
+    VEHORA_PLATEFORME_REFUSEE: 'Cette action est réservée à la plateforme.',
+    VEHORA_DROIT_REQUIS: 'La facturation est réservée à la plateforme.',
+    VEHORA_FACTURE_DEJA_PAYEE:
+      'Cette facture est déjà réglée : une facture réglée ne s’annule pas, elle se rembourse.',
+    VEHORA_FACTURE_ANNULEE: 'Cette facture est annulée : elle ne se règle pas.',
+    VEHORA_FACTURE_INTROUVABLE: 'Cette facture n’existe pas.',
+    VEHORA_FACTURE_IMMUABLE: 'Une facture émise ne se modifie pas.',
+    VEHORA_DELAI_INVALIDE: 'Le délai de paiement va de 0 à 180 jours.',
+    VEHORA_PLAN_TROP_ETROIT: 'Ce plan est plus étroit que ce que l’organisation utilise déjà.',
+    VEHORA_PLAN_INCHANGE: 'Cette organisation est déjà sur ce plan.',
+    VEHORA_PLAN_INTROUVABLE: 'Ce plan n’existe pas.',
+    VEHORA_FONCTIONNALITE_INCONNUE: 'Cette fonctionnalité n’existe pas.',
+    VEHORA_DEJA_SUSPENDUE: 'Cette organisation est déjà suspendue.',
+    VEHORA_NON_SUSPENDUE: 'Cette organisation n’est pas suspendue.',
+    VEHORA_ORGANISATION_INTROUVABLE: 'Cette organisation n’existe pas.',
+  },
+};
+
 function message(code: string | undefined, brut: string): string {
-  if (brut.includes('VEHORA_PLATEFORME_REFUSEE')) {
-    return 'Cette action est réservée à la plateforme.';
-  }
-  if (brut.includes('VEHORA_MOTIF_REQUIS')) return 'Un motif est obligatoire.';
-  if (brut.includes('VEHORA_DROIT_REQUIS')) {
-    return 'La facturation est réservée à la plateforme.';
-  }
-  if (brut.includes('VEHORA_FACTURE_DEJA_PAYEE')) {
-    return 'Cette facture est déjà réglée : une facture réglée ne s’annule pas, elle se rembourse.';
-  }
-  if (brut.includes('VEHORA_FACTURE_ANNULEE')) {
-    return 'Cette facture est annulée : elle ne se règle pas.';
-  }
-  if (brut.includes('VEHORA_FACTURE_INTROUVABLE')) return 'Cette facture n’existe pas.';
-  if (brut.includes('VEHORA_FACTURE_IMMUABLE')) {
-    return 'Une facture émise ne se modifie pas.';
-  }
-  if (brut.includes('VEHORA_DELAI_INVALIDE')) {
-    return 'Le délai de paiement va de 0 à 180 jours.';
-  }
-  if (brut.includes('VEHORA_PLAN_TROP_ETROIT')) {
-    return 'Ce plan est plus étroit que ce que l’organisation utilise déjà.';
-  }
-  if (brut.includes('VEHORA_PLAN_INCHANGE')) return 'Cette organisation est déjà sur ce plan.';
-  if (brut.includes('VEHORA_PLAN_INTROUVABLE')) return 'Ce plan n’existe pas.';
-  if (brut.includes('VEHORA_FONCTIONNALITE_INCONNUE')) {
-    return 'Cette fonctionnalité n’existe pas.';
-  }
-  if (brut.includes('VEHORA_DEJA_SUSPENDUE')) return 'Cette organisation est déjà suspendue.';
-  if (brut.includes('VEHORA_NON_SUSPENDUE')) return 'Cette organisation n’est pas suspendue.';
-  if (brut.includes('VEHORA_ORGANISATION_INTROUVABLE')) {
-    return 'Cette organisation n’existe pas.';
-  }
-  if (code === '42501') return 'Vous n’avez pas le droit d’effectuer cette action.';
-  if (brut.toLowerCase().includes('failed to fetch')) {
-    return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return 'L’opération a échoué. Réessayez dans un instant.';
+  return traduireErreur({ code, message: brut }, MESSAGES);
 }
 
 /**

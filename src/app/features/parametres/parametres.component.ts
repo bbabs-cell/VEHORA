@@ -13,6 +13,8 @@ import {
 } from '../../core/organization/organization.service';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import { symboleDevise } from '../../shared/format/montant';
+import { EntetePageComponent } from '../../shared/ui/entete-page.component';
+import { retour, type Retour } from '../../shared/ui/retour';
 
 /**
  * Deux formulaires, deux enregistrements. La fiche (qui vous êtes) et les
@@ -22,7 +24,7 @@ import { symboleDevise } from '../../shared/format/montant';
 @Component({
   selector: 'vh-parametres',
   standalone: true,
-  imports: [ReactiveFormsModule, SkeletonComponent],
+  imports: [EntetePageComponent, ReactiveFormsModule, SkeletonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './parametres.component.html',
   styleUrl: './parametres.component.css',
@@ -33,8 +35,8 @@ export class ParametresComponent {
 
   readonly enregistrementFiche = signal(false);
   readonly enregistrementReglages = signal(false);
-  readonly messageFiche = signal<string | null>(null);
-  readonly messageReglages = signal<string | null>(null);
+  readonly messageFiche = signal<Retour | null>(null);
+  readonly messageReglages = signal<Retour | null>(null);
 
   readonly fiche = computed(() => this.organisation.fiche());
   readonly reglages = computed(() => this.organisation.reglages());
@@ -124,7 +126,10 @@ export class ParametresComponent {
       country_code: v.country_code.trim().toUpperCase(),
     });
     this.enregistrementFiche.set(false);
-    this.messageFiche.set(erreur ?? 'Fiche enregistrée.');
+    this.messageFiche.set(retour(erreur, 'Fiche enregistrée.'));
+    // Enregistrée, la fiche n'a plus rien d'« en attente » : son bouton
+    // redevient secondaire (un seul bouton principal par écran).
+    if (!erreur) this.formFiche.markAsPristine();
   }
 
   async enregistrerReglages(): Promise<void> {
@@ -137,6 +142,7 @@ export class ParametresComponent {
     this.messageReglages.set(null);
     const erreur = await this.organisation.enregistrerReglages(this.formReglages.getRawValue());
     this.enregistrementReglages.set(false);
-    this.messageReglages.set(erreur ?? 'Réglages enregistrés.');
+    this.messageReglages.set(retour(erreur, 'Réglages enregistrés.'));
+    if (!erreur) this.formReglages.markAsPristine();
   }
 }

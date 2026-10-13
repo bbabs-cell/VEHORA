@@ -2,11 +2,13 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { traduireErreur } from '../../../core/erreurs/traduire-erreur';
+import { SceneComponent } from '../../../shared/ui/scene.component';
 
 @Component({
   selector: 'vh-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [SceneComponent, ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
@@ -53,15 +55,16 @@ export class LoginComponent {
    * (l'énumération de comptes est une fuite d'information).
    */
   private messageErreur(message: string): string {
-    if (message.includes('Invalid login credentials')) {
-      return 'Identifiants incorrects. Vérifiez votre adresse et votre mot de passe.';
-    }
-    if (message.includes('Email not confirmed')) {
-      return 'Votre adresse e-mail n’a pas encore été confirmée.';
-    }
-    if (message.toLowerCase().includes('failed to fetch')) {
-      return 'Connexion au serveur impossible. Vérifiez votre réseau et réessayez.';
-    }
-    return 'La connexion a échoué. Réessayez dans un instant.';
+    return traduireErreur(
+      { message },
+      {
+        marqueurs: {
+          'Invalid login credentials':
+            'Identifiants incorrects. Vérifiez votre adresse et votre mot de passe.',
+          'Email not confirmed': 'Votre adresse e-mail n’a pas encore été confirmée.',
+        },
+        parDefaut: 'La connexion a échoué. Réessayez dans un instant.',
+      },
+    );
   }
 }

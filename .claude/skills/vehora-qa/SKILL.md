@@ -36,6 +36,25 @@ rien de B) · parcours complet d'une prestation · paiement partiel puis solde �
 restitution bloquée puis autorisée · ouverture et clôture de caisse.
 Tester aussi au format mobile (360×740), pas seulement en desktop.
 
+## Audit mobile — capture regardée (méthode MagyaPro)
+
+```bash
+npm run build && npm run audit:mobile
+```
+
+Sert le build réel sous sa CSP réelle, ouvre chaque écran de chaque profil à
+375 px avec Supabase **simulé** (`scripts/maquette/` — aucun secret requis), et
+échoue sur : défilement horizontal, bouton écrasé, **plus d'un bouton principal
+visible**, texte coupé, texte sous 13 px, violation de CSP, erreur JavaScript.
+`AUDIT_LARGEURS=320,375,1280`, `AUDIT_THEMES=sombre,clair`, `AUDIT_CHEMINS=…`.
+
+**Puis REGARDER les captures** (dossier temporaire, jamais dans le dépôt). C'est
+une capture qui a montré, en phase 24, que la file d'attente s'affichait en
+texte brut depuis la phase 15 — aucune assertion ne le voyait.
+
+Un écran ajouté = un chemin ajouté à `PARCOURS` dans `scripts/audit-mobile.mjs`
+et, s'il lit une table nouvelle, ses lignes dans `scripts/maquette/donnees.mjs`.
+
 ## Test structurel permanent
 
 `supabase/tests/00_rls_coverage.sql` échoue si une table de `public` n'a pas RLS
@@ -57,8 +76,11 @@ ou n'a aucune policy. **Ne jamais le désactiver ni l'assouplir.**
 - [ ] elle est refusée côté serveur pour l'utilisateur non autorisé
 - [ ] les contournements pertinents sont bloqués et testés
 - [ ] les quatre états sont traités (chargement, vide, erreur, contenu)
-- [ ] elle est correcte à 360px et en thème clair
-- [ ] aucune couleur en dur, cibles tactiles ≥ 44px
+- [ ] `npm run audit:mobile` est vert ET les captures ont été regardées, en
+      thème sombre et clair
+- [ ] un seul bouton principal par écran
+- [ ] aucune couleur en dur, cibles tactiles ≥ 44px (`npm run test:unit`
+      vérifie les jetons)
 - [ ] les listes sont paginées
 - [ ] `validate-sql.sh` est au vert
 - [ ] le build passe, budgets de bundle respectés
