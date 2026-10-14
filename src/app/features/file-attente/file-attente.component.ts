@@ -15,6 +15,7 @@ import {
   LIBELLES_STATUT,
   ORDRE_FILE,
   ServiceOrderService,
+  TEINTE_STATUT,
   type DossierListe,
   type StatutDossier,
 } from '../../core/service-orders/service-order.service';
@@ -117,6 +118,7 @@ export class FileAttenteComponent {
   readonly peutVoirPaiements = computed(() => this.auth.hasPermission('payments.read'));
 
   readonly methodes = ORDRE_METHODES;
+  readonly teinteStatut = TEINTE_STATUT;
   readonly libelleMethode = (m: MethodePaiement): string => LIBELLES_METHODE[m];
 
   readonly formPaiement = this.fb.nonNullable.group({

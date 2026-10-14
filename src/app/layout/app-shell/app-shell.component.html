@@ -53,7 +53,9 @@
       </button>
     </header>
 
-    <main class="contenu" id="contenu">
+    <!-- La teinte de la section descend dans tout l'écran : pastille et point
+         final du titre la prennent sans la connaître. -->
+    <main class="contenu" id="contenu" [vhTeinte]="section()?.teinte ?? 'azur'">
       <router-outlet />
     </main>
 

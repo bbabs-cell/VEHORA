@@ -46,6 +46,23 @@ export const LIBELLES_STATUT: Readonly<Record<StatutDossier, string>> = {
 };
 
 /** Ordre de la file : ce que l'exploitant lit de haut en bas, le matin. */
+/**
+ * La couleur de chaque étape : rail des dossiers et en-tête d'étape dans la
+ * file, tuiles du tableau de bord — les mêmes six couleurs partout, dans le
+ * même ordre. Des jetons (`_tokens.css`), jamais des valeurs : le thème clair
+ * les redéfinit, et `npm run test:unit` refuse un jeton qui n'existe pas.
+ */
+export const TEINTE_STATUT: Readonly<Record<StatutDossier, string>> = {
+  ARRIVED: 'var(--vh-status-arrived)',
+  INSPECTION: 'var(--vh-status-inspection)',
+  WAITING: 'var(--vh-status-waiting)',
+  IN_PROGRESS: 'var(--vh-status-in-progress)',
+  CONTROL: 'var(--vh-status-control)',
+  READY: 'var(--vh-status-ready)',
+  DELIVERED: 'var(--vh-status-delivered)',
+  CANCELLED: 'var(--vh-status-cancelled)',
+};
+
 export const ORDRE_FILE: readonly StatutDossier[] = [
   'ARRIVED',
   'INSPECTION',

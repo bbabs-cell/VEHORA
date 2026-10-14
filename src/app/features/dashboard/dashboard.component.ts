@@ -7,6 +7,7 @@ import {
   LIBELLES_STATUT,
   ORDRE_FILE,
   ServiceOrderService,
+  TEINTE_STATUT,
   type StatutDossier,
 } from '../../core/service-orders/service-order.service';
 import { ReceiptService } from '../../core/receipts/receipt.service';
@@ -16,6 +17,7 @@ import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { NombreAnimeComponent } from '../../shared/ui/nombre-anime.component';
 import { StatTileComponent } from '../../shared/ui/stat-tile.component';
+import { TeinteDirective } from '../../shared/ui/teinte';
 import { formaterMontant } from '../../shared/format/montant';
 
 /** `2026-09-17` dans le fuseau de l'appareil — pas en UTC. */
@@ -26,11 +28,12 @@ function aujourdHui(): string {
   ).padStart(2, '0')}`;
 }
 
-/** Une ligne de la file : un statut, son libellé, son nombre. */
+/** Une ligne de la file : un statut, son libellé, son nombre, sa couleur. */
 interface CompteStatut {
   readonly statut: StatutDossier;
   readonly libelle: string;
   readonly nombre: number;
+  readonly teinte: string;
 }
 
 /**
@@ -56,6 +59,7 @@ interface CompteStatut {
     StatTileComponent,
     FondVivantComponent,
     NombreAnimeComponent,
+    TeinteDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
@@ -114,6 +118,7 @@ export class DashboardComponent {
       statut,
       libelle: LIBELLES_STATUT[statut],
       nombre: dossiers.filter((d) => d.status === statut).length,
+      teinte: TEINTE_STATUT[statut],
     }));
   });
 

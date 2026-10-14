@@ -57,13 +57,14 @@
           [valeur]="vehiculesPresents()"
           [chargement]="dossiers.chargement()"
           precision="Toutes étapes confondues"
-          [accent]="true"
+          teinte="var(--vh-primary-bright)"
         />
         @for (ligne of parStatut(); track ligne.statut) {
           <vh-stat-tile
             [libelle]="ligne.libelle"
             [valeur]="ligne.nombre"
             [chargement]="dossiers.chargement()"
+            [teinte]="ligne.teinte"
           />
         }
       </div>
@@ -90,12 +91,13 @@
           [argent]="true"
           [chargement]="rapports.chargement()"
           precision="Paiements reçus moins remboursements"
-          [accent]="true"
+          teinte="var(--vh-money)"
         />
         <vh-stat-tile
           libelle="Véhicules restitués"
           [valeur]="restitutionsDuJour()"
           [chargement]="rapports.chargement()"
+          teinte="var(--vh-status-ready)"
         />
       </div>
       <p class="vh-muted tdb__note">
@@ -108,13 +110,15 @@
   <!-- ---------- Actions rapides : cartes cliquables ----------
        Elles se soulèvent, leur contour s'allume, leur icône pivote et la
        flèche part en diagonale (skill : « carte cliquable »). Ce sont des
-       liens : aucun n'est un bouton principal. -->
+       liens : aucun n'est un bouton principal. Chacune dans la teinte de sa
+       section — la même que son entrée de menu (phase 25). -->
   <section class="tdb__section" aria-labelledby="titre-actions">
     <h2 id="titre-actions" class="vh-section-titre">Actions rapides</h2>
     <div class="raccourcis vh-stagger">
       @if (peutVoirFile()) {
         <a
           class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          vhTeinte="indigo"
           routerLink="/file-attente"
         >
           <span class="raccourci__halo" aria-hidden="true"></span>
@@ -122,7 +126,11 @@
           <span class="raccourci__libelle">File d’attente</span>
           <vh-icon class="raccourci__fleche" nom="fleche" [taille]="18" />
         </a>
-        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/operations">
+        <a
+          class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          vhTeinte="violet"
+          routerLink="/operations"
+        >
           <span class="raccourci__halo" aria-hidden="true"></span>
           <span class="raccourci__icone"><vh-icon nom="prestation" [taille]="22" /></span>
           <span class="raccourci__libelle">Opérations</span>
@@ -130,7 +138,11 @@
         </a>
       }
       @if (peutVoirCaisse()) {
-        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/caisse">
+        <a
+          class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          vhTeinte="laiton"
+          routerLink="/caisse"
+        >
           <span class="raccourci__halo" aria-hidden="true"></span>
           <span class="raccourci__icone"><vh-icon nom="caisse" [taille]="22" /></span>
           <span class="raccourci__libelle">Caisse</span>
@@ -138,7 +150,11 @@
         </a>
       }
       @if (peutVoirClients()) {
-        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/clients">
+        <a
+          class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          vhTeinte="rose"
+          routerLink="/clients"
+        >
           <span class="raccourci__halo" aria-hidden="true"></span>
           <span class="raccourci__icone"><vh-icon nom="client" [taille]="22" /></span>
           <span class="raccourci__libelle">Clients</span>
@@ -146,7 +162,11 @@
         </a>
       }
       @if (peutGererStations()) {
-        <a class="vh-card vh-card--cliquable vh-gradient-border raccourci" routerLink="/stations">
+        <a
+          class="vh-card vh-card--cliquable vh-gradient-border raccourci"
+          vhTeinte="azur"
+          routerLink="/stations"
+        >
           <span class="raccourci__halo" aria-hidden="true"></span>
           <span class="raccourci__icone"><vh-icon nom="station" [taille]="22" /></span>
           <span class="raccourci__libelle">Gérer les stations</span>
@@ -169,12 +189,14 @@
             ? stations.stations().length - stationsActives() + ' inactive(s)'
             : null
         "
+        teinte="var(--vh-primary-bright)"
       />
       @if (peutGererUtilisateurs() && organisations.nombreMembres() !== null) {
         <vh-stat-tile
           libelle="Membres actifs"
           [valeur]="organisations.nombreMembres() ?? 0"
           precision="Comptes pouvant se connecter"
+          teinte="var(--vh-rose)"
         />
       }
     </div>

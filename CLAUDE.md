@@ -147,6 +147,10 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
+**Phase 25 validée** — palette de repères : indigo, violet, rose, une teinte
+par domaine (`[vhTeinte]`), chaque étape de dossier dans sa couleur, fond
+vivant en dégradés radiaux (`docs/phases/phase-25.md`). Même réserve sur
+`npm run e2e`.
 **Phase 24 validée** — refonte selon la méthode MagyaPro et les animations
 vivantes d'Atelier Flow (`docs/refonte-interface.md`, `docs/phases/phase-24.md`,
 `docs/SECURITE.md`). Sous réserve : la suite `npm run e2e` n'a pas pu être
@@ -210,10 +214,25 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Angular supprime l'espace seul entre deux balises.** Entre le nombre et
   l'unité d'un montant, c'est lui qui laisse « F CFA » passer à la ligne :
   `&ngsp;`. Sans lui, « 976 500 FCFA » sortait de sa tuile.
-- **Le bundle initial est à 150 octets de son seuil d'alerte** (499,85 Ko bruts,
+- **Le bundle initial est à 310 octets de son seuil d'alerte** (499,69 Ko bruts,
   124 Ko transférés). Une règle globale que rien n'utilise est du poids pour
   chaque téléphone : `.vh-table-stack` a été retiré faute de tableau — le
-  gabarit attend dans le skill de la méthode.
+  gabarit attend dans le skill de la méthode. La palette de repères (phase 25)
+  a été payée de la même façon : cinq variantes de `.vh-pastille` jamais
+  employées. Un réglage par élément passe par un binding (`[vhTeinte]`,
+  `TEINTE_STATUT`), pas par une règle globale par valeur.
+- **Une teinte de repère dit « où je suis »**, jamais un état : indigo, violet
+  et rose sont choisis loin du vert, de l'ambre et du rouge, et ne colorent
+  qu'une icône, une pastille, un point ou un chiffre — jamais un bouton plein.
+  Avant la phase 25, la marque disait deux états (inspection, en cours) et le
+  laiton un troisième (contrôle) : trois couleurs pour deux règles enfreintes.
+- **Un halo est un dégradé radial, jamais un `filter: blur()`** : le flou d'un
+  grand disque animé est l'effet le plus cher qu'un téléphone ait à composer
+  pendant un défilement. `radial-gradient(closest-side, couleur 30%,
+  transparent)` donne le même rendu.
+- **Un lien sans règle prend la couleur du navigateur.** Aucune règle `a {}` :
+  « Voir la file d'attente » s'affichait dans le bleu-violet de Chrome, la
+  seule couleur de l'écran qui n'était pas la nôtre.
 - **Brouillon des saisies longues** : `shared/brouillon/`, clé
   `vehora:<organisation>:…`, ignoré après 12 h, effacé à la réussite et à la
   déconnexion. L'inspection l'utilise ; ses photos ne survivent pas, l'écran

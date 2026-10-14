@@ -6,8 +6,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrganizationService } from '../../core/organization/organization.service';
 import { SubscriptionService } from '../../core/subscription/subscription.service';
@@ -16,6 +17,7 @@ import { BarreProgressionComponent } from '../../shared/ui/barre-progression.com
 import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
+import { SECTION_COURANTE, type SectionCourante, TeinteDirective } from '../../shared/ui/teinte';
 import { BarreBasseComponent } from '../barre-basse/barre-basse.component';
 import { NavigationLateraleComponent } from '../navigation-laterale/navigation-laterale.component';
 import { ENTREES_BARRE_BASSE, NAVIGATION, PRIORITE_MOBILE } from '../navigation';
@@ -44,7 +46,10 @@ import { ENTREES_BARRE_BASSE, NAVIGATION, PRIORITE_MOBILE } from '../navigation'
     BarreProgressionComponent,
     NavigationLateraleComponent,
     BarreBasseComponent,
+    TeinteDirective,
   ],
+  // Les en-têtes de page lisent la section courante pour poser leur pastille.
+  providers: [{ provide: SECTION_COURANTE, useFactory: () => inject(AppShellComponent).section }],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
@@ -58,6 +63,25 @@ export class AppShellComponent {
   private readonly abonnement = inject(SubscriptionService);
 
   readonly menuOuvert = signal(false);
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /**
+   * La section de l'écran affiché, d'après le menu COMPLET — pas celui des
+   * droits : `/caisse/historique` est dans la caisse même pour qui ne voit pas
+   * l'entrée. Un écran hors menu (un reçu) n'a pas de section : azur.
+   */
+  readonly section = computed<SectionCourante | null>(() => {
+    const chemin = this.url().split(/[?#]/)[0];
+    const entree = NAVIGATION.find((e) => chemin === e.chemin || chemin.startsWith(`${e.chemin}/`));
+    return entree ? { icone: entree.icone, teinte: entree.teinte } : null;
+  });
 
   /**
    * Entrées visibles : la permission de l'utilisateur, et la fonctionnalité

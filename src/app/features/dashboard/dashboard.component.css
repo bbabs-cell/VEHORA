@@ -19,12 +19,13 @@
   box-shadow: var(--vh-shadow-3);
   animation: var(--vh-anime-scale-in);
   /* Sur cet aplat toujours sombre, le dégradé « trait » du thème clair serait
-     illisible : le bandeau garde celui de la lumière. */
+     illisible : le bandeau prend les teintes « vif ». Une aurore azur, violet,
+     rose (phase 25) : le chiffre du jour et le point du titre la traversent. */
   --vh-degrade-trait: linear-gradient(
     120deg,
     var(--vh-vivant),
-    var(--vh-vivant-clair),
-    var(--vh-vivant-profond),
+    var(--vh-violet-vif),
+    var(--vh-rose-vif),
     var(--vh-vivant)
   );
 }
@@ -160,25 +161,27 @@
   padding: var(--vh-space-4);
 }
 
-/* Halo flou dans un coin, qui grossit au survol (skill : `cardGlow`). */
+/* Halo dans un coin, dans la teinte de la section, qui grossit au survol
+   (skill : `cardGlow`). Un dégradé radial, pas un `filter: blur` : même halo,
+   sans filtre à recalculer sur cinq cartes. */
 .raccourci__halo {
   position: absolute;
-  right: -2rem;
-  top: -2rem;
-  width: 7rem;
-  height: 7rem;
+  right: -2.5rem;
+  top: -2.5rem;
+  width: 9rem;
+  height: 9rem;
   border-radius: var(--vh-radius-pill);
-  background: rgb(var(--vh-vivant-rgb));
-  opacity: 0.12;
-  filter: blur(28px);
+  background: radial-gradient(closest-side, var(--vh-teinte-vif), transparent);
+  opacity: 0.22;
   pointer-events: none;
   transition:
     transform 0.5s var(--vh-ease),
     opacity 0.5s var(--vh-ease);
 }
 
-/* Pastille d'icône qui pivote au survol (skill : `cardIcon`). Décor : l'icône
-   n'est pas un texte, le dégradé clair peut la porter. */
+/* Pastille d'icône qui pivote au survol (skill : `cardIcon`), dans la teinte
+   de la section : de sa valeur vive à la même, assombrie par l'encre de la
+   navigation. Décor : l'icône n'est pas un texte, le dégradé peut la porter. */
 .raccourci__icone {
   position: relative;
   display: grid;
@@ -186,7 +189,11 @@
   width: 44px;
   height: 44px;
   border-radius: var(--vh-radius-card);
-  background: linear-gradient(135deg, var(--vh-vivant-clair), var(--vh-vivant-profond));
+  background: linear-gradient(
+    135deg,
+    var(--vh-teinte-vif),
+    color-mix(in oklab, var(--vh-teinte-vif) 55%, var(--vh-nav))
+  );
   color: var(--vh-primary-ink);
   box-shadow: var(--vh-shadow-1);
   transition: transform 0.5s var(--vh-ease);
@@ -212,7 +219,7 @@
 
 .raccourci:hover .raccourci__halo {
   transform: scale(1.5);
-  opacity: 0.3;
+  opacity: 0.4;
 }
 
 .raccourci:hover .raccourci__icone {
@@ -221,7 +228,7 @@
 
 .raccourci:hover .raccourci__fleche {
   transform: translate(2px, -2px);
-  color: var(--vh-primary-bright);
+  color: var(--vh-teinte);
 }
 
 .raccourci:active {

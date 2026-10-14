@@ -20,6 +20,14 @@ Fond `--vh-bg` · surfaces `--vh-surface-1/2/3` · primaire `--vh-primary`
 · accent `--vh-accent` · succès/alerte/erreur `--vh-success` `--vh-warning`
 `--vh-error` · texte `--vh-text` / `--vh-text-muted` · bordure `--vh-border`.
 
+Repères (phase 25) : `--vh-indigo`, `--vh-violet`, `--vh-rose` (+ `-vif`,
+fixes, pour la navigation toujours sombre). Une teinte par domaine, posée par
+la directive `[vhTeinte]` (`shared/ui/teinte.ts`) qui expose `--vh-teinte` et
+`--vh-teinte-vif` aux descendants : pilotage azur, atelier indigo, travail
+violet, personnes rose, argent laiton. La coquille la pose sur `<main>` selon
+l'écran ; `vh-entete-page` en tire sa pastille. Un repère colore une icône, une
+pastille, un point, un chiffre — **jamais un bouton plein ni un état**.
+
 Dark-first, **jamais dark-only** : tout écran doit rester correct sous
 `[data-theme="light"]`. Le mode clair n'est pas une option cosmétique, c'est
 une exigence terrain (usage en plein soleil).
@@ -34,6 +42,10 @@ EN ATTENTE `--vh-status-waiting` · EN COURS `--vh-status-in-progress` ·
 CONTRÔLE `--vh-status-control` · PRÊT `--vh-status-ready` ·
 RESTITUÉ `--vh-status-delivered` · ANNULÉ `--vh-status-cancelled`.
 
+En TypeScript, `TEINTE_STATUT` (`core/service-orders/service-order.service.ts`)
+donne le jeton de chaque statut : la file et le tableau de bord le lisent,
+aucune correspondance n'est recopiée dans une feuille.
+
 ## Mesures
 
 - Espacement : échelle 4px, `--vh-space-*`. Rien hors échelle.
@@ -43,6 +55,9 @@ RESTITUÉ `--vh-status-delivered` · ANNULÉ `--vh-status-cancelled`.
 - Texte : 16px de base, **jamais en dessous de 14px** pour une donnée métier.
 - Profondeur : surface + bordure d'abord, ombre ensuite. Pas de glassmorphism
   sur les listes opérationnelles (coût GPU sur Android d'entrée de gamme).
+- Halo : un `radial-gradient(closest-side, couleur 30%, transparent)`, jamais
+  un disque passé dans `filter: blur()` — même rendu, sans filtre à composer
+  pendant un défilement.
 
 ## Boutons
 

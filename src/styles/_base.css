@@ -42,6 +42,15 @@ h1 {
   letter-spacing: -0.02em;
 }
 
+/* Un lien dans le texte est la marque en TRAIT. Sans cette règle, chaque lien
+   prenait le bleu-violet du navigateur (« Voir la file d'attente »,
+   « Rapports ») : la seule couleur de l'écran qui n'était pas la nôtre. Les
+   liens de navigation et les boutons posent la leur, par classe. */
+a {
+  color: var(--vh-primary-bright);
+  text-underline-offset: 3px;
+}
+
 /* Focus visible : exigence d'accessibilité, jamais supprimé. */
 :focus-visible {
   outline: 2px solid var(--vh-primary-bright);
@@ -176,11 +185,6 @@ textarea {
 .vh-etiquette--marque {
   border-color: var(--vh-primary-bright);
   color: var(--vh-primary-bright);
-}
-
-.vh-etiquette--ok {
-  border-color: var(--vh-success);
-  color: var(--vh-success);
 }
 
 .vh-button {
@@ -534,29 +538,13 @@ textarea {
   flex: 0 0 auto;
 }
 
-.vh-pastille--neutre {
-  background: var(--vh-surface-3);
-  color: var(--vh-text-muted);
-}
-.vh-pastille--marque {
-  background: var(--vh-primary-soft);
-  color: var(--vh-primary-bright);
-}
+/* Une seule variante sert (la caisse ouverte). Les cinq autres — neutre,
+   marque, attente, erreur, argent — n'étaient employées nulle part et pesaient
+   dans le bundle initial de chaque téléphone : retirées en phase 25 pour payer
+   la palette de repères. On les réécrit le jour où un écran en a besoin. */
 .vh-pastille--ok {
   background: var(--vh-success-soft);
   color: var(--vh-success);
-}
-.vh-pastille--attente {
-  background: var(--vh-warning-soft);
-  color: var(--vh-warning);
-}
-.vh-pastille--erreur {
-  background: var(--vh-error-soft);
-  color: var(--vh-error-text);
-}
-.vh-pastille--argent {
-  background: var(--vh-money-soft);
-  color: var(--vh-money);
 }
 
 /* --- Le rail d'état ------------------------------------------------------

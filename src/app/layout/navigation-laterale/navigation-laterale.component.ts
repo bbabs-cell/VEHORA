@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { libelleRole } from '../../core/auth/libelles-roles';
 import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { TeinteDirective } from '../../shared/ui/teinte';
 import { EntreeNavigation } from '../navigation';
 
 /**
@@ -18,7 +19,7 @@ import { EntreeNavigation } from '../navigation';
 @Component({
   selector: 'vh-navigation-laterale',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, IconComponent, FondVivantComponent],
+  imports: [RouterLink, RouterLinkActive, IconComponent, FondVivantComponent, TeinteDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './navigation-laterale.component.html',
   styleUrl: './navigation-laterale.component.css',

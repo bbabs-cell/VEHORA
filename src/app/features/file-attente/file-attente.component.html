@@ -53,7 +53,13 @@
     </div>
   } @else {
     @for (groupe of groupes(); track groupe.statut) {
-      <section class="groupe" [attr.aria-label]="groupe.libelle">
+      <!-- La couleur de l'étape descend sur l'en-tête et sur le rail de
+           chaque dossier du groupe. -->
+      <section
+        class="groupe"
+        [attr.aria-label]="groupe.libelle"
+        [style.--vh-rail]="teinteStatut[groupe.statut]"
+      >
         <h2 class="vh-section-titre">
           {{ groupe.libelle }}
           <!-- Le compteur rebondit quand il change : la valeur sert de clé. -->

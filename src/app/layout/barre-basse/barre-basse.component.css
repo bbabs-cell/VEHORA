@@ -71,14 +71,17 @@
   transform: scale(0.95);
 }
 
+/* Chaque écran dans sa teinte (phase 25) : une grille de neuf icônes grises
+   se lisait mot par mot ; en couleur, on y retrouve la caisse en laiton et
+   les clients en rose sans lire. Fond : la teinte à 14 % sur la feuille. */
 .feuille-plus__icone {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   border-radius: var(--vh-radius-pill);
-  background: var(--vh-surface-2);
-  color: var(--vh-text-muted);
+  background: color-mix(in srgb, var(--vh-teinte) 14%, transparent);
+  color: var(--vh-teinte);
   transition: transform var(--vh-duration-base) var(--vh-ease);
 }
 
@@ -87,8 +90,7 @@
 }
 
 .feuille-plus__lien--actif .feuille-plus__icone {
-  background: var(--vh-primary-soft);
-  color: var(--vh-primary-bright);
+  box-shadow: inset 0 0 0 2px var(--vh-teinte);
 }
 
 /* ---------- Barre basse (mobile) ---------- */
@@ -129,7 +131,12 @@
   transition: color var(--vh-duration-fast) var(--vh-ease);
 }
 
+/* Toutes les icônes ont la place de la pastille de l'entrée active : sans
+   elle, l'icône active serait plus haute et les libellés danseraient d'une
+   entrée à l'autre. */
 .barre-basse__lien vh-icon {
+  padding: 2px 14px;
+  border-radius: var(--vh-radius-pill);
   transition: transform var(--vh-duration-base) var(--vh-ease-pop);
 }
 
@@ -138,11 +145,13 @@
   transform: scale(0.88);
 }
 
-/* L'écran courant : la marque en TRAIT (azur vif, lisible sur la surface ;
-   l'azur de fond n'y tenait pas 4,5:1), une barre au-dessus de l'icône, et
-   l'icône qui rebondit une fois en arrivant. */
+/* L'écran courant, dans la teinte de sa section (phase 25 ; l'azur pour
+   « Plus ») : libellé et icône en trait (≥ 4,5:1 sur la surface, vérifié),
+   une pastille sous l'icône, une barre au-dessus, et l'icône qui rebondit une
+   fois en arrivant. Les autres entrées restent neutres : c'est le contraste
+   entre la seule colorée et les grises qui dit où l'on est. */
 .barre-basse__lien--actif {
-  color: var(--vh-primary-bright);
+  color: var(--vh-teinte);
   font-weight: 700;
 }
 
@@ -154,11 +163,12 @@
   right: 30%;
   height: 3px;
   border-radius: 0 0 var(--vh-radius-pill) var(--vh-radius-pill);
-  background: var(--vh-primary-bright);
+  background: var(--vh-teinte);
   animation: vh-grow-x var(--vh-duration-base) var(--vh-ease) backwards;
 }
 
 .barre-basse__lien--actif vh-icon {
+  background: color-mix(in srgb, var(--vh-teinte) 16%, transparent);
   animation: var(--vh-anime-pop);
 }
 

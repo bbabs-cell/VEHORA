@@ -14,6 +14,11 @@ const entier = new Intl.NumberFormat('fr-FR');
  * Une valeur NUMÉRIQUE défile jusqu'à sa cible (skill « animations
  * vivantes », KPI) ; un texte s'affiche tel quel. Un montant se passe en
  * nombre (unité mineure) avec sa mise en forme dans `format`.
+ *
+ * `teinte` (phase 25) : la couleur de ce que la tuile compte — l'étape d'un
+ * dossier (`var(--vh-status-…)`), l'argent, une section. Elle colore le
+ * chiffre, un point devant le libellé, le rail et un voile léger ; le libellé
+ * reste écrit en toutes lettres, la couleur ne dit jamais rien seule.
  */
 @Component({
   selector: 'vh-stat-tile',
@@ -21,7 +26,7 @@ const entier = new Intl.NumberFormat('fr-FR');
   imports: [SkeletonComponent, NombreAnimeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="tuile" [class.tuile--accent]="accent()">
+    <div class="tuile" [class.tuile--teintee]="teinte()" [style.--tuile-teinte]="teinte()">
       <p class="tuile__libelle">{{ libelle() }}</p>
       @if (chargement()) {
         <vh-skeleton largeur="3ch" hauteur="var(--vh-text-2xl)" />
@@ -59,16 +64,38 @@ const entier = new Intl.NumberFormat('fr-FR');
         min-height: 104px;
         overflow: hidden;
       }
-      /* Le rail de marque : la tuile qui compte le plus sur la rangée. */
-      .tuile--accent {
+      /* Le voile ne monte qu'à 10 % de la teinte, et s'efface avant le
+         milieu : le chiffre reste posé sur la surface, pas sur la couleur. */
+      .tuile--teintee {
+        background: linear-gradient(
+          160deg,
+          color-mix(in srgb, var(--tuile-teinte) 10%, var(--vh-surface-1)),
+          var(--vh-surface-1) 60%
+        );
         box-shadow:
-          inset 3px 0 0 var(--vh-primary-bright),
+          inset 3px 0 0 var(--tuile-teinte),
           var(--vh-shadow-1);
       }
       .tuile__libelle {
         margin: 0;
         font-size: var(--vh-text-sm);
         color: var(--vh-text-muted);
+      }
+      /* Le point est dans la ligne, pas à côté : un libellé sur deux lignes
+         (« Véhicules présents » à 375 px) repasse sous le point au lieu de
+         former une colonne étroite à sa droite. */
+      .tuile--teintee .tuile__libelle::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 6px;
+        vertical-align: 1px;
+        border-radius: var(--vh-radius-pill);
+        background: var(--tuile-teinte);
+      }
+      .tuile--teintee .tuile__valeur {
+        color: var(--tuile-teinte);
       }
       .tuile__valeur {
         margin: 0;
@@ -99,7 +126,8 @@ export class StatTileComponent {
   readonly format = input<(n: number) => string>((n) => entier.format(n));
   readonly precision = input<string | null>(null);
   readonly chargement = input(false);
-  readonly accent = input(false);
+  /** Couleur de ce que la tuile compte : un `var(--vh-…)`, jamais une valeur. */
+  readonly teinte = input<string | null>(null);
   /** La valeur est un montant : elle prend la couleur de l'argent. */
   readonly argent = input(false);
 

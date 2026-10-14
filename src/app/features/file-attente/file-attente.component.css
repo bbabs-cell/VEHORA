@@ -19,33 +19,33 @@
   gap: var(--vh-space-3);
 }
 
-/* ---------- Dossier ----------
+/* ---------- Couleur d'étape ----------
    Le rail d'état (3 px au bord gauche) prend la couleur du statut : une file
-   de vingt véhicules se balaie sans lire un mot (DESIGN.md, signature). */
+   de vingt véhicules se balaie sans lire un mot (DESIGN.md, signature). Le
+   groupe la reçoit (`--vh-rail`, depuis `TEINTE_STATUT`) et la transmet à ses
+   dossiers ; l'en-tête de l'étape la reprend (phase 25) — un point devant son
+   nom, un voile sous son compteur. */
+
+.groupe > .vh-section-titre::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: var(--vh-radius-pill);
+  background: var(--vh-rail);
+}
+
+/* Le chiffre reste à l'encre du texte : la teinte n'est que le voile. */
+.groupe .vh-compteur {
+  background: color-mix(in srgb, var(--vh-rail) 24%, transparent);
+  color: var(--vh-text);
+}
+
+/* ---------- Dossier ---------- */
 
 .dossier {
   display: flex;
   flex-direction: column;
   gap: var(--vh-space-3);
-}
-
-.dossier[data-statut='ARRIVED'] {
-  --vh-rail: var(--vh-status-arrived);
-}
-.dossier[data-statut='INSPECTION'] {
-  --vh-rail: var(--vh-status-inspection);
-}
-.dossier[data-statut='WAITING'] {
-  --vh-rail: var(--vh-status-waiting);
-}
-.dossier[data-statut='IN_PROGRESS'] {
-  --vh-rail: var(--vh-status-in-progress);
-}
-.dossier[data-statut='CONTROL'] {
-  --vh-rail: var(--vh-status-control);
-}
-.dossier[data-statut='READY'] {
-  --vh-rail: var(--vh-status-ready);
 }
 
 .dossier__identite {

@@ -18,6 +18,7 @@
       @if (entree.disponible) {
         <a
           class="nav__lien"
+          [vhTeinte]="entree.teinte"
           [routerLink]="entree.chemin"
           routerLinkActive="nav__lien--actif"
           [routerLinkActiveOptions]="{ exact: true }"

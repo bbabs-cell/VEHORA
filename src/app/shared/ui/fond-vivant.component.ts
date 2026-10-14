@@ -1,18 +1,21 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
- * Fond vivant : des halos d'azur flous qui dérivent lentement derrière le
- * contenu (skill « animations vivantes », `AmbientBlobs`).
+ * Fond vivant : des halos colorés qui dérivent lentement derrière le contenu
+ * (skill « animations vivantes », `AmbientBlobs`) — azur, violet, rose et
+ * indigo depuis la phase 25, les teintes de repère de l'application.
  *
  * Décor pur : `aria-hidden`, `pointer-events: none`, posé SOUS le contenu.
  * Les cartes sont opaques — les halos ne se voient que dans les marges et
  * derrière la barre latérale, ils ne passent jamais sous un texte à lire.
  *
- * Coût sur un Android d'entrée de gamme : chaque halo est une couche peinte
- * une fois, puis seulement déplacée (`transform`) par le compositeur — aucune
- * mise en page, aucun repeint par image. Sous 768 px le flou est réduit, parce
- * que c'est la taille du flou qui coûte au premier dessin. « Réduire les
- * animations » les fige.
+ * Coût sur un Android d'entrée de gamme : chaque halo est un DÉGRADÉ radial,
+ * peint une fois puis seulement déplacé (`transform`) par le compositeur.
+ * Jusqu'en phase 24, c'était un disque plein passé dans `filter: blur(64px)` :
+ * un flou de cette taille sur des surfaces de 400 px de côté est l'effet le
+ * plus cher qu'un navigateur mobile ait à composer, et le premier suspect quand
+ * un téléphone montre des zones blanches pendant un défilement. Le dégradé
+ * donne le même halo sans filtre. « Réduire les animations » les fige.
  *
  * Les délais négatifs désynchronisent les halos dès la première image : sans
  * eux, les quatre partiraient ensemble et le fond « pulserait ».
@@ -46,50 +49,46 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       .halo {
         position: absolute;
         border-radius: var(--vh-radius-pill);
-        background: rgb(var(--vh-vivant-rgb));
+        /* Plein au centre, nul au bord : le profil d'un disque flouté. */
+        background: radial-gradient(closest-side, var(--halo) 30%, transparent);
         opacity: var(--vh-halo-opacite);
-        filter: blur(64px);
-        will-change: transform;
         animation: vh-blob 14s ease-in-out infinite;
       }
       :host(.vh-fond-vivant--sombre) .halo {
         /* Sur la navigation, toujours sombre : assez pour être vu, pas assez
            pour faire baisser le contraste des libellés posés au-dessus. */
-        opacity: 0.22;
+        opacity: 0.26;
       }
       .halo--1 {
+        --halo: var(--vh-vivant);
         left: -5rem;
         top: -6rem;
-        width: 20rem;
-        height: 20rem;
+        width: 22rem;
+        height: 22rem;
       }
       .halo--2 {
+        --halo: var(--vh-violet-vif);
         right: -6rem;
         top: 33%;
-        width: 24rem;
-        height: 24rem;
-        background: var(--vh-vivant-profond);
+        width: 26rem;
+        height: 26rem;
         animation-delay: -5s;
       }
       .halo--3 {
+        --halo: var(--vh-rose-vif);
         left: 33%;
         bottom: -6rem;
-        width: 20rem;
-        height: 20rem;
-        background: var(--vh-vivant-clair);
+        width: 22rem;
+        height: 22rem;
         animation-delay: -9s;
       }
       .halo--4 {
+        --halo: var(--vh-indigo-vif);
         right: 25%;
         top: -5rem;
-        width: 16rem;
-        height: 16rem;
+        width: 18rem;
+        height: 18rem;
         animation-delay: -3s;
-      }
-      @media (max-width: 767px) {
-        .halo {
-          filter: blur(40px);
-        }
       }
       @media print {
         :host {

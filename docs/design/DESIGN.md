@@ -29,6 +29,9 @@ colors:
   vivant-clair: "#7fdcf2"
   vivant: "#2cc4e8"
   vivant-profond: "#0b86ad"
+  indigo: "#8f98ff"
+  violet: "#b98cff"
+  rose: "#f27db9"
 typography:
   display:
     fontFamily: "Manrope Variable, ui-sans-serif, system-ui, sans-serif"
@@ -124,7 +127,36 @@ voiture, qui travaille dessus, combien reste à encaisser.
 - **Dégradé du bouton principal** (`--vh-degrade-primaire`) : trois azurs
   profonds, chaque arrêt au-dessus de 4,5:1 avec du blanc.
 
+### Repères (phase 25)
+
+Demande du propriétaire : « plus visuel ». Jusqu'ici, tout ce qui n'était ni
+un état ni de l'argent était azur — menu, raccourcis, tuiles : un écran entier
+d'une seule teinte, où rien ne se reconnaissait sans être lu.
+
+- **Indigo** (`#8f98ff`), **violet** (`#b98cff`), **rose** (`#f27db9`) en
+  sombre ; `#4a50c4`, `#7140bf`, `#ad2f6d` en clair. Chaque teinte existe en
+  deux rôles, comme l'azur : la teinte du thème (texte ou icône sur le fond,
+  ≥ 4,5:1 dans les deux) et la teinte **vif**, fixe, pour les aplats toujours
+  sombres (navigation, bandeau d'accueil, halos).
+- **Une teinte par domaine**, posée par `[vhTeinte]` : le pilotage en azur
+  (tableau de bord, rapports, stations, paramètres), l'atelier en indigo
+  (file, véhicules), le travail en violet (opérations, catalogue), les
+  personnes en rose (clients, utilisateurs, employés, messages), l'argent en
+  laiton (caisse, abonnement). L'icône du menu, la pastille de l'en-tête, le
+  point final du titre et le raccourci du tableau de bord portent la même.
+- **Les étapes du dossier ont chacune la leur** : arrivé (encre atténuée),
+  inspection (indigo), en attente (ambre), en cours (violet), contrôle (rose),
+  prêt (vert). L'inspection et le travail étaient tous deux en azur — la marque
+  disait un état —, et le contrôle en laiton, une couleur d'argent sur une
+  étape sans argent. Les deux écarts sont fermés.
+
 ### Règles nommées
+
+**La règle du repère.** Une teinte de repère dit « où je suis », jamais « ça
+va » ni « attention » : elles sont choisies loin du vert, de l'ambre et du
+rouge. Elle colore une icône, une pastille, un point, un chiffre — jamais un
+bouton plein, jamais un paragraphe. Le libellé reste écrit : la couleur
+n'ajoute qu'une seconde lecture.
 
 **La règle de l'azur unique.** Un seul élément à fond azur par écran : l'action
 principale. Deux boutons pleins n'attirent pas deux fois l'attention, ils
@@ -297,15 +329,18 @@ Signature du système : une barre de 3 px au bord gauche d'une carte, colorée
 selon le statut. Une file de vingt véhicules se balaie sans lire un mot.
 Appliquée en phase 24 à la file d'attente, aux opérations (à faire, en cours,
 terminée) et à la session de caisse ouverte — elle était documentée ici depuis
-la phase de l'identité, et utilisée nulle part.
+la phase de l'identité, et utilisée nulle part. En phase 25, l'en-tête de
+chaque étape de la file reprend la couleur (un point, un voile sous le
+compteur), et les tuiles du tableau de bord aussi.
 
 ### La barre basse
 
 Quatre écrans **choisis selon les droits** de la personne (accueil, file,
 travaux, caisse, clients, véhicules — dans cet ordre), puis « **Plus** », qui
 ouvre une feuille posée au-dessus de la barre avec tout le reste. Libellés à
-13 px, le plancher ; l'écran courant en trait de marque, avec une barre qui
-pousse au-dessus de l'icône.
+13 px, le plancher ; l'écran courant dans la teinte de sa section, une
+pastille sous l'icône et une barre qui pousse au-dessus. Les autres entrées
+restent neutres : la seule colorée dit où l'on est.
 
 ### Champs
 

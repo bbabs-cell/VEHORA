@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { IconComponent } from './icon.component';
+import { SECTION_COURANTE } from './teinte';
 
 /**
  * En-tête de page : un titre et UNE phrase qui dit à quoi sert l'écran
@@ -9,6 +11,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  * taille de sous-titre. Le titre porte le style « page-title » du skill
  * d'animation : entrée douce et point final en dégradé.
  *
+ * Phase 25 : une pastille à l'icône de la section précède le titre, dans la
+ * teinte de la section — le même violet que l'entrée « Opérations » du menu,
+ * le même laiton que « Caisse ». Le point final du titre la prend aussi. La
+ * section vient de la coquille (`SECTION_COURANTE`) : aucune page n'a à la
+ * déclarer, et hors coquille (plateforme), l'en-tête reste sans pastille.
+ *
  * Usage :
  *   <vh-entete-page titre="File d’attente" description="Les dossiers en cours…">
  *     <button class="vh-button" …>Nouveau dossier</button>
@@ -17,11 +25,19 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 @Component({
   selector: 'vh-entete-page',
   standalone: true,
+  imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="entete">
       <div class="entete__texte">
-        <h1 class="vh-page-title entete__titre">{{ titre() }}</h1>
+        <div class="entete__ligne">
+          @if (section(); as s) {
+            <span class="entete__pastille" aria-hidden="true">
+              <vh-icon [nom]="s.icone" [taille]="22" />
+            </span>
+          }
+          <h1 class="vh-page-title entete__titre">{{ titre() }}</h1>
+        </div>
         @if (description(); as texte) {
           <p class="entete__description">{{ texte }}</p>
         }
@@ -48,8 +64,29 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         flex: 1 1 18rem;
         min-width: 0;
       }
+      .entete__ligne {
+        display: flex;
+        align-items: center;
+        gap: var(--vh-space-3);
+      }
+      /* Décor : l'icône répète le titre écrit juste à côté (aria-hidden). */
+      .entete__pastille {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--vh-radius-card);
+        background: color-mix(in srgb, var(--vh-teinte) 16%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vh-teinte) 32%, transparent);
+        color: var(--vh-teinte);
+        animation: var(--vh-anime-pop);
+      }
       .entete__titre {
+        min-width: 0;
         overflow-wrap: anywhere;
+        /* Le point final dans la teinte de la section (l'azur par défaut). */
+        --vh-degrade-trait: linear-gradient(120deg, var(--vh-teinte), var(--vh-teinte));
       }
       .entete__description {
         margin: var(--vh-space-1) 0 0;
@@ -79,4 +116,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class EntetePageComponent {
   readonly titre = input.required<string>();
   readonly description = input<string | null>(null);
+
+  private readonly sectionCourante = inject(SECTION_COURANTE, { optional: true });
+  readonly section = computed(() => this.sectionCourante?.() ?? null);
 }
