@@ -15,10 +15,11 @@ const entier = new Intl.NumberFormat('fr-FR');
  * vivantes », KPI) ; un texte s'affiche tel quel. Un montant se passe en
  * nombre (unité mineure) avec sa mise en forme dans `format`.
  *
- * `teinte` (phase 25) : la couleur de ce que la tuile compte — l'étape d'un
- * dossier (`var(--vh-status-…)`), l'argent, une section. Elle colore le
- * chiffre, un point devant le libellé, le rail et un voile léger ; le libellé
- * reste écrit en toutes lettres, la couleur ne dit jamais rien seule.
+ * `teinte` (phase 25) : la couleur de ce que la tuile compte quand elle a un
+ * sens — l'étape d'un dossier (`var(--vh-status-…)`, la même que le rail de la
+ * file), l'argent. Un point devant le libellé et le rail, rien de plus : le
+ * chiffre reste à l'encre du texte (le laiton pour un montant), et une tuile
+ * qui ne compte ni un état ni de l'argent n'a pas de couleur.
  */
 @Component({
   selector: 'vh-stat-tile',
@@ -64,14 +65,7 @@ const entier = new Intl.NumberFormat('fr-FR');
         min-height: 104px;
         overflow: hidden;
       }
-      /* Le voile ne monte qu'à 10 % de la teinte, et s'efface avant le
-         milieu : le chiffre reste posé sur la surface, pas sur la couleur. */
       .tuile--teintee {
-        background: linear-gradient(
-          160deg,
-          color-mix(in srgb, var(--tuile-teinte) 10%, var(--vh-surface-1)),
-          var(--vh-surface-1) 60%
-        );
         box-shadow:
           inset 3px 0 0 var(--tuile-teinte),
           var(--vh-shadow-1);
@@ -93,9 +87,6 @@ const entier = new Intl.NumberFormat('fr-FR');
         vertical-align: 1px;
         border-radius: var(--vh-radius-pill);
         background: var(--tuile-teinte);
-      }
-      .tuile--teintee .tuile__valeur {
-        color: var(--tuile-teinte);
       }
       .tuile__valeur {
         margin: 0;

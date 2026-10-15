@@ -1,5 +1,3 @@
-import type { Teinte } from '../shared/ui/teinte';
-
 /**
  * Modèle de navigation de l'application cliente.
  *
@@ -27,31 +25,23 @@ export interface EntreeNavigation {
    */
   readonly fonctionnalite?: string;
   readonly disponible: boolean;
-  /**
-   * Teinte de repère de la section (phase 25) : icône du menu, pastille de
-   * l'en-tête, raccourcis. Par domaine, pas par écran — cinq teintes pour
-   * quatorze entrées, et une même couleur dit un même métier : le pilotage en
-   * azur, l'atelier en indigo, le travail en violet, les personnes en rose,
-   * l'argent en laiton.
-   */
-  readonly teinte: Teinte;
 }
 
 export const NAVIGATION: readonly EntreeNavigation[] = [
-  { libelle: 'Tableau de bord', libelleCourt: 'Accueil', chemin: '/tableau-de-bord', icone: 'accueil', disponible: true, teinte: 'azur' },
-  { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: true, teinte: 'indigo' },
-  { libelle: 'Opérations', libelleCourt: 'Travaux', chemin: '/operations', icone: 'prestation', permission: 'service_orders.read', disponible: true, teinte: 'violet' },
-  { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true, teinte: 'rose' },
-  { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true, teinte: 'indigo' },
-  { libelle: 'Stations', chemin: '/stations', icone: 'station', permission: 'stations.manage', disponible: true, teinte: 'azur' },
-  { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'catalogue', disponible: true, teinte: 'violet' },
-  { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true, teinte: 'rose' },
-  { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true, teinte: 'rose' },
-  { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'payments.read', disponible: true, teinte: 'laiton' },
-  { libelle: 'Rapports', chemin: '/rapports', icone: 'rapport', permission: 'reports.read', fonctionnalite: 'rapports', disponible: true, teinte: 'azur' },
-  { libelle: 'Messages aux clients', libelleCourt: 'Messages', chemin: '/messages', icone: 'message', permission: 'service_orders.read', fonctionnalite: 'notifications', disponible: true, teinte: 'rose' },
-  { libelle: 'Abonnement', chemin: '/abonnement', icone: 'abonnement', permission: 'organization.manage', disponible: true, teinte: 'laiton' },
-  { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: true, teinte: 'azur' },
+  { libelle: 'Tableau de bord', libelleCourt: 'Accueil', chemin: '/tableau-de-bord', icone: 'accueil', disponible: true },
+  { libelle: "File d'attente", libelleCourt: 'File', chemin: '/file-attente', icone: 'file', permission: 'service_orders.read', disponible: true },
+  { libelle: 'Opérations', libelleCourt: 'Travaux', chemin: '/operations', icone: 'prestation', permission: 'service_orders.read', disponible: true },
+  { libelle: 'Clients', chemin: '/clients', icone: 'client', permission: 'customers.read', disponible: true },
+  { libelle: 'Véhicules', chemin: '/vehicules', icone: 'vehicule', permission: 'vehicles.read', disponible: true },
+  { libelle: 'Stations', chemin: '/stations', icone: 'station', permission: 'stations.manage', disponible: true },
+  { libelle: 'Catalogue et tarifs', libelleCourt: 'Catalogue', chemin: '/catalogue', icone: 'catalogue', disponible: true },
+  { libelle: 'Utilisateurs', chemin: '/utilisateurs', icone: 'employe', permission: 'users.manage', disponible: true },
+  { libelle: 'Employés', chemin: '/employes', icone: 'employe', permission: 'employees.manage', disponible: true },
+  { libelle: 'Caisse', chemin: '/caisse', icone: 'caisse', permission: 'payments.read', disponible: true },
+  { libelle: 'Rapports', chemin: '/rapports', icone: 'rapport', permission: 'reports.read', fonctionnalite: 'rapports', disponible: true },
+  { libelle: 'Messages aux clients', libelleCourt: 'Messages', chemin: '/messages', icone: 'message', permission: 'service_orders.read', fonctionnalite: 'notifications', disponible: true },
+  { libelle: 'Abonnement', chemin: '/abonnement', icone: 'abonnement', permission: 'organization.manage', disponible: true },
+  { libelle: 'Paramètres', chemin: '/parametres', icone: 'parametres', permission: 'organization.manage', disponible: true },
 ];
 
 /**

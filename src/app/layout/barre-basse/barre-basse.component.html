@@ -15,7 +15,6 @@
         <li>
           <a
             class="feuille-plus__lien"
-            [vhTeinte]="entree.teinte"
             [routerLink]="entree.chemin"
             routerLinkActive="feuille-plus__lien--actif"
           >
@@ -33,7 +32,6 @@
     @if (entree.disponible) {
       <a
         class="barre-basse__lien"
-        [vhTeinte]="entree.teinte"
         [routerLink]="entree.chemin"
         routerLinkActive="barre-basse__lien--actif"
         [routerLinkActiveOptions]="{ exact: true }"

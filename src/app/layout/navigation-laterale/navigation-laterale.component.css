@@ -111,10 +111,6 @@
     color var(--vh-duration-fast) var(--vh-ease);
 }
 
-/* L'icône porte la teinte de sa section (phase 25) — en « vif », la valeur
-   faite pour cet aplat toujours sombre : le menu se lit à la couleur avant de
-   se lire au mot. Le libellé, lui, reste neutre : cinq couleurs de texte
-   empilées feraient une liste bariolée, pas une liste lisible. */
 .nav__icone {
   display: grid;
   place-items: center;
@@ -122,7 +118,6 @@
   height: 32px;
   flex: none;
   border-radius: var(--vh-radius-pill);
-  color: var(--vh-teinte-vif);
   transition:
     transform var(--vh-duration-base) var(--vh-ease),
     background-color var(--vh-duration-fast) var(--vh-ease);
@@ -140,7 +135,6 @@
 }
 
 .nav__lien:hover .nav__icone {
-  background: color-mix(in srgb, var(--vh-teinte-vif) 14%, transparent);
   transform: scale(1.1) rotate(-8deg);
 }
 
@@ -149,18 +143,18 @@
   transition-duration: 60ms;
 }
 
-/* L'écran courant : fond relevé, trait et pastille dans la teinte de la
-   section, et un point qui respire (skill : « élément actif : pastille
-   `animate-pulse` »). */
+/* L'écran courant : fond relevé, trait de marque, icône sur pastille, et un
+   point qui respire (skill : « élément actif : pastille `animate-pulse` »). */
 .nav__lien--actif {
   background: var(--vh-nav-raised);
   color: var(--vh-nav-ink);
   font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--vh-teinte-vif);
+  box-shadow: inset 3px 0 0 var(--vh-nav-accent);
 }
 
 .nav__lien--actif .nav__icone {
-  background: color-mix(in srgb, var(--vh-teinte-vif) 20%, transparent);
+  background: color-mix(in srgb, var(--vh-nav-accent) 16%, transparent);
+  color: var(--vh-nav-accent);
 }
 
 .nav__point {
@@ -169,7 +163,7 @@
   height: 7px;
   flex: none;
   border-radius: var(--vh-radius-pill);
-  background: var(--vh-teinte-vif);
+  background: var(--vh-nav-accent);
 }
 
 .nav__lien--actif .nav__point {

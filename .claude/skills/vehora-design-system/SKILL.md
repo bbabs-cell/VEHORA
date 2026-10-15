@@ -20,13 +20,11 @@ Fond `--vh-bg` · surfaces `--vh-surface-1/2/3` · primaire `--vh-primary`
 · accent `--vh-accent` · succès/alerte/erreur `--vh-success` `--vh-warning`
 `--vh-error` · texte `--vh-text` / `--vh-text-muted` · bordure `--vh-border`.
 
-Repères (phase 25) : `--vh-indigo`, `--vh-violet`, `--vh-rose` (+ `-vif`,
-fixes, pour la navigation toujours sombre). Une teinte par domaine, posée par
-la directive `[vhTeinte]` (`shared/ui/teinte.ts`) qui expose `--vh-teinte` et
-`--vh-teinte-vif` aux descendants : pilotage azur, atelier indigo, travail
-violet, personnes rose, argent laiton. La coquille la pose sur `<main>` selon
-l'écran ; `vh-entete-page` en tire sa pastille. Un repère colore une icône, une
-pastille, un point, un chiffre — **jamais un bouton plein ni un état**.
+Couleur ajoutée en phase 25 : `--vh-indigo`, et elle seule — « l'équipe
+s'occupe du véhicule ». **Une couleur ajoutée doit dire quelque chose que le
+texte voisin ne dit pas, et la même chose partout.** Un essai à une teinte par
+section du menu a été retiré à la demande du propriétaire (« trop de
+couleurs ») : ne pas le refaire.
 
 Dark-first, **jamais dark-only** : tout écran doit rester correct sous
 `[data-theme="light"]`. Le mode clair n'est pas une option cosmétique, c'est
@@ -42,7 +40,9 @@ EN ATTENTE `--vh-status-waiting` · EN COURS `--vh-status-in-progress` ·
 CONTRÔLE `--vh-status-control` · PRÊT `--vh-status-ready` ·
 RESTITUÉ `--vh-status-delivered` · ANNULÉ `--vh-status-cancelled`.
 
-En TypeScript, `TEINTE_STATUT` (`core/service-orders/service-order.service.ts`)
+La couleur dit qui doit agir : gris (arrivé, personne n'a commencé), indigo
+(inspection, en cours, contrôle : l'équipe s'en occupe), ambre (en attente),
+vert (prêt). En TypeScript, `TEINTE_STATUT` (`core/service-orders/service-order.service.ts`)
 donne le jeton de chaque statut : la file et le tableau de bord le lisent,
 aucune correspondance n'est recopiée dans une feuille.
 

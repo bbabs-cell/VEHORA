@@ -17,7 +17,6 @@ import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { NombreAnimeComponent } from '../../shared/ui/nombre-anime.component';
 import { StatTileComponent } from '../../shared/ui/stat-tile.component';
-import { TeinteDirective } from '../../shared/ui/teinte';
 import { formaterMontant } from '../../shared/format/montant';
 
 /** `2026-09-17` dans le fuseau de l'appareil — pas en UTC. */
@@ -59,7 +58,6 @@ interface CompteStatut {
     StatTileComponent,
     FondVivantComponent,
     NombreAnimeComponent,
-    TeinteDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',

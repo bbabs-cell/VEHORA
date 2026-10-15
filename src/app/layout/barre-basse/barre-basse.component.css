@@ -71,17 +71,14 @@
   transform: scale(0.95);
 }
 
-/* Chaque écran dans sa teinte (phase 25) : une grille de neuf icônes grises
-   se lisait mot par mot ; en couleur, on y retrouve la caisse en laiton et
-   les clients en rose sans lire. Fond : la teinte à 14 % sur la feuille. */
 .feuille-plus__icone {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   border-radius: var(--vh-radius-pill);
-  background: color-mix(in srgb, var(--vh-teinte) 14%, transparent);
-  color: var(--vh-teinte);
+  background: var(--vh-surface-2);
+  color: var(--vh-text-muted);
   transition: transform var(--vh-duration-base) var(--vh-ease);
 }
 
@@ -90,7 +87,8 @@
 }
 
 .feuille-plus__lien--actif .feuille-plus__icone {
-  box-shadow: inset 0 0 0 2px var(--vh-teinte);
+  background: var(--vh-primary-soft);
+  color: var(--vh-primary-bright);
 }
 
 /* ---------- Barre basse (mobile) ---------- */
@@ -145,13 +143,13 @@
   transform: scale(0.88);
 }
 
-/* L'écran courant, dans la teinte de sa section (phase 25 ; l'azur pour
-   « Plus ») : libellé et icône en trait (≥ 4,5:1 sur la surface, vérifié),
-   une pastille sous l'icône, une barre au-dessus, et l'icône qui rebondit une
-   fois en arrivant. Les autres entrées restent neutres : c'est le contraste
-   entre la seule colorée et les grises qui dit où l'on est. */
+/* L'écran courant : la marque en TRAIT (azur vif, lisible sur la surface ;
+   l'azur de fond n'y tenait pas 4,5:1), une pastille sous l'icône, une barre
+   au-dessus, et l'icône qui rebondit une fois en arrivant. Une seule couleur
+   pour toutes les entrées : c'est l'entrée colorée parmi les neutres qui dit
+   où l'on est, pas sa teinte. */
 .barre-basse__lien--actif {
-  color: var(--vh-teinte);
+  color: var(--vh-primary-bright);
   font-weight: 700;
 }
 
@@ -163,12 +161,12 @@
   right: 30%;
   height: 3px;
   border-radius: 0 0 var(--vh-radius-pill) var(--vh-radius-pill);
-  background: var(--vh-teinte);
+  background: var(--vh-primary-bright);
   animation: vh-grow-x var(--vh-duration-base) var(--vh-ease) backwards;
 }
 
 .barre-basse__lien--actif vh-icon {
-  background: color-mix(in srgb, var(--vh-teinte) 16%, transparent);
+  background: var(--vh-primary-soft);
   animation: var(--vh-anime-pop);
 }
 

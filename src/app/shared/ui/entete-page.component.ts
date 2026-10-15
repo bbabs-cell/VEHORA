@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { IconComponent } from './icon.component';
-import { SECTION_COURANTE } from './teinte';
+import { SECTION_COURANTE } from './section-courante';
 
 /**
  * En-tête de page : un titre et UNE phrase qui dit à quoi sert l'écran
@@ -11,11 +11,10 @@ import { SECTION_COURANTE } from './teinte';
  * taille de sous-titre. Le titre porte le style « page-title » du skill
  * d'animation : entrée douce et point final en dégradé.
  *
- * Phase 25 : une pastille à l'icône de la section précède le titre, dans la
- * teinte de la section — le même violet que l'entrée « Opérations » du menu,
- * le même laiton que « Caisse ». Le point final du titre la prend aussi. La
- * section vient de la coquille (`SECTION_COURANTE`) : aucune page n'a à la
- * déclarer, et hors coquille (plateforme), l'en-tête reste sans pastille.
+ * Phase 25 : une pastille à l'icône de la section précède le titre — la même
+ * icône que l'entrée du menu, dans la marque. La section vient de la coquille
+ * (`SECTION_COURANTE`) : aucune page n'a à la déclarer, et hors coquille
+ * (plateforme), l'en-tête reste sans pastille.
  *
  * Usage :
  *   <vh-entete-page titre="File d’attente" description="Les dossiers en cours…">
@@ -77,16 +76,13 @@ import { SECTION_COURANTE } from './teinte';
         width: 44px;
         height: 44px;
         border-radius: var(--vh-radius-card);
-        background: color-mix(in srgb, var(--vh-teinte) 16%, transparent);
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vh-teinte) 32%, transparent);
-        color: var(--vh-teinte);
+        background: var(--vh-primary-soft);
+        color: var(--vh-primary-bright);
         animation: var(--vh-anime-pop);
       }
       .entete__titre {
         min-width: 0;
         overflow-wrap: anywhere;
-        /* Le point final dans la teinte de la section (l'azur par défaut). */
-        --vh-degrade-trait: linear-gradient(120deg, var(--vh-teinte), var(--vh-teinte));
       }
       .entete__description {
         margin: var(--vh-space-1) 0 0;

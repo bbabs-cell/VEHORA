@@ -17,7 +17,7 @@ import { BarreProgressionComponent } from '../../shared/ui/barre-progression.com
 import { FondVivantComponent } from '../../shared/ui/fond-vivant.component';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
-import { SECTION_COURANTE, type SectionCourante, TeinteDirective } from '../../shared/ui/teinte';
+import { SECTION_COURANTE, type SectionCourante } from '../../shared/ui/section-courante';
 import { BarreBasseComponent } from '../barre-basse/barre-basse.component';
 import { NavigationLateraleComponent } from '../navigation-laterale/navigation-laterale.component';
 import { ENTREES_BARRE_BASSE, NAVIGATION, PRIORITE_MOBILE } from '../navigation';
@@ -46,7 +46,6 @@ import { ENTREES_BARRE_BASSE, NAVIGATION, PRIORITE_MOBILE } from '../navigation'
     BarreProgressionComponent,
     NavigationLateraleComponent,
     BarreBasseComponent,
-    TeinteDirective,
   ],
   // Les en-têtes de page lisent la section courante pour poser leur pastille.
   providers: [{ provide: SECTION_COURANTE, useFactory: () => inject(AppShellComponent).section }],
@@ -75,12 +74,12 @@ export class AppShellComponent {
   /**
    * La section de l'écran affiché, d'après le menu COMPLET — pas celui des
    * droits : `/caisse/historique` est dans la caisse même pour qui ne voit pas
-   * l'entrée. Un écran hors menu (un reçu) n'a pas de section : azur.
+   * l'entrée. Un écran hors menu (un reçu) n'a pas de section.
    */
   readonly section = computed<SectionCourante | null>(() => {
     const chemin = this.url().split(/[?#]/)[0];
     const entree = NAVIGATION.find((e) => chemin === e.chemin || chemin.startsWith(`${e.chemin}/`));
-    return entree ? { icone: entree.icone, teinte: entree.teinte } : null;
+    return entree ? { icone: entree.icone } : null;
   });
 
   /**

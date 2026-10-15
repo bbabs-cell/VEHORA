@@ -58,24 +58,13 @@
   /* Accent historique conservé : des écrans l'utilisent encore. */
   --vh-accent: var(--vh-primary-bright);
 
-  /* ---- Repères -----------------------------------------------------------
-     Trois teintes de plus que l'azur, pour qu'un écran se reconnaisse à sa
-     couleur (demande du propriétaire, phase 25 : « plus visuel »). Choisies
-     LOIN des états (vert, ambre, rouge) et du laiton : un repère dit « où
-     je suis », jamais « ça va » ou « ça coûte ». Chacune existe en deux
-     rôles, comme l'azur : la teinte du thème (texte ou icône sur le fond,
-     ≥ 4,5:1, redéfinie en clair) et la teinte « vif », fixe, pour les aplats
-     toujours sombres — navigation, bandeau d'accueil, halos. */
+  /* ---- « L'atelier s'en occupe » -----------------------------------------
+     Une seule couleur ajoutée en phase 25, et pour une seule information :
+     le véhicule est entre les mains de l'équipe (inspection, travail,
+     contrôle). Elle n'est ni un état vert/ambre/rouge, ni la marque, ni
+     l'argent. Un essai à une couleur par section du menu a été retiré : cinq
+     teintes qui ne disaient rien de plus que le libellé à côté d'elles. */
   --vh-indigo: #8f98ff;
-  --vh-indigo-vif: #8f98ff;
-  --vh-violet: #b98cff;
-  --vh-violet-vif: #b98cff;
-  --vh-rose: #f27db9;
-  --vh-rose-vif: #f27db9;
-  --vh-money-vif: #c89a3c; /* le laiton de la caisse, sur la navigation */
-  /* Teinte de la section courante : posée par `[vhTeinte]`, l'azur sinon. */
-  --vh-teinte: var(--vh-primary-bright);
-  --vh-teinte-vif: var(--vh-nav-accent);
 
   /* ---- Navigation --------------------------------------------------------
      La barre latérale (et le tiroir mobile) reste SOMBRE dans les deux thèmes,
@@ -131,14 +120,17 @@
   --vh-print-filet: #999999;
 
   /* Statuts de prestation — couleur ET forme, jamais la couleur seule.
-     Phase 25 : chaque étape a sa teinte. L'inspection et le travail étaient
-     tous deux en azur (la marque disait un état), le contrôle en laiton (une
-     couleur d'argent sur une étape sans argent). */
+     La couleur dit QUI doit agir, pas quelle étape : le nom de l'étape est
+     écrit à côté. Gris : personne n'a commencé. Indigo : l'équipe s'en occupe.
+     Ambre : ça attend quelqu'un. Vert : prêt à partir, et à encaisser.
+     Avant la phase 25, l'inspection et le travail étaient en azur (la marque
+     disait un état) et le contrôle en laiton (l'argent sur une étape sans
+     argent). */
   --vh-status-arrived: var(--vh-text-muted);
   --vh-status-inspection: var(--vh-indigo);
   --vh-status-waiting: var(--vh-warning);
-  --vh-status-in-progress: var(--vh-violet);
-  --vh-status-control: var(--vh-rose);
+  --vh-status-in-progress: var(--vh-indigo);
+  --vh-status-control: var(--vh-indigo);
   --vh-status-ready: var(--vh-success);
   --vh-status-delivered: var(--vh-text-muted);
   --vh-status-cancelled: var(--vh-error-text);
@@ -248,8 +240,6 @@
   --vh-money-soft: #f6eeda;
 
   --vh-indigo: #4a50c4;
-  --vh-violet: #7140bf;
-  --vh-rose: #ad2f6d;
 
   --vh-success: #126c42;
   --vh-success-soft: #dcefe4;

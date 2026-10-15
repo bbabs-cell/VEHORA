@@ -12,7 +12,6 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { filter, map } from 'rxjs';
 import { ScrollLockService } from '../../core/ui/scroll-lock.service';
 import { IconComponent } from '../../shared/ui/icon.component';
-import { TeinteDirective } from '../../shared/ui/teinte';
 import { EntreeNavigation } from '../navigation';
 
 /**
@@ -26,7 +25,7 @@ import { EntreeNavigation } from '../navigation';
 @Component({
   selector: 'vh-barre-basse',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, IconComponent, TeinteDirective],
+  imports: [RouterLink, RouterLinkActive, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './barre-basse.component.html',
   styleUrl: './barre-basse.component.css',

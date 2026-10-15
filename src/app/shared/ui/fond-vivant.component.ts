@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
- * Fond vivant : des halos colorés qui dérivent lentement derrière le contenu
- * (skill « animations vivantes », `AmbientBlobs`) — azur, violet, rose et
- * indigo depuis la phase 25, les teintes de repère de l'application.
+ * Fond vivant : des halos d'azur qui dérivent lentement derrière le contenu
+ * (skill « animations vivantes », `AmbientBlobs`).
  *
  * Décor pur : `aria-hidden`, `pointer-events: none`, posé SOUS le contenu.
  * Les cartes sont opaques — les halos ne se voient que dans les marges et
@@ -57,7 +56,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       :host(.vh-fond-vivant--sombre) .halo {
         /* Sur la navigation, toujours sombre : assez pour être vu, pas assez
            pour faire baisser le contraste des libellés posés au-dessus. */
-        opacity: 0.26;
+        opacity: 0.22;
       }
       .halo--1 {
         --halo: var(--vh-vivant);
@@ -67,7 +66,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         height: 22rem;
       }
       .halo--2 {
-        --halo: var(--vh-violet-vif);
+        --halo: var(--vh-vivant-profond);
         right: -6rem;
         top: 33%;
         width: 26rem;
@@ -75,7 +74,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         animation-delay: -5s;
       }
       .halo--3 {
-        --halo: var(--vh-rose-vif);
+        --halo: var(--vh-vivant-clair);
         left: 33%;
         bottom: -6rem;
         width: 22rem;
@@ -83,7 +82,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         animation-delay: -9s;
       }
       .halo--4 {
-        --halo: var(--vh-indigo-vif);
+        --halo: var(--vh-vivant);
         right: 25%;
         top: -5rem;
         width: 18rem;

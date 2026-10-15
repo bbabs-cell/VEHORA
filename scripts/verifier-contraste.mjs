@@ -71,28 +71,12 @@ const paires = [
   ['--vh-nav-muted', '--vh-nav-raised'],
   ['--vh-nav-accent', '--vh-nav'],
   ['--vh-nav-accent', '--vh-nav-raised'],
-  // Teintes de repère (phase 25). En trait, elles écrivent le chiffre d'une
-  // tuile d'état et le libellé actif de la barre basse : sur le fond et sur
-  // les deux surfaces où on les pose. En « vif », les icônes du menu, sur
-  // l'aplat toujours sombre de la navigation.
+  // « L'équipe s'en occupe » (phase 25) : le point des tuiles d'étape et de
+  // l'en-tête d'étape de la file, et le rail des dossiers — sur le fond et
+  // les deux surfaces où ils se posent.
   ['--vh-indigo', '--vh-bg'],
   ['--vh-indigo', '--vh-surface-1'],
   ['--vh-indigo', '--vh-surface-2'],
-  ['--vh-violet', '--vh-bg'],
-  ['--vh-violet', '--vh-surface-1'],
-  ['--vh-violet', '--vh-surface-2'],
-  ['--vh-rose', '--vh-bg'],
-  ['--vh-rose', '--vh-surface-1'],
-  ['--vh-rose', '--vh-surface-2'],
-  ['--vh-money', '--vh-surface-2'],
-  ['--vh-indigo-vif', '--vh-nav'],
-  ['--vh-indigo-vif', '--vh-nav-raised'],
-  ['--vh-violet-vif', '--vh-nav'],
-  ['--vh-violet-vif', '--vh-nav-raised'],
-  ['--vh-rose-vif', '--vh-nav'],
-  ['--vh-rose-vif', '--vh-nav-raised'],
-  ['--vh-money-vif', '--vh-nav'],
-  ['--vh-money-vif', '--vh-nav-raised'],
 ];
 
 const SEUIL = 4.5;
