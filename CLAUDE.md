@@ -152,8 +152,9 @@ espèces s'inscrit dans la caisse d'où sortent les billets, désignée par qui
 rembourse ; trois références de caisse non vérifiées corrigées, dont une
 écriture **inter-organisations** (`docs/phases/phase-27.md`). **Migration
 `20261017200000_tiroir_remboursement.sql` pas encore appliquée à la base
-réelle** : le MCP a expiré deux fois. À rejouer, puis renommer le fichier à la
-version enregistrée.
+réelle** : elle contient un `DROP POLICY`, et le connecteur Supabase exige une
+confirmation pour toute instruction destructrice — voir plus bas. Logo intégré
+(`public/marque.svg`, icônes d'onglet et d'écran d'accueil).
 **Phase 26 validée** — vérification de l'existant et réparation : un dossier
 réel restait bloqué à l'inspection (l'écran ne rattachait jamais l'inspection
 au dossier), et environ vingt-cinq chemins cassés dans la file, l'encaissement,
@@ -617,6 +618,18 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   organisation pouvait écrire dans la caisse d'un client, et `cloturer_caisse`
   (SECURITY DEFINER) comptait ce que la RLS cachait. Troisième occurrence de
   « une policy vérifie la ligne, pas ce qu'elle référence ».
+- **Le connecteur Supabase demande une confirmation avant toute instruction
+  destructrice** (`DROP`, `DELETE`). Dans une session cloud, cette demande
+  n'arrive pas au propriétaire : l'outil expire à 60 s **sans rien exécuter**
+  (quatre essais, aucune trace dans PostgreSQL). Ne jamais réécrire une
+  migration pour échapper à ce garde-fou : faire exécuter par le propriétaire
+  dans l'éditeur SQL, ou obtenir sa confirmation.
+- **Le logo est un fichier** (`public/marque.svg`, favicons, icône d'écran
+  d'accueil), pas un dessin recopié : ses couleurs sont celles de la marque,
+  hors jetons de thème, et le contrôle des jetons refuse une couleur en dur dans
+  `src/`. L'audit ne regardait aucune image : il a déclaré vert un logo cassé
+  sur tous les écrans (serveur de test sans type `image/svg+xml`). Il signale
+  désormais toute image chargée sans pixels.
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite

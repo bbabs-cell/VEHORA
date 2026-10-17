@@ -36,6 +36,9 @@
 }
 
 .plateforme__marque {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vh-space-2);
   font-weight: 800;
   letter-spacing: 0.22em;
   color: var(--vh-nav-accent);

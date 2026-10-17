@@ -22,7 +22,7 @@ import { messageCompte } from './messages-compte';
       <vh-scene>
         <section class="compte__carte vh-card" aria-labelledby="titre-inscription">
           <header class="compte__entete">
-            <p class="vh-marque vh-text-gradient">VEHORA</p>
+            <p class="vh-marque"><img src="marque.svg" alt="" width="34" height="24" /><span class="vh-text-gradient">VEHORA</span></p>
             <h1 id="titre-inscription" class="vh-page-title vh-titre-scene">Créer un compte</h1>
             <p class="vh-muted compte__texte">
               Invité par votre responsable ? Utilisez l’adresse à laquelle l’invitation a été faite

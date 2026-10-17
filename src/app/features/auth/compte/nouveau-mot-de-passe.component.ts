@@ -37,7 +37,7 @@ function identiques(groupe: AbstractControl): ValidationErrors | null {
       <vh-scene>
         <section class="compte__carte vh-card" aria-labelledby="titre-nouveau">
           <header class="compte__entete">
-            <p class="vh-marque vh-text-gradient">VEHORA</p>
+            <p class="vh-marque"><img src="marque.svg" alt="" width="34" height="24" /><span class="vh-text-gradient">VEHORA</span></p>
             <h1 id="titre-nouveau" class="vh-page-title vh-titre-scene">Nouveau mot de passe</h1>
           </header>
 

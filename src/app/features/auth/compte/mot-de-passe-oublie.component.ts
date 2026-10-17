@@ -21,7 +21,7 @@ import { messageCompte } from './messages-compte';
       <vh-scene>
         <section class="compte__carte vh-card" aria-labelledby="titre-oubli">
           <header class="compte__entete">
-            <p class="vh-marque vh-text-gradient">VEHORA</p>
+            <p class="vh-marque"><img src="marque.svg" alt="" width="34" height="24" /><span class="vh-text-gradient">VEHORA</span></p>
             <h1 id="titre-oubli" class="vh-page-title vh-titre-scene">Mot de passe oublié</h1>
             <p class="vh-muted compte__texte">
               Saisissez votre adresse : un lien pour choisir un nouveau mot de passe vous sera

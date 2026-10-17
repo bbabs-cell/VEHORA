@@ -31,6 +31,8 @@ const TYPES = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
   '.json': 'application/json',
   '.woff2': 'font/woff2',
 };

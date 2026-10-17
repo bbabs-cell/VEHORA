@@ -13,7 +13,11 @@
     <!-- La seule couleur littérale hors des jetons : une balise <meta> ne lit
          pas les variables CSS. Elle vaut --vh-bg du thème sombre. -->
     <meta name="theme-color" content="#0a1016" />
-    <link rel="icon" href="favicon.ico" />
+    <!-- Le symbole en vectoriel pour les navigateurs qui le lisent, l'ICO pour
+         les autres, et une icône pleine pour l'écran d'accueil d'un iPhone. -->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <!-- Thème posé AVANT le premier rendu (méthode MagyaPro, design §3) : sans
          cela, un utilisateur en thème clair voyait l'écran sombre, puis la
          bascule au démarrage d'Angular. Script en ligne autorisé par son
@@ -54,6 +58,9 @@
       <!-- Affiché pendant le démarrage de l'application, puis remplacé.
            Sur un appareil modeste, l'écran ne doit jamais rester vide. -->
       <div class="vh-demarrage" role="status" aria-live="polite">
+        <!-- Le logo est un fichier (public/marque.svg) : ses couleurs sont celles
+             de la marque, pas des jetons du thème, et n'ont rien à faire ici. -->
+        <img src="marque.svg" alt="" width="56" height="39" />
         <span class="vh-demarrage__marque">VEHORA</span>
         <span class="vh-demarrage__texte">Chargement…</span>
       </div>

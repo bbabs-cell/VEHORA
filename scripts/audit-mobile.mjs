@@ -14,7 +14,9 @@
 //   3. plus d'UN bouton principal visible hors boîte de dialogue (règle n°1 :
 //      deux boutons de marque s'annulent) ;
 //   4. un texte affiché sous 13 px, le plancher du projet ;
-//   5. une violation de CSP ou une erreur JavaScript.
+//   5. une violation de CSP ou une erreur JavaScript ;
+//   6. une image cassée — le logo l'a été sur tous les écrans d'un audit
+//      déclaré vert : aucun des contrôles précédents ne regarde une image.
 // Puis il enregistre une capture pleine page de chaque écran — à REGARDER,
 // pas seulement à générer.
 //
@@ -57,6 +59,8 @@ const TYPES = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
   '.json': 'application/json',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain',
@@ -243,6 +247,14 @@ for (const largeur of largeurs) {
               vus.add(el);
               const taille = parseFloat(getComputedStyle(el).fontSize);
               if (taille < 12.9 && !el.closest('.vh-sr-only')) out.push(`texte à ${taille}px : ${decrire(el)}`);
+            }
+
+            // Image chargée mais sans pixels : fichier absent, ou servi avec
+            // un mauvais type (un SVG en « octet-stream » ne s'affiche pas).
+            for (const img of document.querySelectorAll('img')) {
+              if (visible(img) && img.complete && img.naturalWidth === 0) {
+                out.push(`image cassée : ${img.getAttribute('src')}`);
+              }
             }
             return out;
           }, largeur);

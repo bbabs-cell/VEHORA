@@ -52,6 +52,9 @@
 }
 
 .marque {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vh-space-2);
   font-size: var(--vh-text-sm);
   font-weight: 800;
   letter-spacing: 0.22em;
