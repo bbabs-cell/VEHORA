@@ -6,7 +6,22 @@ import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export type Paiement = Tables<'payments'>;
 export type Caisse = Tables<'cash_registers'>;
-export type MouvementCaisse = Tables<'cash_transactions'>;
+/**
+ * Un mouvement et le nom de qui l'a écrit. Une sortie de remboursement peut
+ * être inscrite dans la caisse d'un caissier par le responsable qui l'a
+ * autorisée (ADR-006) : le caissier doit voir qui, et pourquoi.
+ */
+export type MouvementCaisse = Tables<'cash_transactions'> & {
+  readonly auteur: { readonly full_name: string | null } | null;
+};
+
+/** Une caisse ouverte d'une station, pour désigner le tiroir d'où sort l'argent. */
+export interface CaisseOuverte {
+  readonly id: string;
+  readonly titulaireId: string;
+  readonly titulaire: string;
+  readonly ouverteLe: string;
+}
 export type SessionCaisse = Database['public']['Views']['cash_register_history']['Row'];
 export type MethodePaiement = Enums<'payment_method'>;
 
@@ -46,10 +61,14 @@ export const LIBELLES_ETAT: Readonly<Record<EtatFinancier['payment_status'], str
 /** Messages propres à ce service ; le reste vient de `traduireErreur`. */
 const MESSAGES: MessagesErreur = {
   marqueurs: {
-    // Vaut pour l'encaissement ET le remboursement en espèces : l'argent rendu
-    // sort de la caisse de celui qui rembourse.
+    // Vaut pour l'encaissement ET le remboursement en espèces : les billets,
+    // reçus ou rendus, passent par un tiroir ouvert de la station.
     VEHORA_CAISSE_FERMEE:
-      'Ouvrez votre caisse à cette station : les espèces, reçues ou rendues, passent par elle.',
+      'Aucune caisse ouverte ne peut recevoir ces espèces à cette station. Ouvrez la vôtre, ou choisissez une caisse ouverte.',
+    VEHORA_CAISSE_INTROUVABLE: 'Cette caisse est introuvable.',
+    VEHORA_CAISSE_AUTRE_STATION:
+      'Choisissez une caisse de la station du dossier : c’est de son tiroir que sort l’argent.',
+    VEHORA_CAISSE_PERSONNELLE: 'Un mouvement libre s’écrit dans votre propre caisse.',
     VEHORA_CAISSE_CLOTUREE: 'Cette session de caisse est clôturée.',
     VEHORA_CLOTURE_DIRECTE: 'La clôture passe par le bouton de clôture, pas autrement.',
     VEHORA_COMPTAGE_REQUIS: 'Déclarez le montant compté dans le tiroir.',
@@ -177,7 +196,7 @@ export class PaymentService {
         .maybeSingle(),
       this.supabase.client
         .from('cash_transactions')
-        .select('*')
+        .select('*, auteur:profiles!cash_transactions_created_by_fkey(full_name)')
         .eq('cash_register_id', caisseId)
         .order('created_at', { ascending: false })
         .limit(100),
@@ -301,11 +320,47 @@ export class PaymentService {
   }
 
   /** Un paiement erroné ne se supprime pas : il s'annule par un remboursement. */
+  /**
+   * Les caisses ouvertes d'une station : le tiroir d'où sortira un
+   * remboursement en espèces se choisit parmi elles (ADR-006). La policy ne
+   * les montre toutes qu'avec `cash.reconcile`, que tous les rôles qui
+   * remboursent ont ; sans lui, on ne voit que la sienne.
+   */
+  async caissesOuvertes(
+    stationId: string,
+  ): Promise<{ caisses: CaisseOuverte[]; erreur: string | null }> {
+    const { data, error } = await this.supabase.client
+      .from('cash_registers')
+      .select(
+        'id, opened_by, opened_at, titulaire:profiles!cash_registers_opened_by_fkey(full_name)',
+      )
+      .eq('station_id', stationId)
+      .eq('status', 'OPEN')
+      .order('opened_at')
+      .limit(50);
+    if (error) return { caisses: [], erreur: message(error.code, error.message) };
+    return {
+      caisses: (data ?? []).map((c) => ({
+        id: c.id,
+        titulaireId: c.opened_by,
+        titulaire: c.titulaire?.full_name || 'Sans nom',
+        ouverteLe: c.opened_at,
+      })),
+      erreur: null,
+    };
+  }
+
+  /**
+   * `caisseId` : le tiroir d'où sortent les billets, pour un remboursement en
+   * espèces. `null` laisse la base choisir — la caisse qui a reçu le paiement si
+   * elle est ouverte, sinon la sienne. Ignoré pour le Mobile Money.
+   */
   async rembourser(
     dossierId: string,
     paiementId: string,
     montantMineur: number,
     motif: string,
+    caisseId: string | null,
   ): Promise<string | null> {
     const { error } = await this.supabase.client.from('payments').insert(
       rempliParLaBase<TablesInsert<'payments'>>({
@@ -315,6 +370,7 @@ export class PaymentService {
         amount_minor: montantMineur,
         reverses_payment_id: paiementId,
         reason: motif,
+        cash_register_id: caisseId ?? undefined,
       }),
     );
 

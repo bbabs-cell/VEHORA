@@ -147,6 +147,13 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
+**Phase 27** — le tiroir d'où sort l'argent (ADR-006) : un remboursement en
+espèces s'inscrit dans la caisse d'où sortent les billets, désignée par qui
+rembourse ; trois références de caisse non vérifiées corrigées, dont une
+écriture **inter-organisations** (`docs/phases/phase-27.md`). **Migration
+`20261017200000_tiroir_remboursement.sql` pas encore appliquée à la base
+réelle** : le MCP a expiré deux fois. À rejouer, puis renommer le fichier à la
+version enregistrée.
 **Phase 26 validée** — vérification de l'existant et réparation : un dossier
 réel restait bloqué à l'inspection (l'écran ne rattachait jamais l'inspection
 au dossier), et environ vingt-cinq chemins cassés dans la file, l'encaissement,
@@ -535,7 +542,7 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
 - Parcours connecté vérifié de bout en bout ; **257 tests Playwright** (4,5 min),
-  **307 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  **326 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
@@ -599,6 +606,17 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Zéro ligne touchée n'est pas une erreur pour PostgREST.** Une mise à jour
   ou une suppression filtrée demande ce qu'elle a touché (`.select('id')`)
   avant d'annoncer une réussite.
+- **Une sortie d'espèces s'inscrit dans le tiroir d'où sort l'argent**
+  (ADR-006). Un remboursement désigne une caisse ouverte de la station du
+  dossier (défaut : celle qui a reçu le paiement, sinon la sienne) ; un
+  encaissement ne choisit jamais ; un mouvement libre s'écrit dans **sa**
+  caisse. Écrire dans la caisse d'un autre n'est possible qu'en remboursant,
+  avec `payments.refund`, et c'est audité et visible dans la caisse touchée.
+- **Une référence de caisse est une clé multi-tenant comme les autres.**
+  `cash_transactions.cash_register_id` n'était vérifié par rien : une autre
+  organisation pouvait écrire dans la caisse d'un client, et `cloturer_caisse`
+  (SECURITY DEFINER) comptait ce que la RLS cachait. Troisième occurrence de
+  « une policy vérifie la ligne, pas ce qu'elle référence ».
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite

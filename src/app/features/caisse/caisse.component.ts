@@ -111,6 +111,17 @@ export class CaisseComponent {
     return LIBELLES_MOUVEMENT[mouvement.kind] ?? mouvement.kind;
   }
 
+  /**
+   * Qui a inscrit ce mouvement, quand ce n'est pas moi : un responsable qui
+   * rembourse un client depuis mon tiroir y inscrit la sortie (ADR-006). Sans
+   * son nom, le caissier verrait de l'argent sortir de sa caisse sans savoir
+   * qui l'a décidé.
+   */
+  autreAuteur(mouvement: MouvementCaisse): string | null {
+    if (!mouvement.created_by || mouvement.created_by === this.auth.claims().sub) return null;
+    return mouvement.auteur?.full_name || 'un responsable';
+  }
+
   heure(iso: string): string {
     return new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(new Date(iso));
   }

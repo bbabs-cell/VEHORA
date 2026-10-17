@@ -81,7 +81,12 @@ devient le moyen standard de faire disparaître de l'argent.
 
 - **Aucune suppression de paiement.** Jamais. Un paiement erroné est annulé par
   un `REFUND` qui le référence (`reverses_payment_id`), avec motif obligatoire.
-- Un remboursement en espèces crée une sortie de caisse.
+- Un remboursement en espèces crée une sortie de caisse, **dans le tiroir d'où
+  sort l'argent** (ADR-006) : la caisse ouverte, de la station du dossier, que
+  désigne la personne qui rembourse. Par défaut, celle qui a reçu le paiement
+  si elle est encore ouverte, sinon la sienne ; sans caisse ouverte, pas de
+  remboursement en espèces. La sortie porte le motif et le nom de qui l'a
+  autorisée, et apparaît dans la caisse touchée.
 - Toutes ces opérations exigent `payments.refund` et sont auditées.
 
 ## Paiement et restitution
@@ -103,6 +108,10 @@ Une session de caisse par station et par utilisateur, avec :
 
 ouverture (fonds de caisse déclaré) → mouvements (entrées, sorties, paiements
 espèces) → clôture (comptage déclaré) → écart calculé = déclaré − théorique.
+
+Un mouvement libre (achat, appoint) s'écrit dans **sa propre** caisse, avec un
+motif ; seule une sortie de remboursement peut toucher la caisse d'un autre,
+dans les conditions ci-dessus.
 
 L'écart n'est jamais masqué ni corrigé silencieusement. Une session clôturée
 est immuable. Une seule session ouverte à la fois par (station, utilisateur) —

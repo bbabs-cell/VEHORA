@@ -32,7 +32,9 @@ import {
   LIBELLES_METHODE,
   ORDRE_METHODES,
   PaymentService,
+  type CaisseOuverte,
   type MethodePaiement,
+  type Paiement,
 } from '../../core/payments/payment.service';
 import { ReceiptService } from '../../core/receipts/receipt.service';
 import {
@@ -718,19 +720,84 @@ export class FileAttenteComponent {
    * d'exécution et qu'aucune assertion ne peut lire — sur le geste qui fait
    * ressortir de l'argent du tiroir. Il a maintenant son formulaire, comme le
    * reste.
+   *
+   * `maxMineur` : ce qui reste remboursable. Le montant se saisit (50 000
+   * tapés au lieu de 5 000 : on en rend 45 000), proposé au maximum.
    */
-  readonly remboursementOuvert = signal<{ paiementId: string; montantMineur: number } | null>(
-    null,
-  );
+  readonly remboursementOuvert = signal<{
+    paiementId: string;
+    maxMineur: number;
+    especes: boolean;
+    caisseOrigine: string | null;
+  } | null>(null);
 
   readonly formRemboursement = this.fb.nonNullable.group({
+    montant: ['', Validators.required],
     motif: ['', [Validators.required, Validators.minLength(3)]],
+    caisse: [''],
   });
 
-  ouvrirRemboursement(paiementId: string, montantMineur: number): void {
+  /**
+   * Les caisses ouvertes de la station du dossier, pour un remboursement en
+   * espèces : l'argent sort d'un tiroir, et c'est celui-là qui doit le dire
+   * (ADR-006). `null` tant qu'elles se chargent.
+   */
+  readonly caissesOuvertes = signal<readonly CaisseOuverte[] | null>(null);
+
+  /** Espèces à rendre, et aucun tiroir ouvert dans la station : rien ne peut sortir. */
+  readonly sansTiroir = computed(() => {
+    const demande = this.remboursementOuvert();
+    const caisses = this.caissesOuvertes();
+    return demande !== null && demande.especes && caisses !== null && caisses.length === 0;
+  });
+
+  /** « Ma caisse », « Caisse d'Ousmane » — et laquelle a reçu le billet. */
+  libelleCaisse(caisse: CaisseOuverte): string {
+    // « Caisse d'Ousmane », pas « Caisse de Ousmane ».
+    const de = /^[aeiouyàâäéèêëîïôöùûü]/i.test(caisse.titulaire) ? 'd’' : 'de ';
+    const nom =
+      caisse.titulaireId === this.auth.claims().sub
+        ? 'Ma caisse'
+        : `Caisse ${de}${caisse.titulaire}`;
+    return caisse.id === this.remboursementOuvert()?.caisseOrigine
+      ? `${nom} — a reçu ce paiement`
+      : nom;
+  }
+
+  async ouvrirRemboursement(paiement: Paiement): Promise<void> {
+    const dossier = this.encaissementOuvert();
+    if (!dossier) return;
+    const maxMineur = this.remboursable(paiement.id, paiement.amount_minor);
+    const especes = paiement.method === 'CASH';
+
     this.erreurFormulaire.set(null);
-    this.formRemboursement.reset({ motif: '' });
-    this.remboursementOuvert.set({ paiementId, montantMineur });
+    this.formRemboursement.reset({
+      montant: this.saisie(maxMineur, dossier),
+      motif: '',
+      caisse: '',
+    });
+    this.caissesOuvertes.set(especes ? null : []);
+    this.remboursementOuvert.set({
+      paiementId: paiement.id,
+      maxMineur,
+      especes,
+      caisseOrigine: paiement.cash_register_id,
+    });
+    if (!especes) return;
+
+    const { caisses, erreur } = await this.paiements.caissesOuvertes(dossier.station_id);
+    // La fenêtre a pu être refermée, ou rouverte sur un autre paiement.
+    if (this.remboursementOuvert()?.paiementId !== paiement.id) return;
+    this.caissesOuvertes.set(caisses);
+    this.erreurFormulaire.set(erreur);
+
+    // Par défaut, le tiroir qui a reçu le billet ; sinon le sien ; sinon le seul.
+    const moi = this.auth.claims().sub;
+    const defaut =
+      caisses.find((c) => c.id === paiement.cash_register_id) ??
+      caisses.find((c) => c.titulaireId === moi) ??
+      (caisses.length === 1 ? caisses[0] : undefined);
+    this.formRemboursement.controls.caisse.setValue(defaut?.id ?? '');
   }
 
   fermerRemboursement(): void {
@@ -747,12 +814,30 @@ export class FileAttenteComponent {
       return;
     }
 
+    const v = this.formRemboursement.getRawValue();
+    const montant = versMontantMineur(v.montant, dossier.currency ?? this.devise());
+    if (montant === null || montant <= 0) {
+      this.erreurFormulaire.set('Saisissez un montant valide, sans signe ni lettre.');
+      return;
+    }
+    if (montant > demande.maxMineur) {
+      this.erreurFormulaire.set(
+        `On ne rend pas plus que ce qui reste remboursable : ${this.formaterMinor(demande.maxMineur)}.`,
+      );
+      return;
+    }
+    if (demande.especes && !v.caisse) {
+      this.erreurFormulaire.set('Choisissez la caisse d’où sortent les billets.');
+      return;
+    }
+
     this.enregistrement.set(true);
     const erreur = await this.paiements.rembourser(
       dossier.id,
       demande.paiementId,
-      demande.montantMineur,
-      this.formRemboursement.getRawValue().motif.trim(),
+      montant,
+      v.motif.trim(),
+      demande.especes ? v.caisse : null,
     );
     this.enregistrement.set(false);
     this.erreurFormulaire.set(erreur);

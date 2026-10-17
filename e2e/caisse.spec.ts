@@ -344,9 +344,19 @@ test.describe('Encaissement', () => {
       await remboursement.getByRole('button', { name: 'Rembourser' }).click();
       await expect(remboursement.getByRole('alert')).toContainText('motif');
 
+      // Le montant est proposé au maximum remboursable, et le tiroir par défaut
+      // est celui qui a reçu le billet (ADR-006) : ici, ma propre caisse.
+      await expect(remboursement.getByLabel(/Montant rendu/)).toHaveValue('1000');
+      await expect(remboursement.locator('#caisse-remboursement option:checked')).toHaveText(
+        'Ma caisse — a reçu ce paiement',
+      );
+
+      // Un remboursement partiel : 1 000 encaissés, 400 rendus.
+      await remboursement.getByLabel(/Montant rendu/).fill('400');
       await remboursement.getByLabel('Motif').fill('Test de parcours automatisé');
       await remboursement.getByRole('button', { name: 'Rembourser' }).click();
       await expect(remboursement).toBeHidden({ timeout: 20_000 });
+      await expect(encaissement).toContainText('remboursement');
     } finally {
       await fermerMesCaisses(station);
       await dossier?.nettoyer();

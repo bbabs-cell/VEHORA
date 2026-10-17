@@ -2119,6 +2119,285 @@ select pg_temp.check('l''organisation B ne voit aucun mouvement de caisse de A',
 select pg_temp.check('l''organisation B ne voit aucun état financier de A',
   (select count(*) from public.service_order_payment_state), 0);
 
+-- ---------------------------------------------------------------------------
+-- Phase 27 — le tiroir d'où sort l'argent (ADR-006).
+--
+-- Un remboursement en espèces s'inscrivait dans la caisse de la personne qui
+-- rembourse, quel que soit le tiroir d'où sortaient les billets : le caissier
+-- clôturait avec un manque, le responsable avec un excédent. Et trois
+-- références de caisse n'étaient vérifiées par rien : un mouvement libre
+-- pouvait viser la caisse d'un collègue ou d'une autre organisation, et une
+-- caisse s'ouvrir sur la station d'un autre client. Sous un point de
+-- sauvegarde : ces caisses et ces paiements ne doivent pas compter plus bas.
+-- ---------------------------------------------------------------------------
+savepoint tiroir;
+
+set local role postgres;
+insert into auth.users (id) values
+  ('55555555-5555-5555-5555-555555555555');  -- Khady, chef de station A2
+insert into public.organization_memberships (id, profile_id, organization_id, role_id)
+select 'ccc44444-0000-0000-0000-000000000004', '44444444-4444-4444-4444-444444444444',
+       'aaaaaaaa-0000-0000-0000-000000000001', id from public.roles where code = 'CASHIER';
+insert into public.organization_memberships (id, profile_id, organization_id, role_id)
+select 'ccc55555-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555',
+       'aaaaaaaa-0000-0000-0000-000000000001', id from public.roles where code = 'STATION_MANAGER';
+insert into public.station_users (membership_id, station_id) values
+  ('ccc44444-0000-0000-0000-000000000004', 'a1a1a1a1-0000-0000-0000-000000000001'),
+  ('ccc55555-0000-0000-0000-000000000005', 'a2a2a2a2-0000-0000-0000-000000000002');
+update public.profiles set full_name = 'Ousmane'
+ where id = '44444444-4444-4444-4444-444444444444';
+
+-- Les caisses du scénario : Ousmane à Liberté 6, Awa à Ouakam, Moussa chez B.
+insert into public.cash_registers (id, organization_id, station_id, opened_by, opening_float_minor)
+values
+  ('ca155e00-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'a1a1a1a1-0000-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444', 5000),
+  ('ca155e00-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'a2a2a2a2-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 0),
+  ('ca155e00-0000-0000-0000-000000000004', 'bbbbbbbb-0000-0000-0000-000000000002',
+   'b1b1b1b1-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 0);
+
+-- Ousmane encaisse 50 000 au lieu de 5 000 : le billet entre dans SON tiroir.
+-- (`login` lit les stations sous les droits de la session en cours : sous
+-- Moussa, celles de A seraient invisibles. D'où la connexion sous postgres.)
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+set local role authenticated;
+insert into public.payments (id, service_order_id, method, amount_minor)
+values ('9a000000-0000-0000-0000-000000000001',
+        'd0551e00-0000-0000-0000-000000000002', 'CASH', 50000);
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+
+-- 1. Sans caisse désignée, le paiement d'origine reçu dans une caisse
+--    CLÔTURÉE, et sans caisse à soi dans la station : il n'y a pas de tiroir.
+do $$
+declare v_p uuid;
+begin
+  select id into v_p from public.payments
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000001'
+     and kind = 'PAYMENT' limit 1;
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 500, v_p,
+          'Geste commercial');
+  raise exception 'ÉCHEC — remboursement en espèces sans tiroir accepté';
+exception
+  when check_violation then
+    raise notice 'ok — pas de remboursement en espèces sans caisse ouverte';
+end;
+$$;
+
+-- 2. Sans caisse désignée, la sortie va dans le tiroir qui a reçu le billet,
+--    avec le motif, et au nom de qui l'a autorisée.
+do $$
+declare r public.payments; m public.cash_transactions; t bigint;
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 45000,
+          '9a000000-0000-0000-0000-000000000001', 'Faute de frappe : 5 000')
+  returning * into r;
+  perform pg_temp.check('le remboursement sort du tiroir qui a reçu le billet',
+    (r.cash_register_id = 'ca155e00-0000-0000-0000-000000000002')::int, 1);
+
+  select * into m from public.cash_transactions where payment_id = r.id;
+  perform pg_temp.check('la sortie est inscrite dans la caisse du caissier',
+    (m.cash_register_id = 'ca155e00-0000-0000-0000-000000000002'
+     and m.amount_minor = -45000 and m.kind = 'REFUND_OUT')::int, 1);
+  perform pg_temp.check('la sortie porte le motif du remboursement',
+    (m.reason = 'Faute de frappe : 5 000')::int, 1);
+  perform pg_temp.check('la sortie porte le nom de qui l''a autorisée',
+    (m.created_by = '11111111-1111-1111-1111-111111111111')::int, 1);
+
+  select theoretical_minor into t from public.cash_register_state
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000002';
+  perform pg_temp.check('la caisse du caissier tombe juste (5 000 + 50 000 − 45 000)',
+    t, 10000);
+end;
+$$;
+
+-- 3. Une caisse désignée doit être ouverte, de la station du dossier, et de
+--    la même organisation.
+do $$
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 100,
+          '9a000000-0000-0000-0000-000000000001', 'Essai',
+          'ca155e00-0000-0000-0000-000000000001');
+  raise exception 'ÉCHEC — remboursement inscrit dans une caisse clôturée';
+exception
+  when check_violation then
+    raise notice 'ok — on ne rembourse pas depuis une caisse clôturée';
+end;
+$$;
+
+do $$
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 100,
+          '9a000000-0000-0000-0000-000000000001', 'Essai',
+          'ca155e00-0000-0000-0000-000000000003');
+  raise exception 'ÉCHEC — remboursement sorti du tiroir d''une autre station';
+exception
+  when check_violation then
+    raise notice 'ok — l''argent sort d''un tiroir de la station du dossier';
+end;
+$$;
+
+do $$
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 100,
+          '9a000000-0000-0000-0000-000000000001', 'Essai',
+          'ca155e00-0000-0000-0000-000000000004');
+  raise exception 'ÉCHEC — remboursement inscrit dans la caisse d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — la caisse d''une autre organisation est introuvable';
+end;
+$$;
+
+-- 4. Avec sa propre caisse ouverte, la personne qui rembourse peut la désigner.
+insert into public.cash_registers (id, station_id, opened_by, opening_float_minor)
+values ('ca155e00-0000-0000-0000-000000000005',
+        'a1a1a1a1-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111', 0);
+
+do $$
+declare r public.payments;
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 1000,
+          '9a000000-0000-0000-0000-000000000001', 'Rendu de ma poche',
+          'ca155e00-0000-0000-0000-000000000005')
+  returning * into r;
+  perform pg_temp.check('la caisse désignée reçoit la sortie',
+    (r.cash_register_id = 'ca155e00-0000-0000-0000-000000000005')::int, 1);
+end;
+$$;
+
+-- 5. Paiement d'origine reçu dans une caisse clôturée : la sienne, par défaut.
+do $$
+declare v_p uuid; r public.payments;
+begin
+  select id into v_p from public.payments
+   where cash_register_id = 'ca155e00-0000-0000-0000-000000000001'
+     and kind = 'PAYMENT' limit 1;
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 500, v_p,
+          'Geste commercial')
+  returning * into r;
+  perform pg_temp.check('caisse d''origine clôturée : la sienne prend le relais',
+    (r.cash_register_id = 'ca155e00-0000-0000-0000-000000000005')::int, 1);
+end;
+$$;
+
+-- 6. Un ENCAISSEMENT ne choisit pas son tiroir : il va dans la caisse de qui
+--    encaisse, quelle que soit la caisse envoyée.
+do $$
+declare p public.payments;
+begin
+  insert into public.payments (service_order_id, method, amount_minor, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'CASH', 700,
+          'ca155e00-0000-0000-0000-000000000002')
+  returning * into p;
+  perform pg_temp.check('un encaissement va dans la caisse de qui encaisse',
+    (p.cash_register_id = 'ca155e00-0000-0000-0000-000000000005')::int, 1);
+end;
+$$;
+
+-- 7. Le remboursement est audité, avec la caisse touchée et sa titulaire.
+set local role postgres;
+select pg_temp.check('un remboursement est audité avec la caisse touchée',
+  (select count(*) from public.audit_logs
+    where action = 'payment.refund'
+      and new_value ->> 'cash_register_id' = 'ca155e00-0000-0000-0000-000000000002'
+      and new_value ->> 'caisse_de' = '44444444-4444-4444-4444-444444444444'
+      and reason = 'Faute de frappe : 5 000'), 1);
+set local role authenticated;
+
+-- 8. Le caissier voit, dans sa caisse, la sortie autorisée par la propriétaire.
+select pg_temp.login('44444444-4444-4444-4444-444444444444',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'CASHIER');
+select pg_temp.check('le caissier voit la sortie inscrite dans sa caisse',
+  (select count(*) from public.cash_transactions
+    where cash_register_id = 'ca155e00-0000-0000-0000-000000000002'
+      and kind = 'REFUND_OUT'), 1);
+
+-- 9. Un mouvement libre s'écrit dans SA caisse, pas dans celle d'un collègue.
+insert into public.cash_transactions (cash_register_id, kind, amount_minor, reason)
+values ('ca155e00-0000-0000-0000-000000000002', 'CASH_OUT', -2000, 'Savon');
+select pg_temp.check('un mouvement libre s''écrit dans sa propre caisse',
+  (select count(*) from public.cash_transactions
+    where cash_register_id = 'ca155e00-0000-0000-0000-000000000002'
+      and reason = 'Savon'), 1);
+
+do $$
+begin
+  insert into public.cash_transactions (cash_register_id, kind, amount_minor, reason)
+  values ('ca155e00-0000-0000-0000-000000000005', 'CASH_OUT', -2000, 'Prélèvement');
+  raise exception 'ÉCHEC — un mouvement libre a visé la caisse d''un collègue';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — on n''écrit pas dans la caisse d''un collègue';
+end;
+$$;
+
+-- 10. Une autre organisation n'écrit pas dans une caisse de A.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+do $$
+begin
+  insert into public.cash_transactions (cash_register_id, kind, amount_minor, reason)
+  values ('ca155e00-0000-0000-0000-000000000002', 'CASH_OUT', -50000, 'Vidé');
+  raise exception 'ÉCHEC — l''organisation B a écrit dans une caisse de A';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — une caisse d''une autre organisation est introuvable';
+end;
+$$;
+
+-- 11. On n'ouvre pas une caisse sur la station d'un autre client.
+do $$
+begin
+  insert into public.cash_registers (station_id, opened_by, opening_float_minor)
+  values ('a1a1a1a1-0000-0000-0000-000000000001',
+          '22222222-2222-2222-2222-222222222222', 0);
+  raise exception 'ÉCHEC — caisse ouverte sur la station d''une autre organisation';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — une caisse s''ouvre sur une station de son organisation';
+end;
+$$;
+
+-- 12. Un chef de station ne rembourse pas un dossier d'une autre station.
+set local role postgres;
+select pg_temp.login('55555555-5555-5555-5555-555555555555',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'STATION_MANAGER');
+set local role authenticated;
+do $$
+begin
+  insert into public.payments (service_order_id, kind, method, amount_minor,
+                               reverses_payment_id, reason, cash_register_id)
+  values ('d0551e00-0000-0000-0000-000000000002', 'REFUND', 'CASH', 100,
+          '9a000000-0000-0000-0000-000000000001', 'Hors de ma station',
+          'ca155e00-0000-0000-0000-000000000002');
+  raise exception 'ÉCHEC — un chef de station a remboursé hors de sa station';
+exception
+  when insufficient_privilege then
+    raise notice 'ok — rembourser exige l''accès à la station du dossier';
+end;
+$$;
+
+rollback to savepoint tiroir;
+
 -- ===========================================================================
 -- Phase 13 — reçus et rapports
 -- ===========================================================================

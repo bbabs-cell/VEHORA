@@ -239,17 +239,27 @@ export const TABLES = {
   service_prices: tarifs,
   employees: employes,
   payments: paiements,
-  cash_registers: [{
-    id: id('a', 1), organization_id: ORG, station_id: S1, opened_by: MOI, opened_at: ilYa(300), status: 'OPEN',
+  // Deux caisses ouvertes à Liberté 6 : la sienne et celle d'Ousmane — le
+  // remboursement en espèces choisit le tiroir d'où sortent les billets.
+  cash_registers: [
+    { id: id('a', 1), opened_by: MOI, titulaire: { full_name: 'Awa Ndiaye' }, opened_at: ilYa(300) },
+    { id: id('a', 2), opened_by: id('p', 2), titulaire: { full_name: 'Ousmane Gueye' }, opened_at: ilYa(280) },
+  ].map((c) => ({
+    organization_id: ORG, station_id: S1, status: 'OPEN',
     opening_float_minor: 10000, currency: 'XOF', closed_at: null, closed_by: null, closing_note: null,
-    declared_closing_minor: null, theoretical_minor: null, variance_minor: null, created_at: ilYa(300), updated_at: ilYa(30),
-  }],
-  cash_register_state: [{ cash_register_id: id('a', 1), organization_id: ORG, theoretical_minor: 33500, mouvements: 4 }],
+    declared_closing_minor: null, theoretical_minor: null, variance_minor: null, created_at: c.opened_at, updated_at: ilYa(30),
+    ...c,
+  })),
+  cash_register_state: [{ cash_register_id: id('a', 1), organization_id: ORG, theoretical_minor: 31500, mouvements: 4 }],
+  // La sortie de remboursement inscrite par une autre personne : l'écran doit
+  // dire qui l'a autorisée (ADR-006).
   cash_transactions: [
     { kind: 'PAYMENT_IN', amount_minor: 20000, reason: null },
     { kind: 'PAYMENT_IN', amount_minor: 5000, reason: null },
     { kind: 'CASH_OUT', amount_minor: -1500, reason: 'Achat de savon et d’éponges au marché Tilène' },
-  ].map((t, i) => ({ id: id('t', i + 1), organization_id: ORG, cash_register_id: id('a', 1), currency: 'XOF', payment_id: null, created_by: MOI, created_at: ilYa(20 + i * 30), ...t })),
+    { kind: 'REFUND_OUT', amount_minor: -2000, reason: 'Faute de frappe : 7 000 au lieu de 5 000',
+      created_by: id('p', 9), auteur: { full_name: 'Khady Mbaye' } },
+  ].map((t, i) => ({ id: id('t', i + 1), organization_id: ORG, cash_register_id: id('a', 1), currency: 'XOF', payment_id: null, created_by: MOI, auteur: { full_name: 'Awa Ndiaye' }, created_at: ilYa(20 + i * 30), ...t })),
   cash_register_history: [3, 1, 0].map((n, i) => ({
     cash_register_id: id('h', i + 1), organization_id: ORG, station_id: i ? S2 : S1, station_name: i ? 'Ouakam' : 'Liberté 6',
     status: 'CLOSED', opened_at: ilYa(1440 * (i + 1) + 600), closed_at: ilYa(1440 * (i + 1)), opened_by: MOI, closed_by: MOI,

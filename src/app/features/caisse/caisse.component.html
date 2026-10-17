@@ -106,6 +106,9 @@
               </span>
               <span class="vh-muted mouvement__detail">
                 {{ libelleMouvement(mouvement) }}
+                @if (autreAuteur(mouvement); as auteur) {
+                  · par {{ auteur }}
+                }
                 @if (mouvement.reason) {
                   · {{ mouvement.reason }}
                 }

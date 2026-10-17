@@ -533,7 +533,7 @@
                 <button
                   class="paiement__rembourser"
                   type="button"
-                  (click)="ouvrirRemboursement(paiement.id, remboursable(paiement.id, paiement.amount_minor))"
+                  (click)="ouvrirRemboursement(paiement)"
                   [disabled]="enregistrement()"
                   [attr.aria-label]="
                     'Rembourser ' +
@@ -727,6 +727,61 @@
         </p>
 
         <div class="vh-field">
+          <label class="vh-label" for="montant-remboursement">
+            Montant rendu ({{ symbole() }})
+          </label>
+          <input
+            id="montant-remboursement"
+            class="vh-input"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            [formControl]="formRemboursement.controls.montant"
+          />
+          <p class="vh-aide">Au plus {{ formaterMinor(demande.maxMineur) }}.</p>
+        </div>
+
+        <!-- Les billets sortent d'un tiroir : c'est lui qui porte la sortie,
+             sinon le caissier clôture avec un manque et le responsable avec un
+             excédent (ADR-006). -->
+        @if (demande.especes) {
+          <div class="vh-field">
+            <label class="vh-label" for="caisse-remboursement">Caisse d’où sortent les billets</label>
+            @if (caissesOuvertes(); as caisses) {
+              @if (caisses.length > 0) {
+                <select
+                  id="caisse-remboursement"
+                  class="vh-input"
+                  [formControl]="formRemboursement.controls.caisse"
+                >
+                  @if (!formRemboursement.controls.caisse.value) {
+                    <option value="" disabled selected>Choisir une caisse</option>
+                  }
+                  @for (caisse of caisses; track caisse.id) {
+                    <option
+                      [value]="caisse.id"
+                      [selected]="caisse.id === formRemboursement.controls.caisse.value"
+                    >
+                      {{ libelleCaisse(caisse) }}
+                    </option>
+                  }
+                </select>
+                <p class="vh-aide">
+                  La sortie s’inscrit dans cette caisse, avec votre nom et le motif.
+                </p>
+              } @else {
+                <p class="vh-aide dossier__raison">
+                  Aucune caisse n’est ouverte dans cette station : les billets n’ont pas de tiroir
+                  d’où sortir. Ouvrez la vôtre, ou demandez au caissier d’ouvrir la sienne.
+                </p>
+              }
+            } @else {
+              <p class="vh-aide" role="status">Recherche des caisses ouvertes…</p>
+            }
+          </div>
+        }
+
+        <div class="vh-field">
           <label class="vh-label" for="motif-remboursement">Motif</label>
           <input
             id="motif-remboursement"
@@ -759,7 +814,7 @@
           <button
             class="vh-button vh-button--danger"
             type="submit"
-            [disabled]="enregistrement()"
+            [disabled]="enregistrement() || sansTiroir() || (demande.especes && caissesOuvertes() === null)"
           >
             {{ enregistrement() ? 'Remboursement…' : 'Rembourser' }}
           </button>
