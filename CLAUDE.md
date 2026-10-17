@@ -151,9 +151,10 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 réel restait bloqué à l'inspection (l'écran ne rattachait jamais l'inspection
 au dossier), et environ vingt-cinq chemins cassés dans la file, l'encaissement,
 les comptes, les membres et les tarifs (`docs/phases/phase-26.md`). Création de
-compte, mot de passe oublié et nouveau mot de passe existent enfin. **À faire
-hors du code** : déployer (Vercel refuse toujours au connecteur), et régler
-Auth dans Supabase — URL, SMTP (`docs/deploiement.md`, partie 3).
+compte, mot de passe oublié et nouveau mot de passe existent enfin. **En
+production** sur `vehora.vercel.app` depuis le 17 octobre (`29e1438`) ; le
+dossier n° 1 est reparti par l'écran. **À faire hors du code** : régler Auth
+dans Supabase — URL, SMTP (`docs/deploiement.md`, partie 3).
 **Phase 25 validée** — couleur utile : une seule couleur ajoutée (indigo,
 « l'équipe s'en occupe »), les étapes de dossier colorées selon qui doit agir,
 la même correspondance partout (`TEINTE_STATUT`), fond vivant en dégradés

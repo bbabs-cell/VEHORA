@@ -31,10 +31,11 @@ organisation (« introuvable ») ou d'un autre véhicule. Sans ce garde-fou, une
 organisation pouvait faire franchir l'étape au dossier d'une autre en
 connaissant son identifiant.
 
-**Le dossier n° 1 reste bloqué tant que ce frontend n'est pas déployé.** Une
-fois en ligne : ouvrir la file, « Faire l'inspection », enregistrer. Les quatre
-inspections existantes n'ont pas été rattachées à la main : aucune
-modification manuelle de la base.
+Les quatre inspections existantes n'ont pas été rattachées à la main : aucune
+modification manuelle de la base. **Déployé le 17 octobre** (`29e1438`,
+`vehora.vercel.app`) ; le dossier n° 1 a été inspecté de nouveau par l'écran
+et il est passé en attente, puis en cours — le parcours réparé a servi sur la
+donnée réelle.
 
 ## Ce qui était cassé, et ce qui est fait
 
@@ -101,8 +102,8 @@ base presque vide.
 
 ## Ce qui n'est pas fait, par ordre d'urgence
 
-1. **Déployer.** Le projet Vercel refuse toujours au connecteur la création
-   d'un déploiement (403) ; le dossier n° 1 attend ce frontend.
+1. ~~Déployer.~~ Fait le 17 octobre, après réautorisation du connecteur Vercel
+   sur l'équipe `babsdiong-6440s-projects` (il répondait 403 jusqu'en lecture).
 2. **Réglages Auth dans le tableau de bord Supabase** (`docs/deploiement.md`,
    partie 3) : Site URL et Redirect URLs, sans quoi les liens de création et de
    réinitialisation pointent vers `localhost` ; **SMTP personnalisé**, sans
