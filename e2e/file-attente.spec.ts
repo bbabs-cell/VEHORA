@@ -127,9 +127,11 @@ test.describe('File d’attente — propriétaire', () => {
   // l'occasion. Un test qui déplace un dossier que d'autres tests lisent les
   // fait échouer selon l'ordre d'exécution — et ce sont alors les tests qu'on
   // soupçonne, pas le produit.
-  test('le parcours arrivée → inspection → attente est refusé sans inspection', async ({
-    page,
-  }) => {
+  // Le parcours RÉEL, par l'écran : c'est lui qui était cassé. La fixture
+  // `creerDossierEnAttente` crée l'inspection par l'API, déjà rattachée au
+  // dossier — elle sautait précisément l'étape où l'écran oubliait le dossier,
+  // et tout dossier restait bloqué à « Inspection » sur la base réelle.
+  test('arrivée → inspection par l’écran → attente', async ({ page }) => {
     await page.getByRole('button', { name: 'Nouveau dossier' }).click();
     const ouverture = page.getByRole('dialog');
     await ouverture.getByLabel('Véhicule').fill('dk1234');
@@ -154,8 +156,22 @@ test.describe('File d’attente — propriétaire', () => {
     // Le dossier a changé de groupe : c'est le signe visible de la transition.
     await expect(enInspection).toContainText(`N° ${numero}`);
 
+    // Sans inspection rattachée, la base refuserait la file d'attente : la
+    // file ne la propose pas, elle propose l'inspection.
+    await expect(
+      page.getByRole('button', { name: `Mettre en attente — dossier ${numero}` }),
+    ).toHaveCount(0);
+    await page.getByRole('link', { name: `Inspecter le véhicule du dossier ${numero}` }).click();
+    await expect(page).toHaveURL(/\/inspection\?dossier=/);
+    await expect(page.getByRole('status')).toContainText('rattaché au dossier en cours');
+    await page.locator('.zone').nth(0).getByRole('button', { name: 'RAS' }).click();
+    await page.getByRole('button', { name: 'Enregistrer le constat' }).click();
+
+    // Retour à la file, où le dossier peut enfin avancer.
+    await expect(page).toHaveURL(/\/file-attente$/, { timeout: 15_000 });
     await page.getByRole('button', { name: `Mettre en attente — dossier ${numero}` }).click();
-    await expect(page.getByRole('alert')).toContainText('Enregistrez l’inspection');
+    const enAttente = page.getByRole('list', { name: 'Dossiers — En attente' });
+    await expect(enAttente).toContainText(`N° ${numero}`, { timeout: 15_000 });
 
     // On laisse la file propre : le dossier de test est annulé.
     await page.getByRole('button', { name: `Annuler le dossier ${numero}` }).click();

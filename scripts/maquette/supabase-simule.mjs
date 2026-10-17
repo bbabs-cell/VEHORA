@@ -44,6 +44,14 @@ function session(profil) {
 }
 
 /** Une valeur de filtre PostgREST (« eq.ACTIVE », « in.(a,b) », « not.in.(…) »). */
+
+/** Compare deux valeurs de filtre : en nombres si les deux en sont, en texte sinon (dates ISO comprises). */
+function comparer(a, b) {
+  const [x, y] = [Number(a), Number(b)];
+  if (a !== '' && b !== '' && !Number.isNaN(x) && !Number.isNaN(y)) return x - y;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function correspond(valeur, expression) {
   let neg = false;
   if (expression.startsWith('not.')) {
@@ -60,10 +68,11 @@ function correspond(valeur, expression) {
     case 'neq': ok = texte !== brut; break;
     case 'in': ok = brut.replace(/^\(|\)$/g, '').split(',').map((v) => v.replace(/^"|"$/g, '')).includes(texte); break;
     case 'is': ok = brut === 'null' ? texte === null : texte === brut; break;
-    case 'gte': ok = texte !== null && texte >= brut; break;
-    case 'lte': ok = texte !== null && texte <= brut; break;
-    case 'gt': ok = texte !== null && texte > brut; break;
-    case 'lt': ok = texte !== null && texte < brut; break;
+    // Nombres comparés comme des nombres : en texte, « 10 » < « 9 ».
+    case 'gte': ok = texte !== null && comparer(texte, brut) >= 0; break;
+    case 'lte': ok = texte !== null && comparer(texte, brut) <= 0; break;
+    case 'gt': ok = texte !== null && comparer(texte, brut) > 0; break;
+    case 'lt': ok = texte !== null && comparer(texte, brut) < 0; break;
     case 'ilike': ok = texte !== null && new RegExp('^' + brut.replace(/[%*]/g, '.*') + '$', 'i').test(texte); break;
     default: ok = true;
   }

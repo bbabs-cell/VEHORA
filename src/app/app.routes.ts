@@ -21,6 +21,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
+  // Comptes : créer, mot de passe oublié, nouveau mot de passe. Sans garde —
+  // on y arrive sans être connecté, ou par un lien reçu par e-mail.
+  {
+    path: 'inscription',
+    title: 'Créer un compte — VEHORA',
+    loadComponent: () =>
+      import('./features/auth/compte/inscription.component').then((m) => m.InscriptionComponent),
+  },
+  {
+    path: 'mot-de-passe-oublie',
+    title: 'Mot de passe oublié — VEHORA',
+    loadComponent: () =>
+      import('./features/auth/compte/mot-de-passe-oublie.component').then(
+        (m) => m.MotDePasseOublieComponent,
+      ),
+  },
+  {
+    path: 'nouveau-mot-de-passe',
+    title: 'Nouveau mot de passe — VEHORA',
+    loadComponent: () =>
+      import('./features/auth/compte/nouveau-mot-de-passe.component').then(
+        (m) => m.NouveauMotDePasseComponent,
+      ),
+  },
   {
     path: 'creer-organisation',
     title: 'Créer votre entreprise — VEHORA',

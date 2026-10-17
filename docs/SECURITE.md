@@ -46,6 +46,10 @@ applicatif. Chaque brique a son équivalent, et c'est lui qu'on audite :
 
 | Phase | Gravité | Défaut | Correction |
 |---|---|---|---|
+| 26 | Moyenne | `vehicle_inspections.service_order_id` n'avait ni clé étrangère ni contrôle : une organisation pouvait rattacher son inspection au dossier d'une autre (en connaissant son UUID) et lui faire franchir l'étape « Inspection » ; une inspection du véhicule A débloquait le dossier du véhicule B. | Clé étrangère et `vehora.check_inspection_dossier()` (SECURITY INVOKER : le dossier d'autrui est « introuvable »). |
+| 26 | Moyenne | Annuler un dossier payé rendait le remboursement impossible : l'argent restait dans la caisse théorique et dans le chiffre du jour, sans trace de restitution. | Invariant `VEHORA_PAIEMENT_A_REMBOURSER` (`vehora.check_dossier_statut()`). |
+| 26 | Faible | Contrôle qualité désactivé : un dossier passait « prêt », puis restitué, opérations inachevées. | Invariant `VEHORA_OPERATIONS_EN_COURS`. |
+| 26 | — (nouvelle surface) | Création de compte et mot de passe oublié. | Même réponse que l'adresse ait un compte ou non ; le lien de réinitialisation n'ouvre qu'un changement de mot de passe ; la longueur minimale est celle de Supabase Auth. |
 | 24 | Faible | Le message de `VEHORA_TENANCY_VIOLATION` disait « Cet élément n'appartient pas à votre organisation » : il confirmait l'existence d'une donnée chez un autre client (méthode, règle 5). | Le frontend dit « introuvable » (`traduire-erreur.ts`). Le serveur distingue encore les deux cas : voir « à décider ». |
 | 24 | Faible | Une photo dans un format refusé par le stockage (HEIC) partait étiquetée `image/jpeg`. | `image-compression.ts` refuse plutôt que de mentir sur le type ; l'envoi est compté comme un échec et l'écran le dit. |
 | 24 | Faible | Les brouillons d'inspection (nouveaux) auraient survécu à la déconnexion sur un téléphone partagé. | `AuthService.signOut()` efface les clés `vehora:*` ; un brouillon expire de toute façon au bout de 12 heures et sa clé porte l'organisation. |
@@ -78,6 +82,15 @@ Les phases antérieures sont détaillées dans `docs/phases/` et dans CLAUDE.md.
 4. **File hors-ligne des encaissements.** Recommandée par la méthode pour
    l'action vitale, elle demande une clé d'idempotence côté serveur et une
    règle de rejeu : à écrire d'abord dans la fondation 5.
+5. **Remboursement en espèces — moyenne (phase 26).** Il sort de la caisse
+   ouverte par la personne qui rembourse, pas de celle qui a reçu l'argent :
+   l'écart apparaît dans la mauvaise session. Structurel, à trancher dans la
+   fondation 5 avant de corriger.
+6. **Drapeaux `recus` et `inspections_photos` — faible (phase 26).** Déclarés,
+   lus par l'écran, vérifiés par aucune fonction serveur : un client modifié
+   les ignore. Contraire à « un flag qui n'empêche rien n'est pas un flag ».
+7. **Essai sans échéance — faible (phase 26).** Une organisation en essai le
+   reste indéfiniment.
 
 ## Dépendances — `npm audit` (phase 24)
 

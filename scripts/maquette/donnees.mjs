@@ -83,7 +83,8 @@ const vehicules = [
   customers: c === null ? null : { full_name: clients[c].full_name },
 }));
 
-const statuts = ['ARRIVED', 'INSPECTION', 'WAITING', 'IN_PROGRESS', 'IN_PROGRESS', 'CONTROL', 'READY', 'READY'];
+// Le dernier est restitué avec un solde : la file le garde, « reste à encaisser ».
+const statuts = ['ARRIVED', 'INSPECTION', 'WAITING', 'IN_PROGRESS', 'IN_PROGRESS', 'CONTROL', 'READY', 'READY', 'DELIVERED'];
 const dossiers = statuts.map((status, i) => {
   const v = vehicules[i % vehicules.length];
   const client = clients.find((c) => c.id === v.customer_id);
@@ -140,6 +141,7 @@ const paiements = [
   { d: 6, montant: 20000, methode: 'CASH' },
   { d: 7, montant: 5000, methode: 'MOBILE_MONEY' },
   { d: 4, montant: 5000, methode: 'CASH' },
+  { d: 8, montant: 2000, methode: 'MOBILE_MONEY' },
 ].map((p, i) => ({
   id: id('b', i + 1), organization_id: ORG, service_order_id: dossiers[p.d].id, station_id: S1,
   kind: 'PAYMENT', method: p.methode, status: 'COMPLETED', amount_minor: p.montant, currency: 'XOF',
@@ -206,10 +208,29 @@ export const TABLES = {
   service_order_totals: totaux,
   service_order_payment_state: soldes,
   service_order_operations: operations,
+  // La matrice RÉELLE (lue sur la base le 17 octobre) : la file en tire ses
+  // boutons, filtrés par les droits et les conditions. Une maquette plus
+  // permissive que la base montrerait des boutons qui n'existent pas.
   service_order_transitions: [
-    ['ARRIVED', 'INSPECTION'], ['ARRIVED', 'WAITING'], ['INSPECTION', 'WAITING'], ['WAITING', 'IN_PROGRESS'],
-    ['IN_PROGRESS', 'CONTROL'], ['IN_PROGRESS', 'READY'], ['CONTROL', 'READY'], ['READY', 'DELIVERED'],
-  ].map(([from_status, to_status]) => ({ from_status, to_status, required_permission: 'service_orders.transition', requires_reason: false, must_audit: false, condition_code: null })),
+    ['ARRIVED', 'INSPECTION', 'inspections.write', null],
+    ['ARRIVED', 'WAITING', 'service_orders.transition', 'INSPECTION_OPTIONAL'],
+    ['ARRIVED', 'CANCELLED', 'service_orders.cancel', null],
+    ['INSPECTION', 'WAITING', 'inspections.write', 'INSPECTION_DONE'],
+    ['INSPECTION', 'CANCELLED', 'service_orders.cancel', null],
+    ['WAITING', 'IN_PROGRESS', 'operations.execute', 'OPERATIONS_ASSIGNED'],
+    ['WAITING', 'CANCELLED', 'service_orders.cancel', null],
+    ['IN_PROGRESS', 'CONTROL', 'operations.execute', 'OPERATIONS_DONE'],
+    ['IN_PROGRESS', 'READY', 'service_orders.transition', 'QUALITY_OPTIONAL'],
+    ['IN_PROGRESS', 'CANCELLED', 'service_orders.cancel', null],
+    ['CONTROL', 'IN_PROGRESS', 'quality_controls.execute', null],
+    ['CONTROL', 'READY', 'quality_controls.execute', null],
+    ['CONTROL', 'CANCELLED', 'service_orders.cancel', null],
+    ['READY', 'DELIVERED', 'restitutions.execute', 'PAYMENT_RULE'],
+    ['READY', 'CANCELLED', 'service_orders.cancel', null],
+  ].map(([from_status, to_status, required_permission, condition_code]) => ({
+    from_status, to_status, required_permission, condition_code,
+    requires_reason: to_status === 'CANCELLED', must_audit: to_status === 'CANCELLED',
+  })),
   service_categories: [
     { id: id('4', 1), organization_id: ORG, name: 'Lavage', sort_order: 1, is_active: true, created_at: ilYa(9e4), updated_at: ilYa(9e4) },
     { id: id('4', 2), organization_id: ORG, name: 'Detailing et soins', sort_order: 2, is_active: true, created_at: ilYa(9e4), updated_at: ilYa(9e4) },
@@ -275,6 +296,8 @@ export const TABLES = {
     created_at: ilYa(9e5 - i), updated_at: ilYa(9e3), invited_by: MOI,
     profiles: { full_name: nom }, roles: { code: roles[r].code, label: roles[r].label, scope: roles[r].scope },
   })),
+  // Ousmane voit Liberté 6 ; Ibrahima n'a rien : l'écran montre les deux cas.
+  station_users: [{ membership_id: id('m', 2), station_id: S1 }],
   organization_invitations: [{
     id: id('v', 1), organization_id: ORG, email: 'khady.mbaye.gerante.ouakam@gmail.com', role_id: roles[2].id,
     status: 'PENDING', token: 'K7Q2-9XPA', expires_at: new Date(Date.now() + 5 * 864e5).toISOString(),

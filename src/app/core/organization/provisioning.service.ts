@@ -26,6 +26,8 @@ export class ProvisioningService {
           'Ce code est inconnu, ou destiné à une autre adresse e-mail.',
         VEHORA_INVITATION_UTILISEE: 'Cette invitation a déjà été utilisée ou révoquée.',
         VEHORA_INVITATION_EXPIREE: 'Cette invitation a expiré. Demandez-en une nouvelle.',
+        VEHORA_QUOTA_MEMBRES:
+          'L’entreprise qui vous invite a atteint le nombre de comptes de son plan. Prévenez votre responsable.',
       },
     });
   }

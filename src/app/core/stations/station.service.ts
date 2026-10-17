@@ -12,6 +12,13 @@ export type StationNouvelle = Pick<
 /** Traduction des erreurs PostgreSQL en messages utilisables. */
 /** Messages propres à ce service ; le reste vient de `traduireErreur`. */
 const MESSAGES: MessagesErreur = {
+  // Le plan d'essai n'autorise qu'une station, et la création de l'entreprise
+  // en ouvre déjà une : « Ajouter une station » échouait à coup sûr, avec
+  // « Réessayez dans un instant ».
+  marqueurs: {
+    VEHORA_QUOTA_STATIONS:
+      'Votre plan ne permet pas d’autre station (les stations désactivées comptent aussi). Changez de plan depuis l’écran Abonnement.',
+  },
   codes: { '23505': 'Une station porte déjà ce nom dans votre organisation.' },
 };
 

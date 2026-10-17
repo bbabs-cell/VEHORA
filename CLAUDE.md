@@ -147,6 +147,13 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 
 ## État du projet
 
+**Phase 26 validée** — vérification de l'existant et réparation : un dossier
+réel restait bloqué à l'inspection (l'écran ne rattachait jamais l'inspection
+au dossier), et environ vingt-cinq chemins cassés dans la file, l'encaissement,
+les comptes, les membres et les tarifs (`docs/phases/phase-26.md`). Création de
+compte, mot de passe oublié et nouveau mot de passe existent enfin. **À faire
+hors du code** : déployer (Vercel refuse toujours au connecteur), et régler
+Auth dans Supabase — URL, SMTP (`docs/deploiement.md`, partie 3).
 **Phase 25 validée** — couleur utile : une seule couleur ajoutée (indigo,
 « l'équipe s'en occupe »), les étapes de dossier colorées selon qui doit agir,
 la même correspondance partout (`TEINTE_STATUT`), fond vivant en dégradés
@@ -214,8 +221,10 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Angular supprime l'espace seul entre deux balises.** Entre le nombre et
   l'unité d'un montant, c'est lui qui laisse « F CFA » passer à la ligne :
   `&ngsp;`. Sans lui, « 976 500 FCFA » sortait de sa tuile.
-- **Le bundle initial est à 560 octets de son seuil d'alerte** (499,44 Ko bruts,
-  124 Ko transférés). Une règle globale que rien n'utilise est du poids pour
+- **Le bundle initial est à 170 octets de son seuil d'alerte** (499,83 Ko bruts,
+  124 Ko transférés). Ce qui ne sert qu'une fois par personne n'y va pas : les
+  appels de création de compte et de mot de passe vivent dans `CompteService`,
+  chargé avec leurs écrans — dans `AuthService`, ils dépassaient le seuil. Une règle globale que rien n'utilise est du poids pour
   chaque téléphone : `.vh-table-stack` a été retiré faute de tableau — le
   gabarit attend dans le skill de la méthode. En phase 25, cinq variantes de
   `.vh-pastille` jamais employées ont été retirées de la même façon. Un réglage
@@ -239,9 +248,13 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   `vehora:<organisation>:…`, ignoré après 12 h, effacé à la réussite et à la
   déconnexion. L'inspection l'utilise ; ses photos ne survivent pas, l'écran
   le dit.
-- Projet Supabase rattaché : `VAHORA` (`entpmxssjxllggsqhnwc`, PostgreSQL 17).
-- 47 migrations appliquées ; référentiel : 10 rôles, 37 permissions,
-  9 types de véhicules, 10 zones d'inspection, 15 transitions de dossier.
+- Projet Supabase rattaché : `VEHORA` (`liragiqjtwlwqkfiyedk`, eu-west-3) —
+  celui que servent `environment*.ts` et la CSP.
+- 49 migrations appliquées. **Le MCP `apply_migration` horodate à
+  l'application**, pas au nom du fichier : renommer le fichier (avant commit)
+  avec la version enregistrée, sinon la CLI Supabase rejouerait la migration.
+  Référentiel : 10 rôles, 37 permissions, 9 types de véhicules, 10 zones
+  d'inspection, 15 transitions de dossier.
 - **Le Super Admin n'a AUCUNE policy de lecture sur les données clientes.**
   Jamais de `or vehora.is_platform_admin()` sur une table métier. Il pilote par
   les vues `platform_*` (agrégats et métadonnées) et des fonctions privilégiées
@@ -521,7 +534,7 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Thème par défaut : sombre**, jamais « système » — la plupart des appareils
   sont en clair et l'application démarrerait à contre-identité.
 - Parcours connecté vérifié de bout en bout ; **257 tests Playwright** (4,5 min),
-  **295 assertions SQL**, et des campagnes d'intrusion par l'API réelle
+  **307 assertions SQL**, et des campagnes d'intrusion par l'API réelle
   (`scripts/intrusion-abonnements.mjs`, 26 assertions ;
   `scripts/intrusion-recus.mjs`, 24 ;
   `scripts/intrusion-plateforme.mjs`, 20 ;
@@ -568,6 +581,23 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   c'est le défaut PostgreSQL (`EXECUTE` à `PUBLIC`) qui ouvre ces fonctions, et
   un droit explicite survit au `revoke … from public` d'une migration. Ne
   remettre ni l'un ni l'autre.
+- **Une fixture qui contourne l'écran cache l'écran cassé.** Le parcours
+  arrivée → inspection → attente passait depuis la phase 8 : sa fixture créait
+  l'inspection par l'API, déjà rattachée au dossier. L'écran, lui, ne la
+  rattachait pas — un dossier réel est resté neuf jours à l'inspection. Un
+  parcours se teste par les gestes de l'utilisateur ; une fixture ne prépare
+  que ce qui précède l'étape testée.
+- **Une règle de parcours est un invariant sur la donnée** (déclencheur), pas
+  une condition d'une ligne de la matrice : pas d'attente sans prestation, pas
+  de « prêt » avec une opération ouverte, pas d'annulation avec de l'argent
+  reçu non rendu (`vehora.check_dossier_statut()`). Chaque règle tenue par un
+  seul chemin avait un autre chemin qui la contournait.
+- **Les boutons d'étape viennent de la matrice** (`service_order_transitions`),
+  filtrés par permission et réglage ; une étape impossible reste visible,
+  inerte, avec sa raison. Codés en dur, ils proposaient ce que la base refusait.
+- **Zéro ligne touchée n'est pas une erreur pour PostgREST.** Une mise à jour
+  ou une suppression filtrée demande ce qu'elle a touché (`.select('id')`)
+  avant d'annoncer une réussite.
 - **Une exception attrapée en PL/pgSQL annule tout ce que son bloc a écrit.**
   Préparer les données hors du bloc qui attend l'échec, sinon la disparition se
   paie des dizaines de lignes plus loin. **Deux occurrences** : la règle écrite

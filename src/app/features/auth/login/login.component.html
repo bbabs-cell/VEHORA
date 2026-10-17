@@ -50,9 +50,7 @@
           "
         />
         @if (form.controls.password.touched && form.controls.password.invalid) {
-          <p id="erreur-password" class="connexion__erreur-champ">
-            Le mot de passe comporte au moins 8 caractères.
-          </p>
+          <p id="erreur-password" class="connexion__erreur-champ">Saisissez votre mot de passe.</p>
         }
       </div>
 
@@ -68,6 +66,12 @@
         {{ enCours() ? 'Connexion en cours' : '' }}
       </p>
     </form>
+
+    <!-- Des liens, pas des boutons : un seul bouton plein sur l'écran. -->
+    <p class="connexion__liens">
+      <a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
+      <a routerLink="/inscription">Créer un compte</a>
+    </p>
   </section>
   </vh-scene>
 </main>

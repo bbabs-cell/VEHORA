@@ -40,7 +40,11 @@ const BUCKET = 'inspections';
 
 /** Messages propres à ce service ; le reste vient de `traduireErreur`. */
 const MESSAGES: MessagesErreur = {
-  marqueurs: { VEHORA_TENANCY_VIOLATION: 'Ce véhicule est introuvable.' },
+  marqueurs: {
+    VEHORA_TENANCY_VIOLATION: 'Ce véhicule ou ce dossier est introuvable.',
+    VEHORA_INSPECTION_AUTRE_VEHICULE:
+      'Ce dossier concerne un autre véhicule : ouvrez l’inspection depuis la file d’attente.',
+  },
   codes: { '42501': 'Vous n’avez pas le droit de réaliser une inspection.' },
   parDefaut: 'L’enregistrement a échoué. Réessayez dans un instant.',
 };
@@ -78,11 +82,18 @@ export class InspectionService {
    * Enregistre l'inspection en trois temps : le constat, puis les zones, puis
    * les photos. Les photos passent en dernier : ce sont elles qui échouent sur
    * un réseau faible, et le constat écrit doit survivre à leur échec.
+   *
+   * `dossierId` rattache le constat au dossier ouvert depuis la file : c'est
+   * ce rattachement que la base exige pour passer le dossier en file
+   * d'attente. Il manquait : tout dossier restait bloqué à « Inspection ». La
+   * base vérifie que le dossier est de la même organisation et du même
+   * véhicule, et en reprend la station.
    */
   async enregistrer(
     vehiculeId: string,
     constats: readonly ConstatSaisi[],
     notes: string,
+    dossierId: string | null,
   ): Promise<{ erreur: string | null; photosEchouees: number }> {
     this._chargement.set(true);
     this._progression.set('Enregistrement du constat…');
@@ -91,6 +102,7 @@ export class InspectionService {
       .from('vehicle_inspections')
       .insert({
         vehicle_id: vehiculeId,
+        service_order_id: dossierId,
         notes: notes.trim() || null,
         performed_by: this.auth.claims().sub || null,
       })

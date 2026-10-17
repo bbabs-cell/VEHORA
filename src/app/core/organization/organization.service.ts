@@ -131,6 +131,22 @@ export class OrganizationService {
   }
 
   /**
+   * Les réglages seuls (inspection et contrôle obligatoires, règle de
+   * paiement avant restitution), pour les écrans qui doivent s'y conformer :
+   * la file ne propose pas une étape que ces réglages ferment, ni n'en cache
+   * une qu'ils ouvrent. Lisibles par tout membre.
+   */
+  async chargerReglages(): Promise<void> {
+    if (this._reglages()) return;
+    const { data } = await this.supabase.client
+      .from('organization_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+    if (data) this._reglages.set(data);
+  }
+
+  /**
    * La fiche et les réglages, pour l'écran « Paramètres ». Les deux tables sont
    * lues ensemble : la RLS ne rend que celles de l'organisation du jeton, il
    * n'y a rien à filtrer.

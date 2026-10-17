@@ -49,6 +49,13 @@ interface EtatZone {
 export class InspectionComponent {
   /** Identifiant du véhicule, lié depuis la route. */
   readonly id = input.required<string>();
+  /**
+   * Dossier d'où l'on vient (`?dossier=` posé par la file d'attente). Le
+   * constat lui est rattaché, et l'on y retourne une fois enregistré. Sans
+   * lui (inspection ouverte depuis « Véhicules »), le constat reste celui du
+   * véhicule.
+   */
+  readonly dossier = input<string | undefined>();
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -212,6 +219,7 @@ export class InspectionComponent {
       this.id(),
       constats,
       this.notes(),
+      this.dossier() ?? null,
     );
 
     if (erreur) {
@@ -232,10 +240,15 @@ export class InspectionComponent {
       return;
     }
 
-    await this.router.navigateByUrl('/vehicules');
+    await this.router.navigateByUrl(this.retour());
   }
 
   annuler(): void {
-    void this.router.navigateByUrl('/vehicules');
+    void this.router.navigateByUrl(this.retour());
+  }
+
+  /** On revient là d'où l'on est venu : la file pour un dossier, sinon les véhicules. */
+  private retour(): string {
+    return this.dossier() ? '/file-attente' : '/vehicules';
   }
 }

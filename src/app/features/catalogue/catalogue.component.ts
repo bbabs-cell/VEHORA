@@ -50,6 +50,11 @@ function demain(): string {
   return new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 }
 
+/** Le jour qui suit `jour` (AAAA-MM-JJ). */
+function lendemain(jour: string): string {
+  return new Date(Date.parse(`${jour}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+}
+
 @Component({
   selector: 'vh-catalogue',
   standalone: true,
@@ -266,11 +271,27 @@ export class CatalogueComponent {
     return formaterMontant(tarif.amount_minor, tarif.currency || this.devise());
   }
 
+  /**
+   * Un tarif qui commence aujourd'hui ou plus tard se CORRIGE (erreur de
+   * saisie) ; un tarif entamé avant aujourd'hui se REMPLACE à une date future.
+   * Le remplacement d'un tarif du jour était refusé par la base (« le nouveau
+   * tarif doit commencer après le précédent ») : impossible de corriger un
+   * prix mal saisi le matin même.
+   */
+  readonly correction = computed(() => {
+    const tarif = this.tarifRemplace();
+    return tarif !== null && tarif.valid_from >= aujourdhui();
+  });
+
   ouvrirRemplacement(tarif: TarifService): void {
     this.erreurFormulaire.set(null);
+    // Jamais une date que la base refusera : au plus tôt demain, et toujours
+    // après le début du tarif actuel (un tarif qui commence demain se
+    // remplaçait « à partir de demain », date refusée).
+    const debut = lendemain(tarif.valid_from) > demain() ? lendemain(tarif.valid_from) : demain();
     this.formRemplacement.reset({
       montant: versSaisie(tarif.amount_minor, tarif.currency || this.devise()),
-      valid_from: demain(),
+      valid_from: debut,
     });
     this.tarifRemplace.set(tarif);
   }
@@ -292,7 +313,9 @@ export class CatalogueComponent {
 
     this.enregistrement.set(true);
     this.erreurFormulaire.set(null);
-    const erreur = await this.catalogue.remplacerTarif(tarif.id, montant, v.valid_from);
+    const erreur = this.correction()
+      ? await this.catalogue.corrigerTarif(tarif.id, montant)
+      : await this.catalogue.remplacerTarif(tarif.id, montant, v.valid_from);
     this.enregistrement.set(false);
 
     if (erreur) {
@@ -303,15 +326,16 @@ export class CatalogueComponent {
   }
 
   /**
-   * Un tarif déjà appliqué se ferme à hier : il cesse de valoir sans
-   * disparaître, parce que des dossiers passés s'y réfèrent. Un tarif qui
-   * n'a jamais commencé n'a facturé personne : il se supprime.
+   * Un tarif entamé avant aujourd'hui se ferme à hier : il cesse de valoir
+   * sans disparaître, l'historique s'y réfère. Un tarif qui commence aujourd'hui
+   * ou plus tard se supprime : les dossiers du jour ont leur copie du prix, et
+   * le fermer « à hier » serait une date antérieure à son début.
    */
   async retirerTarif(tarif: TarifService): Promise<void> {
     const jour = aujourdhui();
     const erreur =
-      tarif.valid_from > jour
-        ? await this.catalogue.supprimerTarifFutur(tarif.id)
+      tarif.valid_from >= jour
+        ? await this.catalogue.supprimerTarifNonEntame(tarif.id)
         : await this.catalogue.fermerTarif(
             tarif.id,
             new Date(Date.now() - 86_400_000).toISOString().slice(0, 10),

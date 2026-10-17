@@ -46,6 +46,10 @@ const MESSAGES: MessagesErreur = {
   },
 };
 
+/** Le tarif a commencé avant aujourd'hui : il ne se corrige plus, il se remplace. */
+const TARIF_ENTAME =
+  'Ce tarif est déjà entré en vigueur : changez le prix à partir de demain. Rechargez la page.';
+
 function message(code: string | undefined, brut: string): string {
   return traduireErreur({ code, message: brut }, MESSAGES);
 }
@@ -145,6 +149,27 @@ export class CatalogueService {
    * On ne supprime pas un tarif passé : on le ferme à la veille de sa
    * succession. L'historique des prix est une donnée comptable.
    */
+  /**
+   * Corrige le montant d'un tarif qui commence aujourd'hui ou plus tard : une
+   * erreur de saisie, pas un changement de prix. Les dossiers déjà ouverts
+   * gardent leur copie ; les suivants prennent le montant corrigé. Un tarif
+   * entamé avant aujourd'hui, lui, ne se corrige pas : il se remplace.
+   */
+  async corrigerTarif(id: string, montantMineur: number): Promise<string | null> {
+    const { data, error } = await this.supabase.client
+      .from('service_prices')
+      .update({ amount_minor: montantMineur })
+      .eq('id', id)
+      .gte('valid_from', new Date().toISOString().slice(0, 10))
+      .select('id');
+    if (error) return message(error.code, error.message);
+    // Zéro ligne n'est pas une erreur pour PostgREST : sans ce contrôle,
+    // l'écran annonçait « corrigé » pour un tarif entré en vigueur entre-temps.
+    if (data.length === 0) return TARIF_ENTAME;
+    await this.charger();
+    return null;
+  }
+
   async fermerTarif(id: string, finDeValidite: string): Promise<string | null> {
     const { error } = await this.supabase.client
       .from('service_prices')
@@ -186,13 +211,24 @@ export class CatalogueService {
    * réécrit aucun passé. La base refuse de toute façon l'écriture à qui n'a
    * pas `prices.manage` — la garde d'interface n'est qu'un confort.
    */
-  async supprimerTarifFutur(id: string): Promise<string | null> {
-    const { error } = await this.supabase.client
+  /**
+   * Supprime un tarif qui n'a pas servi avant aujourd'hui (il commence
+   * aujourd'hui ou plus tard). Un tarif du jour a pu chiffrer des dossiers
+   * ouverts ce matin — mais chaque ligne de dossier porte sa COPIE du prix :
+   * le supprimer n'en change aucune. Jusqu'en phase 25, seul un tarif futur
+   * se supprimait, et celui du jour se « fermait à hier » — date antérieure à
+   * son début, que la base refuse : un prix mal saisi le matin restait
+   * appliqué toute la journée, et l'échec ne s'affichait nulle part.
+   */
+  async supprimerTarifNonEntame(id: string): Promise<string | null> {
+    const { data, error } = await this.supabase.client
       .from('service_prices')
       .delete()
       .eq('id', id)
-      .gt('valid_from', new Date().toISOString().slice(0, 10));
+      .gte('valid_from', new Date().toISOString().slice(0, 10))
+      .select('id');
     if (error) return message(error.code, error.message);
+    if (data.length === 0) return TARIF_ENTAME;
     await this.charger();
     return null;
   }

@@ -29,3 +29,25 @@
   margin: 0 0 var(--vh-space-4);
   font-size: var(--vh-text-sm);
 }
+
+/* Choix des stations d'un membre : des cases, une par ligne, au pouce. */
+.stations-choix {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.stations-choix__item {
+  display: flex;
+  align-items: center;
+  gap: var(--vh-space-3);
+  min-height: var(--vh-touch-min);
+}
+
+.stations-choix__item input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--vh-primary);
+}

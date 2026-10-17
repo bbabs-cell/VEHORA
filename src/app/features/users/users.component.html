@@ -28,14 +28,31 @@
         @for (invitation of membres.invitations(); track invitation.id) {
           <li class="vh-card vh-fiche carte">
             <div class="vh-fiche__infos carte__infos">
-              <p class="vh-fiche__nom carte__nom">{{ invitation.email }}</p>
+              <p class="vh-fiche__nom carte__nom">
+                <!-- Coupure permise après l'arobase : une longue adresse se
+                     coupait au dernier caractère (« gmail.co » / « m »). -->
+                <span>{{ arobase(invitation.email)[0] }}<wbr />{{ arobase(invitation.email)[1] }}</span>
+                @if (invitation.expiree) {
+                  <span class="vh-etiquette vh-etiquette--attente">Expirée</span>
+                }
+              </p>
               <p class="vh-fiche__detail carte__detail">{{ invitation.roleLabel }}</p>
-              <code class="code">{{ invitation.token }}</code>
+              @if (invitation.expiree) {
+                <p class="vh-aide">Ce code ne fonctionne plus : invitez de nouveau cette adresse.</p>
+              } @else {
+                <code class="code">{{ invitation.token }}</code>
+              }
             </div>
             <div class="vh-actions carte__actions">
-              <button class="vh-button vh-button--ghost" type="button" (click)="copier(invitation)">
-                {{ codeCopie() === invitation.id ? 'Copié' : 'Copier le code' }}
-              </button>
+              @if (!invitation.expiree) {
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="copier(invitation)"
+                >
+                  {{ codeCopie() === invitation.id ? 'Copié' : 'Copier le code' }}
+                </button>
+              }
               <button class="vh-button vh-button--ghost" type="button" (click)="revoquer(invitation)">
                 Révoquer
               </button>
@@ -45,7 +62,9 @@
       </ul>
       <p class="vh-muted utilisateurs__aide">
         Transmettez ce code à la personne concernée. Elle crée son compte avec
-        l’adresse invitée, puis colle le code à la première connexion.
+        l’adresse invitée (« Créer un compte », sur l’écran de connexion), puis
+        colle le code. Pour un rôle limité à des stations, attribuez-lui
+        ensuite ses stations ci-dessous.
       </p>
     </section>
   }
@@ -82,6 +101,18 @@
                 }
               </p>
               <p class="vh-fiche__detail carte__detail">{{ membre.roleLabel }}</p>
+              <!-- Un rôle de portée « station » ne voit que ses stations : sans
+                   affectation, il ne voit rien — et ne savait pas pourquoi. -->
+              @if (membre.roleScope === 'STATION') {
+                @if (membre.stations.length > 0) {
+                  <p class="vh-fiche__detail carte__detail">{{ stationsDe(membre) }}</p>
+                } @else {
+                  <p class="vh-fiche__detail carte__detail">
+                    <span class="vh-etiquette vh-etiquette--attente">Aucune station</span>
+                    ne voit rien tant qu’aucune ne lui est attribuée
+                  </p>
+                }
+              }
             </div>
 
             <div class="vh-actions carte__actions">
@@ -107,6 +138,16 @@
                 }
               </select>
 
+              @if (membre.roleScope === 'STATION') {
+                <button
+                  class="vh-button vh-button--ghost"
+                  type="button"
+                  (click)="ouvrirStations(membre)"
+                  [attr.aria-label]="'Stations de ' + membre.nom"
+                >
+                  Stations
+                </button>
+              }
               @if (membre.profileId !== moi()) {
                 <button
                   class="vh-button vh-button--ghost"
@@ -166,7 +207,20 @@
               <option [value]="role.id">{{ role.label }} — {{ role.description }}</option>
             }
           </select>
+          @if (roleInviteStation()) {
+            <p class="vh-aide">
+              Ce rôle ne voit que ses stations : attribuez-les-lui, ici, une fois l’invitation
+              acceptée.
+            </p>
+          }
         </div>
+
+        <!-- Les refus (adresse déjà invitée, droit manquant) s'affichaient en
+             haut de la page, sous le voile de cette fenêtre : on cliquait, et
+             rien ne changeait visiblement. -->
+        @if (erreurAction(); as message) {
+          <p class="vh-alert" role="alert">{{ message }}</p>
+        }
 
         <div class="modale__actions">
           <button
@@ -193,4 +247,52 @@
     (confirmer)="confirmerSuspension()"
     (annuler)="aSuspendre.set(null)"
   />
+}
+
+@if (affectation(); as membre) {
+  <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-stations">
+    <div class="modale__contenu vh-card">
+      <h2 id="titre-stations" class="modale__titre">Stations de {{ membre.nom }}</h2>
+      <p class="vh-muted modale__texte">
+        {{ membre.roleLabel }} : ce rôle ne voit que les dossiers, la caisse et les opérations des
+        stations cochées. Le changement s’applique à sa prochaine connexion, ou dans l’heure.
+      </p>
+
+      @if (stations().length === 0) {
+        <p class="vh-aide">Aucune station active : créez-en une depuis l’écran Stations.</p>
+      } @else {
+        <fieldset class="stations-choix">
+          <legend class="vh-sr-only">Stations attribuées</legend>
+          @for (station of stations(); track station.id) {
+            <label class="stations-choix__item">
+              <input
+                type="checkbox"
+                [checked]="choixStations().has(station.id)"
+                (change)="basculerStation(station.id)"
+              />
+              {{ station.name }}
+            </label>
+          }
+        </fieldset>
+      }
+
+      @if (erreurAction(); as message) {
+        <p class="vh-alert" role="alert">{{ message }}</p>
+      }
+
+      <div class="modale__actions">
+        <button class="vh-button vh-button--ghost" type="button" (click)="affectation.set(null)">
+          Annuler
+        </button>
+        <button
+          class="vh-button"
+          type="button"
+          (click)="enregistrerStations()"
+          [disabled]="enCours()"
+        >
+          {{ enCours() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
 }

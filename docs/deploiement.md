@@ -105,6 +105,20 @@ Dans **Authentication → URL Configuration** :
   `http://localhost:4200/**` pour le développement. **On ajoute, on ne remplace
   pas** : plusieurs adresses peuvent servir la même application.
 
+Depuis la phase 26, l'application crée elle-même les comptes et envoie les
+liens : la confirmation d'adresse revient sur `/connexion`, la
+réinitialisation sur `/nouveau-mot-de-passe`. Les motifs `/**` ci-dessus les
+couvrent ; une liste d'adresses exactes devrait les nommer toutes les deux.
+
+**Authentication → Emails → SMTP Settings** : brancher un fournisseur d'e-mails
+(Resend, Brevo, Postmark…). Le serveur d'envoi par défaut de Supabase
+n'écrit qu'aux adresses des membres de l'équipe du projet, avec un débit très
+bas : une personne invitée ne recevrait ni sa confirmation ni son lien de
+réinitialisation, et l'écran lui dirait pourtant « un e-mail vient de
+partir ». Tant que ce n'est pas fait, désactiver **Confirm email**
+(Authentication → Sign In / Providers → Email) : l'écran de création gère les
+deux cas.
+
 Et pendant qu'on y est, **Authentication → Policies** : activer la protection
 contre les mots de passe divulgués. Elle est désactivée, l'advisor le signale à
 chaque audit, et c'est deux clics.

@@ -41,3 +41,18 @@ form {
   margin-top: var(--vh-space-2);
   font-size: var(--vh-text-lg);
 }
+
+.connexion__liens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--vh-space-2) var(--vh-space-4);
+  margin: var(--vh-space-6) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.connexion__liens a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vh-touch-min);
+}

@@ -46,7 +46,10 @@ export const LIBELLES_ETAT: Readonly<Record<EtatFinancier['payment_status'], str
 /** Messages propres à ce service ; le reste vient de `traduireErreur`. */
 const MESSAGES: MessagesErreur = {
   marqueurs: {
-    VEHORA_CAISSE_FERMEE: 'Ouvrez votre caisse avant d’encaisser en espèces.',
+    // Vaut pour l'encaissement ET le remboursement en espèces : l'argent rendu
+    // sort de la caisse de celui qui rembourse.
+    VEHORA_CAISSE_FERMEE:
+      'Ouvrez votre caisse à cette station : les espèces, reçues ou rendues, passent par elle.',
     VEHORA_CAISSE_CLOTUREE: 'Cette session de caisse est clôturée.',
     VEHORA_CLOTURE_DIRECTE: 'La clôture passe par le bouton de clôture, pas autrement.',
     VEHORA_COMPTAGE_REQUIS: 'Déclarez le montant compté dans le tiroir.',
@@ -242,9 +245,11 @@ export class PaymentService {
       }),
     );
 
-    if (error) return message(error.code, error.message);
+    // Une caisse déjà ouverte (autre onglet, autre appareil) : on la recharge
+    // quand même. Sans cela, l'écran disait « déjà ouverte » ET « aucune
+    // caisse ouverte » en même temps.
     await this.chargerMaCaisse(stationId);
-    return null;
+    return error ? message(error.code, error.message) : null;
   }
 
   /**

@@ -943,6 +943,216 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Une inspection se rattache à SON dossier, et à lui seul.
+--
+-- Défaut trouvé sur la base réelle le 17 octobre : l'écran d'inspection
+-- n'écrivait jamais `service_order_id`, et INSPECTION → WAITING était refusé
+-- pour toujours. La colonne n'avait ni clé étrangère ni contrôle : une
+-- organisation pouvait viser le dossier d'une autre, un véhicule débloquer le
+-- dossier d'un autre. Ce scénario crée des dossiers que les assertions
+-- suivantes ne doivent pas compter : il tourne sous un point de sauvegarde,
+-- annulé à la fin.
+-- ---------------------------------------------------------------------------
+savepoint inspection_dossier;
+
+-- Un dossier dans l'organisation B, créé par son propriétaire.
+select pg_temp.login('22222222-2222-2222-2222-222222222222',
+                     'bbbbbbbb-0000-0000-0000-000000000002', 'OWNER');
+do $$
+declare v_type uuid; v_vehicule uuid; v_dossier uuid;
+begin
+  select id into v_type from public.vehicle_types where code = 'SEDAN';
+  insert into public.vehicles (vehicle_type_id, plate) values (v_type, 'BK-7000-B')
+  returning id into v_vehicule;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('b1b1b1b1-0000-0000-0000-000000000003', v_vehicule)
+  returning id into v_dossier;
+  perform set_config('vehora_test.dossier_b', v_dossier::text, true);
+end;
+$$;
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111',
+                     'aaaaaaaa-0000-0000-0000-000000000001', 'OWNER');
+do $$
+declare
+  v_type      uuid;
+  v_vehicule  uuid;
+  v_autre     uuid;
+  v_dossier   uuid;
+  v_dossier_b uuid := current_setting('vehora_test.dossier_b')::uuid;
+  v_station   uuid;
+  d           public.service_orders;
+begin
+  select id into v_type from public.vehicle_types where code = 'SEDAN';
+  insert into public.vehicles (vehicle_type_id, plate) values (v_type, 'DK-7001-I')
+  returning id into v_vehicule;
+  insert into public.vehicles (vehicle_type_id, plate) values (v_type, 'DK-7002-I')
+  returning id into v_autre;
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a2a2a2a2-0000-0000-0000-000000000002', v_vehicule)
+  returning id into v_dossier;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_dossier, '5e000000-0000-0000-0000-000000000002');
+  d := public.transitionner_dossier(v_dossier, 'INSPECTION');
+
+  begin
+    insert into public.vehicle_inspections (vehicle_id, service_order_id)
+    values (v_vehicule, v_dossier_b);
+    raise exception 'ÉCHEC — inspection rattachée au dossier d''une autre organisation';
+  exception
+    when insufficient_privilege then
+      raise notice 'ok — une inspection ne vise pas le dossier d''une autre organisation';
+  end;
+
+  begin
+    insert into public.vehicle_inspections (vehicle_id, service_order_id)
+    values (v_autre, v_dossier);
+    raise exception 'ÉCHEC — l''inspection d''un autre véhicule a été rattachée au dossier';
+  exception
+    when check_violation then
+      raise notice 'ok — une inspection ne débloque pas le dossier d''un autre véhicule';
+  end;
+
+  -- Le défaut d'origine : une inspection du bon véhicule, sans dossier.
+  insert into public.vehicle_inspections (vehicle_id) values (v_vehicule);
+  begin
+    perform public.transitionner_dossier(v_dossier, 'WAITING');
+    raise exception 'ÉCHEC — une inspection non rattachée a suffi';
+  exception
+    when check_violation then
+      raise notice 'ok — une inspection non rattachée ne compte pas pour le dossier';
+  end;
+
+  insert into public.vehicle_inspections (vehicle_id, service_order_id)
+  values (v_vehicule, v_dossier)
+  returning station_id into v_station;
+  perform pg_temp.check('l''inspection reprend la station du dossier',
+    (v_station = 'a2a2a2a2-0000-0000-0000-000000000002')::int, 1);
+
+  d := public.transitionner_dossier(v_dossier, 'WAITING');
+  perform pg_temp.check('INSPECTION → WAITING avec l''inspection rattachée',
+    (d.status = 'WAITING')::int, 1);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Invariants de parcours (migration 20261017132532_reparations_parcours).
+-- Toujours sous le même point de sauvegarde.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_type     uuid;
+  v_vehicule uuid;
+  v_vide     uuid;
+  v_dossier  uuid;
+  v_paye     uuid;
+  v_paiement uuid;
+  v_employe  uuid;
+  n          integer;
+  d          public.service_orders;
+begin
+  select id into v_type from public.vehicle_types where code = 'SEDAN';
+  insert into public.vehicles (vehicle_type_id, plate) values (v_type, 'DK-7003-I')
+  returning id into v_vehicule;
+
+  -- 1. Pas de file d'attente sans prestation : un tel dossier n'a aucune
+  --    opération, donc ne démarre jamais.
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule) returning id into v_vide;
+  d := public.transitionner_dossier(v_vide, 'INSPECTION');
+  insert into public.vehicle_inspections (vehicle_id, service_order_id) values (v_vehicule, v_vide);
+  begin
+    perform public.transitionner_dossier(v_vide, 'WAITING');
+    raise exception 'ÉCHEC — dossier sans prestation mis en file d''attente';
+  exception
+    when check_violation then
+      raise notice 'ok — pas de file d''attente sans prestation';
+  end;
+
+  -- 2. Une prestation ajoutée pendant l'attente a son opération.
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_vide, '5e000000-0000-0000-0000-000000000002');
+  d := public.transitionner_dossier(v_vide, 'WAITING');
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_vide, '5e000000-0000-0000-0000-000000000001');
+  select count(*) into n from public.service_order_operations where service_order_id = v_vide;
+  perform pg_temp.check('une prestation ajoutée en attente crée son opération', n, 2);
+
+  -- 2 bis. Contrôle qualité désactivé : « prêt » exige quand même le travail
+  --        terminé. On démarre une opération (le dossier passe en cours), on
+  --        laisse l'autre à faire.
+  update public.organization_settings set require_quality_control = false
+   where organization_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  insert into public.employees (full_name) values ('Employé du test d''invariant')
+  returning id into v_employe;
+  update public.service_order_operations set employee_id = v_employe
+   where service_order_id = v_vide;
+  update public.service_order_operations set status = 'IN_PROGRESS'
+   where id = (select id from public.service_order_operations
+                where service_order_id = v_vide order by created_at limit 1);
+  select status into d.status from public.service_orders where id = v_vide;
+  perform pg_temp.check('démarrer une opération met le dossier en cours',
+    (d.status = 'IN_PROGRESS')::int, 1);
+  begin
+    perform public.transitionner_dossier(v_vide, 'READY');
+    raise exception 'ÉCHEC — dossier marqué prêt avec des opérations en cours';
+  exception
+    when check_violation then
+      raise notice 'ok — sans contrôle qualité, « prêt » exige le travail terminé';
+  end;
+
+  -- 3. Pas d'annulation tant que l'argent reçu n'est pas rendu.
+  insert into public.service_orders (station_id, vehicle_id)
+  values ('a1a1a1a1-0000-0000-0000-000000000001', v_vehicule) returning id into v_paye;
+  insert into public.service_order_items (service_order_id, service_id)
+  values (v_paye, '5e000000-0000-0000-0000-000000000002');
+  insert into public.payments (service_order_id, method, amount_minor)
+  values (v_paye, 'MOBILE_MONEY', 2000) returning id into v_paiement;
+  begin
+    perform public.transitionner_dossier(v_paye, 'CANCELLED', 'Client reparti');
+    raise exception 'ÉCHEC — dossier payé annulé sans remboursement';
+  exception
+    when check_violation then
+      raise notice 'ok — un dossier payé ne s''annule pas avant remboursement';
+  end;
+
+  insert into public.payments (service_order_id, method, amount_minor, kind,
+                               reverses_payment_id, reason)
+  values (v_paye, 'MOBILE_MONEY', 2000, 'REFUND', v_paiement, 'Client reparti');
+  d := public.transitionner_dossier(v_paye, 'CANCELLED', 'Client reparti');
+  perform pg_temp.check('remboursé, le dossier s''annule', (d.status = 'CANCELLED')::int, 1);
+end;
+$$;
+
+-- 4. Une invitation expirée ne bloque plus la suivante.
+do $$
+declare v_role uuid;
+begin
+  select id into v_role from public.roles where code = 'CASHIER';
+  insert into public.organization_invitations (email, role_id)
+  values ('perimee@exemple.sn', v_role);
+end;
+$$;
+set local role postgres;
+update public.organization_invitations
+   set expires_at = now() - interval '1 day'
+ where email = 'perimee@exemple.sn';
+set local role authenticated;
+do $$
+declare v_role uuid; n integer;
+begin
+  select id into v_role from public.roles where code = 'CASHIER';
+  insert into public.organization_invitations (email, role_id)
+  values ('Perimee@exemple.sn', v_role);
+  select count(*) into n from public.organization_invitations
+   where lower(email) = 'perimee@exemple.sn' and status = 'EXPIRED';
+  perform pg_temp.check('une invitation expirée ne bloque pas la nouvelle', n, 1);
+end;
+$$;
+
+rollback to savepoint inspection_dossier;
+
 -- L'annulation exige un motif, et fige le dossier.
 do $$
 declare v_dossier uuid; d public.service_orders;

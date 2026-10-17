@@ -5,6 +5,8 @@ import { MessagesErreur, traduireErreur } from '../erreurs/traduire-erreur';
 
 export interface Membre {
   readonly id: string;
+  /** Stations affectées — elles seules comptent pour un rôle de portée « station ». */
+  readonly stations: readonly string[];
   readonly profileId: string;
   readonly nom: string;
   readonly roleId: string;
@@ -18,6 +20,8 @@ export interface Invitation {
   readonly id: string;
   readonly email: string;
   readonly roleLabel: string;
+  /** Date dépassée : le code ne fonctionne plus (l'invitation reste en attente en base). */
+  readonly expiree: boolean;
   readonly statut: Enums<'invitation_status'>;
   readonly token: string;
   readonly expireLe: string;
@@ -29,6 +33,9 @@ export type Role = Pick<Tables<'roles'>, 'id' | 'code' | 'label' | 'scope' | 'de
 const MESSAGES: MessagesErreur = {
   marqueurs: {
     VEHORA_LAST_OWNER: 'Votre organisation doit conserver au moins un propriétaire actif.',
+    VEHORA_QUOTA_MEMBRES:
+      'Votre plan ne permet pas d’autre compte actif. Changez de plan depuis l’écran Abonnement.',
+    VEHORA_TENANCY_VIOLATION: 'Cette station est introuvable.',
   },
   codes: { '23505': 'Une invitation est déjà en attente pour cette adresse.' },
 };
@@ -57,7 +64,7 @@ export class MemberService {
     this._chargement.set(true);
     this._erreur.set(null);
 
-    const [membres, invitations, roles] = await Promise.all([
+    const [membres, invitations, roles, affectations] = await Promise.all([
       this.supabase.client
         .from('organization_memberships')
         // La jointure vers `profiles` doit nommer sa clé : la table en porte
@@ -78,6 +85,7 @@ export class MemberService {
         .select('id, code, label, scope, description')
         .neq('scope', 'PLATFORM')
         .order('scope', { ascending: true }),
+      this.supabase.client.from('station_users').select('membership_id, station_id').limit(1000),
     ]);
 
     this._chargement.set(false);
@@ -87,9 +95,15 @@ export class MemberService {
       return;
     }
 
+    const parMembre = new Map<string, string[]>();
+    for (const a of affectations.data ?? []) {
+      parMembre.set(a.membership_id, [...(parMembre.get(a.membership_id) ?? []), a.station_id]);
+    }
+
     this._membres.set(
       (membres.data ?? []).map((m) => ({
         id: m.id,
+        stations: parMembre.get(m.id) ?? [],
         profileId: m.profile_id,
         nom: m.profiles?.full_name || 'Sans nom',
         roleId: m.role_id,
@@ -105,6 +119,7 @@ export class MemberService {
         id: i.id,
         email: i.email,
         roleLabel: i.roles?.label ?? '',
+        expiree: new Date(i.expires_at).getTime() < Date.now(),
         statut: i.status,
         token: i.token,
         expireLe: i.expires_at,
@@ -120,6 +135,36 @@ export class MemberService {
       .insert({ email: email.trim().toLowerCase(), role_id: roleId });
 
     if (error) return message(error.code, error.message);
+    await this.charger();
+    return null;
+  }
+
+  /**
+   * Affecte un membre à ses stations. Un rôle de portée « station » (caissier,
+   * opérateur, réceptionniste, chef de station, contrôleur) ne voit QUE ses
+   * stations affectées — et rien ne les affectait : invité, il ne voyait
+   * aucune station, ne pouvait ouvrir ni dossier ni caisse, et rien ne disait
+   * pourquoi. La base vérifie que station et membre sont de la même
+   * organisation.
+   */
+  async affecterStations(membre: Membre, stations: readonly string[]): Promise<string | null> {
+    const ajout = stations.filter((s) => !membre.stations.includes(s));
+    const retrait = membre.stations.filter((s) => !stations.includes(s));
+
+    if (ajout.length > 0) {
+      const { error } = await this.supabase.client
+        .from('station_users')
+        .insert(ajout.map((station_id) => ({ membership_id: membre.id, station_id })));
+      if (error) return message(error.code, error.message);
+    }
+    if (retrait.length > 0) {
+      const { error } = await this.supabase.client
+        .from('station_users')
+        .delete()
+        .eq('membership_id', membre.id)
+        .in('station_id', retrait);
+      if (error) return message(error.code, error.message);
+    }
     await this.charger();
     return null;
   }

@@ -17,7 +17,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.5';
+    PostgrestVersion: '14.18';
   };
   public: {
     Tables: {
@@ -2567,6 +2567,27 @@ export type Database = {
             columns: ['performed_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_order_payment_state';
+            referencedColumns: ['service_order_id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_order_totals';
+            referencedColumns: ['service_order_id'];
+          },
+          {
+            foreignKeyName: 'vehicle_inspections_service_order_id_fkey';
+            columns: ['service_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'service_orders';
             referencedColumns: ['id'];
           },
           {

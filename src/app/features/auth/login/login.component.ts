@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { traduireErreur } from '../../../core/erreurs/traduire-erreur';
 import { SceneComponent } from '../../../shared/ui/scene.component';
@@ -8,7 +8,7 @@ import { SceneComponent } from '../../../shared/ui/scene.component';
 @Component({
   selector: 'vh-login',
   standalone: true,
-  imports: [SceneComponent, ReactiveFormsModule],
+  imports: [SceneComponent, ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
@@ -24,7 +24,10 @@ export class LoginComponent {
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    // Pas de longueur minimale ICI : c'est Supabase qui fixe celle des comptes
+    // (6 par défaut). Exiger 8 à la connexion refusait, avant tout appel, un
+    // compte créé avec 6 ou 7 caractères. La longueur s'impose à la création.
+    password: ['', [Validators.required]],
   });
 
   async soumettre(): Promise<void> {

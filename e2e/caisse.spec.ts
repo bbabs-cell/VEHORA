@@ -191,6 +191,13 @@ test.describe('Encaissement', () => {
       await expect(modale).toBeVisible();
       await expect(modale).toContainText('Aucune caisse ouverte à cette station');
       await expect(modale.getByRole('button', { name: 'Enregistrer le paiement' })).toBeDisabled();
+
+      // Les autres moyens n'ont pas besoin de caisse. Le bouton restait
+      // désactivé après le choix de Mobile Money : sans caisse ouverte, AUCUN
+      // paiement n'était possible (un `computed` lisait un champ ordinaire).
+      await modale.getByLabel('Moyen de paiement').selectOption('MOBILE_MONEY');
+      await expect(modale).not.toContainText('Aucune caisse ouverte à cette station');
+      await expect(modale.getByRole('button', { name: 'Enregistrer le paiement' })).toBeEnabled();
     } finally {
       await dossier?.nettoyer();
     }

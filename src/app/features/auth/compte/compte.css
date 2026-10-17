@@ -1,0 +1,48 @@
+/* Écrans de compte (créer, mot de passe oublié, nouveau mot de passe) : la
+   même carte que la connexion. */
+
+.compte {
+  min-height: 100dvh;
+}
+
+.compte__carte {
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--vh-shadow-3);
+}
+
+.compte__entete {
+  margin-bottom: var(--vh-space-6);
+}
+
+.compte__texte {
+  margin: var(--vh-space-3) 0 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vh-space-4);
+}
+
+.compte__valider {
+  width: 100%;
+  min-height: var(--vh-touch-primary);
+  margin-top: var(--vh-space-2);
+}
+
+/* Liens de bas de carte : du texte, pas des boutons — un seul bouton plein. */
+.compte__liens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--vh-space-2) var(--vh-space-4);
+  margin: var(--vh-space-6) 0 0;
+  font-size: var(--vh-text-sm);
+}
+
+.compte__liens a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vh-touch-min);
+}

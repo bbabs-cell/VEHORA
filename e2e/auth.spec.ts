@@ -27,12 +27,13 @@ test.describe('Authentification', () => {
       if (r.url().includes('/auth/v1/token')) appelReseau = true;
     });
 
+    // Pas de longueur minimale à la connexion : c'est Supabase qui la fixe à la
+    // création du compte, et un compte de 6 caractères doit pouvoir entrer.
     await page.getByLabel('Adresse e-mail').fill('pas-un-email');
-    await page.getByLabel('Mot de passe').fill('court');
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
     await expect(page.getByText('Saisissez une adresse e-mail valide.')).toBeVisible();
-    await expect(page.getByText('Le mot de passe comporte au moins 8 caractères.')).toBeVisible();
+    await expect(page.getByText('Saisissez votre mot de passe.')).toBeVisible();
     expect(appelReseau).toBe(false);
   });
 

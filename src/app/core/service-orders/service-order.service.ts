@@ -24,7 +24,21 @@ export interface DossierListe {
   readonly lignes: number;
   readonly balance_minor: number;
   readonly payment_status: SoldeDossier['payment_status'];
+  /**
+   * Une inspection est rattachée à CE dossier. C'est la condition du passage
+   * INSPECTION → WAITING : sans elle, la file ne propose pas « Mettre en
+   * attente », que la base refuserait.
+   */
+  readonly inspecte: boolean;
+  /**
+   * Opérations pas encore terminées, pour un dossier en cours. « Envoyer au
+   * contrôle » et « Marquer prêt » les exigent toutes terminées.
+   */
+  readonly operationsRestantes: number;
 }
+
+/** Une ligne de la matrice des transitions, telle que la base la définit. */
+export type Transition = Tables<'service_order_transitions'>;
 
 /** Libellés français des statuts. Stockés en anglais, affichés en français. */
 /** Montant dû, joint à la file : l'exploitant doit voir qui reste à encaisser. */
@@ -89,6 +103,18 @@ const MESSAGES: MessagesErreur = {
     VEHORA_DOSSIER_CLOS: 'Ce dossier est restitué ou annulé : il n’est plus modifiable.',
     VEHORA_REMISE_EXCESSIVE: 'Cette remise dépasse le plafond de votre organisation.',
     VEHORA_HORS_PERIMETRE: 'Vous n’avez pas le droit d’effectuer cette action.',
+    // Phase 26 : chacun de ces refus s'affichait « Réessayez dans un instant »,
+    // alors que réessayer ne change rien.
+    VEHORA_DOSSIER_SANS_PRESTATION:
+      'Ajoutez au moins une prestation avant de mettre le dossier en file d’attente.',
+    VEHORA_AUCUNE_ASSIGNATION: 'Assignez au moins une opération à un employé.',
+    VEHORA_OPERATIONS_EN_COURS: 'Toutes les opérations doivent être terminées.',
+    VEHORA_CONTROLE_REQUIS: 'Votre organisation exige un contrôle qualité avant restitution.',
+    VEHORA_SOLDE_RESTANT: 'Votre organisation exige un dossier soldé avant restitution.',
+    VEHORA_CREANCE_NON_AUTORISEE:
+      'Restituer un véhicule avec un solde demande l’accord d’un responsable.',
+    VEHORA_PAIEMENT_A_REMBOURSER:
+      'Ce dossier a reçu un paiement : remboursez-le avant d’annuler (Encaisser, puis Rembourser).',
   },
   codes: { '23505': 'Cette prestation est déjà dans le dossier.' },
 };
@@ -110,11 +136,27 @@ const SELECT_DOSSIER = `
   customers!service_orders_customer_id_fkey ( full_name )
 ` as const;
 
+/** Les dossiers à l'étape « Inspection » : les seuls dont l'inspection compte pour la file. */
+function identifiantsEnInspection(
+  dossiers: readonly { id: string; status: StatutDossier }[],
+): string[] {
+  return dossiers.filter((d) => d.status === 'INSPECTION').map((d) => d.id);
+}
+
 @Injectable({ providedIn: 'root' })
 export class ServiceOrderService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly _dossiers = signal<DossierListe[]>([]);
+  private readonly _aRecouvrer = signal<DossierListe[]>([]);
+  private readonly _transitions = signal<Transition[]>([]);
+  /**
+   * Restitués avec un solde : le véhicule est parti, l'argent n'est pas
+   * rentré. Ils sortaient de la file — seul écran qui encaisse — et la
+   * créance devenait irrécouvrable dans l'application.
+   */
+  readonly aRecouvrer = this._aRecouvrer.asReadonly();
+  readonly transitions = this._transitions.asReadonly();
   private readonly _lignes = signal<LigneDossier[]>([]);
   private readonly _chargement = signal(false);
   private readonly _erreur = signal<string | null>(null);
@@ -162,7 +204,8 @@ export class ServiceOrderService {
      * que lit le caissier avant de laisser partir une voiture.
      */
     const identifiants = (data ?? []).map((d) => d.id);
-    const [totaux, soldes] = await Promise.all([
+    const enCours = (data ?? []).filter((d) => d.status === 'IN_PROGRESS').map((d) => d.id);
+    const [totaux, soldes, inspections, operations] = await Promise.all([
       identifiants.length === 0
         ? { data: [], error: null }
         : this.supabase.client
@@ -175,15 +218,28 @@ export class ServiceOrderService {
             .from('service_order_payment_state')
             .select('service_order_id, balance_minor, payment_status')
             .in('service_order_id', identifiants),
+      // Seuls les dossiers à l'étape « Inspection » en ont besoin.
+      identifiantsEnInspection(data ?? []).length === 0
+        ? { data: [], error: null }
+        : this.supabase.client
+            .from('vehicle_inspections')
+            .select('service_order_id')
+            .in('service_order_id', identifiantsEnInspection(data ?? [])),
+      enCours.length === 0
+        ? { data: [], error: null }
+        : this.supabase.client
+            .from('service_order_operations')
+            .select('service_order_id')
+            .in('service_order_id', enCours)
+            .neq('status', 'DONE'),
     ]);
 
     if (identifiant !== this.requeteCourante) return;
     this._chargement.set(false);
 
-    if (totaux.error || soldes.error) {
-      this._erreur.set(
-        message((totaux.error ?? soldes.error!).code, (totaux.error ?? soldes.error!).message),
-      );
+    const echec = totaux.error ?? soldes.error ?? inspections.error ?? operations.error;
+    if (echec) {
+      this._erreur.set(message(echec.code, echec.message));
       return;
     }
 
@@ -191,6 +247,11 @@ export class ServiceOrderService {
     // `service_order_payment_state` est une vue agrégée : PostgREST ne peut pas
     // la joindre, elle se lit à part. Le calcul reste côté serveur.
     const parSolde = new Map((soldes.data ?? []).map((s) => [s.service_order_id, s]));
+    const inspectes = new Set((inspections.data ?? []).map((i) => i.service_order_id));
+    const restantes = new Map<string, number>();
+    for (const o of operations.data ?? []) {
+      restantes.set(o.service_order_id, (restantes.get(o.service_order_id) ?? 0) + 1);
+    }
 
     this._dossiers.set(
       // `payment_status` vient d'une vue : le générateur le rend `string`,
@@ -212,6 +273,8 @@ export class ServiceOrderService {
           lignes: parDossier.get(d.id)?.lignes ?? 0,
           balance_minor: parSolde.get(d.id)?.balance_minor ?? 0,
           payment_status: parSolde.get(d.id)?.payment_status ?? 'UNPAID',
+          inspecte: inspectes.has(d.id),
+          operationsRestantes: restantes.get(d.id) ?? 0,
         })),
       ),
     );
@@ -303,9 +366,78 @@ export class ServiceOrderService {
     return null;
   }
 
-  /** Les transitions praticables depuis un statut, telles que la base les définit. */
-  async transitionsDisponibles(): Promise<Tables<'service_order_transitions'>[]> {
+  /**
+   * La matrice des transitions, lue une fois. La file en tire les boutons
+   * qu'elle propose : une transition que la base ne connaît pas, ou que
+   * l'utilisateur n'a pas le droit de faire, n'apparaît pas.
+   */
+  async chargerTransitions(): Promise<void> {
+    if (this._transitions().length > 0) return;
     const { data } = await this.supabase.client.from('service_order_transitions').select('*');
-    return data ?? [];
+    this._transitions.set(data ?? []);
+  }
+
+  /**
+   * Les dossiers restitués qui doivent encore de l'argent. La sélection se fait
+   * sur le serveur (solde positif, puis statut restitué) — jamais une page
+   * limitée qu'on filtrerait ensuite ici. Sans `payments.read`, la vue des
+   * soldes ne rend rien : la liste reste vide, comme il se doit.
+   */
+  async chargerARecouvrer(): Promise<void> {
+    const soldes = await this.supabase.client
+      .from('service_order_payment_state')
+      .select('service_order_id, balance_minor, payment_status')
+      .gt('balance_minor', 0)
+      .limit(200);
+    const ids = (soldes.data ?? [])
+      .map((s) => s.service_order_id)
+      .filter((id): id is string => id !== null);
+    if (soldes.error || ids.length === 0) {
+      this._aRecouvrer.set([]);
+      return;
+    }
+
+    const [dossiers, totaux] = await Promise.all([
+      this.supabase.client
+        .from('service_orders')
+        .select(SELECT_DOSSIER)
+        .in('id', ids)
+        .eq('status', 'DELIVERED')
+        .order('arrived_at'),
+      this.supabase.client
+        .from('service_order_totals')
+        .select('service_order_id, total_amount_minor, currency, lignes')
+        .in('service_order_id', ids),
+    ]);
+    if (dossiers.error || totaux.error) {
+      this._aRecouvrer.set([]);
+      return;
+    }
+
+    const parTotal = new Map((totaux.data ?? []).map((t) => [t.service_order_id, t]));
+    const parSolde = new Map((soldes.data ?? []).map((s) => [s.service_order_id, s]));
+    this._aRecouvrer.set(
+      ligneDeVue<DossierListe>(
+        (dossiers.data ?? []).map((d) => ({
+          id: d.id,
+          number: d.number,
+          status: d.status,
+          arrived_at: d.arrived_at,
+          station_id: d.station_id,
+          vehicle_id: d.vehicle_id,
+          notes: d.notes,
+          plaque: d.vehicles?.plate ?? null,
+          type_vehicule: d.vehicles?.vehicle_types?.label ?? '',
+          client: d.customers?.full_name ?? null,
+          total_minor: parTotal.get(d.id)?.total_amount_minor ?? 0,
+          currency: parTotal.get(d.id)?.currency ?? null,
+          lignes: parTotal.get(d.id)?.lignes ?? 0,
+          balance_minor: parSolde.get(d.id)?.balance_minor ?? 0,
+          payment_status: parSolde.get(d.id)?.payment_status ?? 'UNPAID',
+          inspecte: false,
+          operationsRestantes: 0,
+        })),
+      ),
+    );
   }
 }

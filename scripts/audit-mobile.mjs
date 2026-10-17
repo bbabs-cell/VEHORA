@@ -77,7 +77,7 @@ const BASE = 'http://localhost:4291';
 const vehicule = TABLES.vehicles[0].id;
 const recu = TABLES.receipts[0].id;
 const PARCOURS = {
-  anonyme: ['/connexion'],
+  anonyme: ['/connexion', '/inscription', '/mot-de-passe-oublie', '/nouveau-mot-de-passe'],
   'sans-organisation': ['/sans-organisation', '/creer-organisation'],
   proprietaire: [
     '/tableau-de-bord', '/file-attente', '/operations', '/caisse', '/caisse/historique', '/clients',

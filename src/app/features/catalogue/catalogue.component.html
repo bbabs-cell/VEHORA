@@ -13,6 +13,13 @@
   @if (catalogue.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
   }
+  <!-- « Retirer » répond ici : son échec allait dans un signal que seules les
+       fenêtres affichaient, et le clic restait sans effet visible. -->
+  @if (erreurFormulaire(); as message) {
+    @if (!tarifOuvert() && !tarifRemplace() && !prestationEnEdition()) {
+      <p class="vh-alert" role="alert">{{ message }}</p>
+    }
+  }
 
   @if (catalogue.chargement() && lignes().length === 0) {
     <div class="vh-liste">
@@ -299,7 +306,9 @@
   <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-remplacement">
     <div class="modale__contenu vh-card">
       <header class="modale__entete">
-        <h2 id="titre-remplacement" class="modale__titre">Changer le prix</h2>
+        <h2 id="titre-remplacement" class="modale__titre">
+          {{ correction() ? 'Corriger le prix' : 'Changer le prix' }}
+        </h2>
         <button
           class="modale__fermer"
           type="button"
@@ -311,10 +320,18 @@
       </header>
 
       <form [formGroup]="formRemplacement" (ngSubmit)="enregistrerRemplacement()" novalidate>
-        <p class="vh-muted remplacement__rappel">
-          Prix actuel : {{ formaterMontantTarif(tarif) }}. L’ancien prix reste consultable :
-          les dossiers déjà ouverts continuent d’y faire référence.
-        </p>
+        @if (correction()) {
+          <p class="vh-muted remplacement__rappel">
+            Prix saisi : {{ formaterMontantTarif(tarif) }}. Ce tarif commence le
+            {{ formaterDate(tarif.valid_from) }} : il se corrige directement. Les dossiers déjà
+            ouverts gardent le prix qu’ils ont reçu.
+          </p>
+        } @else {
+          <p class="vh-muted remplacement__rappel">
+            Prix actuel : {{ formaterMontantTarif(tarif) }}. L’ancien prix reste consultable :
+            les dossiers déjà ouverts continuent d’y faire référence.
+          </p>
+        }
 
         <div class="vh-field">
           <label class="vh-label" for="montant-remplacement">
@@ -330,6 +347,7 @@
           />
         </div>
 
+        @if (!correction()) {
         <div class="vh-field">
           <label class="vh-label" for="debut-remplacement">Applicable à partir du</label>
           <input
@@ -345,6 +363,7 @@
             ce matin.
           </p>
         </div>
+        }
 
         @if (erreurFormulaire(); as message) {
           <p class="vh-alert" role="alert">{{ message }}</p>

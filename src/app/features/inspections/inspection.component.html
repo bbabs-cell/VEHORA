@@ -15,8 +15,14 @@
 
   <p class="vh-muted inspection__aide">
     Faites le tour du véhicule et marquez chaque zone. Ce constat protège votre
-    station comme votre client : il fixe l’état d’arrivée.
+    station comme votre client&nbsp;: il fixe l’état d’arrivée.
   </p>
+  @if (dossier()) {
+    <p class="vh-alert vh-alert--info" role="status">
+      Ce constat sera rattaché au dossier en cours. Une fois enregistré, vous
+      revenez à la file d’attente, où le dossier peut passer en attente.
+    </p>
+  }
 
   @if (brouillonRetrouve(); as le) {
     <!-- Une saisie interrompue (réseau coupé, onglet rechargé) revient d'elle-

@@ -99,6 +99,13 @@
   color: var(--vh-warning);
 }
 
+/* Raison d'une étape inerte, et rappel de l'attente : sous les boutons. */
+.dossier__raison,
+.dossier__attente {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .dossier__actions .vh-button {
   padding: 0 var(--vh-space-4);
   font-size: var(--vh-text-sm);

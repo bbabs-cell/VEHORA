@@ -1,7 +1,7 @@
 <div class="vh-page file">
   <vh-entete-page
     titre="File d’attente"
-    description="Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué ou annulé sort de cet écran."
+    description="Les dossiers en cours, du plus ancien au plus récent. Un dossier restitué sort de cet écran une fois soldé."
   >
     <!-- Toujours là, même file vide : c'est le geste de l'arrivée d'un
          véhicule, et l'on ne doit pas avoir à le chercher. Le bouton de l'état
@@ -15,6 +15,13 @@
 
   @if (dossiers.erreur(); as message) {
     <p class="vh-alert" role="alert">{{ message }}</p>
+  }
+
+  @if (peutOuvrir() && sansStation()) {
+    <p class="vh-alert vh-alert--info" role="status">
+      Aucune station ne vous est affectée : vous ne pouvez pas ouvrir de dossier. Demandez à un
+      responsable de vous en attribuer une, depuis l’écran Utilisateurs.
+    </p>
   }
 
   <!-- Les refus de transition arrivaient dans un signal que seule une modale
@@ -94,6 +101,10 @@
                   @if (peutVoirPaiements()) {
                     @if (dossier.balance_minor > 0) {
                       <span class="solde-du">reste {{ solde(dossier) }}</span>
+                    } @else if (dossier.balance_minor < 0) {
+                      <!-- Trop-perçu : la station doit de l'argent au client. Il
+                           s'affichait en vert, la couleur de « Soldé ». -->
+                      <span class="solde-du">à rendre {{ aRendre(dossier) }}</span>
                     } @else {
                       <span class="solde-ok">{{ libelleEtat(dossier) }}</span>
                     }
@@ -109,21 +120,41 @@
                    bouton plein par écran (« Nouveau dossier »), sinon vingt
                    boutons azur ne désignent plus rien. -->
               <div class="dossier__actions vh-actions">
-                @if (actionSuivante(dossier); as suite) {
+                @for (action of actionsSuivantes(dossier); track action.vers) {
                   <button
                     class="vh-button vh-button--trait"
                     type="button"
-                    (click)="avancer(dossier)"
-                    [disabled]="enregistrement()"
-                    [attr.aria-label]="suite.libelle + ' — dossier ' + dossier.number"
+                    (click)="avancer(dossier, action)"
+                    [disabled]="enregistrement() || action.raison !== null"
+                    [attr.aria-label]="action.libelle + ' — dossier ' + dossier.number"
+                    [attr.aria-describedby]="
+                      action.raison ? 'raison-' + dossier.id + '-' + action.vers : null
+                    "
                   >
-                    {{ suite.libelle }}
+                    {{ action.libelle }}
                   </button>
+                  <!-- Une étape impossible pour l'instant reste visible, inerte,
+                       avec sa raison : jamais un clic que la base refusera. -->
+                  @if (action.raison; as raison) {
+                    <p class="vh-aide dossier__raison" [id]="'raison-' + dossier.id + '-' + action.vers">
+                      {{ raison }}
+                    </p>
+                  }
                 }
-                @if (dossier.status === 'INSPECTION' && peutInspecter()) {
+                @if (dossier.status === 'WAITING') {
+                  <p class="vh-aide dossier__attente">
+                    Le travail démarre dans <a routerLink="/operations">Opérations</a>, dès qu’un
+                    employé lance une prestation.
+                  </p>
+                }
+                <!-- Le dossier part avec le lien : l'inspection lui est
+                     rattachée, et c'est ce rattachement qui ouvre la file
+                     d'attente. -->
+                @if (dossier.status === 'INSPECTION' && !dossier.inspecte && peutInspecter()) {
                   <a
                     class="vh-button vh-button--trait"
                     [routerLink]="['/vehicules', dossier.vehicle_id, 'inspection']"
+                    [queryParams]="{ dossier: dossier.id }"
                     [attr.aria-label]="'Inspecter le véhicule du dossier ' + dossier.number"
                   >
                     Faire l’inspection
@@ -160,7 +191,7 @@
                     Reçu
                   </button>
                 }
-                @if (peutAnnuler()) {
+                @if (annulable(dossier)) {
                   <button
                     class="vh-button vh-button--discret dossier__annuler"
                     type="button"
@@ -311,14 +342,16 @@
               <span class="ligne__montant">
                 {{ formaterMontantLigne(ligne.line_total_minor ?? 0, ligne.currency) }}
               </span>
-              <button
-                class="ligne__retirer"
-                type="button"
-                (click)="retirer(ligne.id)"
-                [attr.aria-label]="'Retirer ' + ligne.service_name"
-              >
-                Retirer
-              </button>
+              @if (modifiable(dossier)) {
+                <button
+                  class="ligne__retirer"
+                  type="button"
+                  (click)="retirer(ligne.id)"
+                  [attr.aria-label]="'Retirer ' + ligne.service_name"
+                >
+                  Retirer
+                </button>
+              }
             </li>
           }
         </ul>
@@ -331,7 +364,11 @@
         </p>
       }
 
-      @if (prestationsDisponibles().length > 0) {
+      @if (!modifiable(dossier)) {
+        <p class="vh-aide">
+          Le travail a commencé : les prestations de ce dossier ne changent plus.
+        </p>
+      } @else if (prestationsDisponibles().length > 0) {
         <div class="vh-field">
           <label class="vh-label" for="ajout-prestation">Ajouter une prestation</label>
           <ul class="catalogue-rapide" aria-label="Prestations disponibles">
@@ -388,6 +425,16 @@
           L’annulation est définitive et tracée : le dossier ne pourra plus être rouvert.
         </p>
 
+        @if (encaisseNet(dossier) > 0) {
+          <!-- La base refuse d'annuler un dossier qui a reçu de l'argent : une
+               fois annulé, il ne pourrait plus être remboursé, et l'argent
+               resterait dans la caisse et le chiffre du jour. -->
+          <p class="vh-alert vh-alert--attention" role="status">
+            Ce dossier a reçu {{ formaterMinor(encaisseNet(dossier)) }}. Remboursez d’abord le
+            client (Encaisser, puis Rembourser), puis annulez.
+          </p>
+        }
+
         <div class="vh-field">
           <label class="vh-label" for="motif-annulation">Motif</label>
           <input
@@ -414,7 +461,11 @@
           <button class="vh-button vh-button--ghost" type="button" (click)="fermerAnnulation()">
             Revenir
           </button>
-          <button class="vh-button vh-button--danger" type="submit" [disabled]="enregistrement()">
+          <button
+            class="vh-button vh-button--danger"
+            type="submit"
+            [disabled]="enregistrement() || encaisseNet(dossier) > 0"
+          >
             {{ enregistrement() ? 'Annulation…' : 'Annuler le dossier' }}
           </button>
         </div>
@@ -474,11 +525,15 @@
                   · remboursement
                 }
               </span>
-              @if (peutRembourser() && paiement.kind === 'PAYMENT') {
+              @if (
+                peutRembourser() &&
+                paiement.kind === 'PAYMENT' &&
+                remboursable(paiement.id, paiement.amount_minor) > 0
+              ) {
                 <button
                   class="paiement__rembourser"
                   type="button"
-                  (click)="ouvrirRemboursement(paiement.id, paiement.amount_minor)"
+                  (click)="ouvrirRemboursement(paiement.id, remboursable(paiement.id, paiement.amount_minor))"
                   [disabled]="enregistrement()"
                   [attr.aria-label]="
                     'Rembourser ' +
@@ -511,13 +566,18 @@
         </div>
 
         @if (caisseRequiseManquante()) {
-          <p class="vh-alert" role="alert">
-            Aucune caisse ouverte à cette station pour vous. Ouvrez-la depuis l’écran Caisse avant
-            d’encaisser en espèces.
+          <p class="vh-alert vh-alert--attention" role="status">
+            @if (peutOuvrirCaisse()) {
+              Aucune caisse ouverte à cette station pour vous. Ouvrez-la depuis l’écran Caisse
+              pour encaisser en espèces — les autres moyens n’en ont pas besoin.
+            } @else {
+              Les espèces passent par une caisse, que votre rôle n’ouvre pas : confiez-les à un
+              caissier, ou choisissez un autre moyen de paiement.
+            }
           </p>
         }
 
-        @if (formPaiement.controls.methode.value === 'MOBILE_MONEY') {
+        @if (methodeChoisie() === 'MOBILE_MONEY') {
           <div class="vh-field">
             <label class="vh-label" for="fournisseur-paiement">Fournisseur</label>
             <input
@@ -555,6 +615,12 @@
           <p class="vh-aide">
             Un dossier peut être réglé en plusieurs fois, et par plusieurs moyens.
           </p>
+          @if (tropPercu(); as surplus) {
+            <p class="vh-alert vh-alert--attention" role="status">
+              C’est {{ formaterMinor(surplus) }} de plus que le reste dû : la différence sera un
+              trop-perçu à rendre au client.
+            </p>
+          }
         </div>
 
         @if (erreurFormulaire(); as message) {

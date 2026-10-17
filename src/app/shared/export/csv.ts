@@ -26,10 +26,19 @@ const SEPARATEUR = ';';
 /** Caractères qui font d'une cellule une formule pour un tableur. */
 const DEBUT_DE_FORMULE = /^[=+\-@\t\r]/;
 
+/**
+ * Un nombre négatif n'est pas une formule. Désamorcé comme le reste, chaque
+ * manque de la colonne « Écart » de l'historique de caisse devenait le texte
+ * `'-1000` : la colonne qu'on trie en premier ne se triait plus, et ne
+ * s'additionnait plus. Seul un nombre NU échappe au préfixe — `-2+3` reste
+ * une formule, et reste désamorcé.
+ */
+const NOMBRE = /^-?\d+(?:[.,]\d+)?$/;
+
 /** Une cellule : échappée pour le CSV, et désamorcée pour le tableur. */
 function cellule(valeur: string | number | null | undefined): string {
   const texte = valeur === null || valeur === undefined ? '' : String(valeur);
-  const sur = DEBUT_DE_FORMULE.test(texte) ? `'${texte}` : texte;
+  const sur = DEBUT_DE_FORMULE.test(texte) && !NOMBRE.test(texte) ? `'${texte}` : texte;
   // Guillemets systématiques : une valeur peut contenir le séparateur, un
   // guillemet ou un saut de ligne, et on ne veut pas avoir à y penser.
   return `"${sur.replace(/"/g, '""')}"`;

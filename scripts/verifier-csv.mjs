@@ -17,9 +17,15 @@ const verifier = (label, reel, attendu) => {
 // Un tableur exécute une cellule qui commence par =, +, -, @, une tabulation ou
 // un retour chariot. Le nom d'une prestation est saisi par un utilisateur de
 // l'organisation : il arrive ici tel quel, et partirait chez le comptable.
-for (const dangereux of ['=1+1', '+33600000000', '-2', '@SUM(A1)', '\tX', '\rY']) {
+for (const dangereux of ['=1+1', '+33600000000', '-2+3', '-A1', '@SUM(A1)', '\tX', '\rY']) {
   const ligne = versCsv(['A'], [[dangereux]]).split('\r\n')[1];
   verifier(`« ${JSON.stringify(dangereux)} » est désamorcé`, ligne, `"'${dangereux}"`);
+}
+
+// Un montant négatif est un nombre, pas une formule : préfixé, il devenait du
+// texte que le tableur ne trie ni n'additionne (la colonne « Écart »).
+for (const nombre of ['-1000', '-12,5', '-3.25']) {
+  verifier(`le nombre ${nombre} reste un nombre`, versCsv(['A'], [[nombre]]).split('\r\n')[1], `"${nombre}"`);
 }
 
 verifier(
