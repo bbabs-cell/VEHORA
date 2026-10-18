@@ -41,7 +41,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 
       await page.goto('/connexion');
       await page.getByLabel('Adresse e-mail').fill(email);
-      await page.getByLabel('Mot de passe').fill(motDePasse);
+      await page.getByLabel('Mot de passe', { exact: true }).fill(motDePasse);
       await page.getByRole('button', { name: 'Se connecter' }).click();
 
       try {

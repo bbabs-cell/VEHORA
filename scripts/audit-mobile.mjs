@@ -16,7 +16,11 @@
 //   4. un texte affiché sous 13 px, le plancher du projet ;
 //   5. une violation de CSP ou une erreur JavaScript ;
 //   6. une image cassée — le logo l'a été sur tous les écrans d'un audit
-//      déclaré vert : aucun des contrôles précédents ne regarde une image.
+//      déclaré vert : aucun des contrôles précédents ne regarde une image ;
+//   7. un champ qui sort de son cadre (`.vh-field` ou formulaire) : le
+//      contrôle 1 ignore ce qui est sous un `overflow: hidden`, et la page de
+//      connexion en pose un pour ses halos — le mot de passe y dépassait de
+//      la carte à 320 px, audit vert.
 // Puis il enregistre une capture pleine page de chaque écran — à REGARDER,
 // pas seulement à générer.
 //
@@ -82,7 +86,10 @@ const vehicule = TABLES.vehicles[0].id;
 const recu = TABLES.receipts[0].id;
 const PARCOURS = {
   anonyme: ['/connexion', '/inscription', '/mot-de-passe-oublie', '/nouveau-mot-de-passe'],
-  'sans-organisation': ['/sans-organisation', '/creer-organisation'],
+  // `/nouveau-mot-de-passe` connecté : le formulaire n'existe qu'avec la
+  // session qu'ouvre le lien de récupération ; sans elle, l'écran dit que le
+  // lien a expiré, et ses deux champs n'étaient jamais audités.
+  'sans-organisation': ['/sans-organisation', '/creer-organisation', '/nouveau-mot-de-passe'],
   proprietaire: [
     '/tableau-de-bord', '/file-attente', '/operations', '/caisse', '/caisse/historique', '/clients',
     '/vehicules', `/vehicules/${vehicule}/inspection`, '/catalogue', '/stations', '/utilisateurs',
@@ -254,6 +261,18 @@ for (const largeur of largeurs) {
             for (const img of document.querySelectorAll('img')) {
               if (visible(img) && img.complete && img.naturalWidth === 0) {
                 out.push(`image cassée : ${img.getAttribute('src')}`);
+              }
+            }
+            // Un champ tient dans son cadre. Dans une boîte (bouton
+            // « Afficher »), il perd l'étirement de la colonne flex et reprend
+            // sa largeur naturelle : plus large que la carte à 320 px.
+            for (const champ of document.querySelectorAll('input, select, textarea')) {
+              const cadre = champ.parentElement?.closest('.vh-field, form');
+              if (!cadre || !visible(champ)) continue;
+              const r = champ.getBoundingClientRect();
+              const c = cadre.getBoundingClientRect();
+              if (r.right > c.right + 1 || r.left < c.left - 1) {
+                out.push(`champ hors de son cadre (${Math.round(r.right - c.right)}px) : ${decrire(champ)} dans ${decrire(cadre)}`);
               }
             }
             return out;

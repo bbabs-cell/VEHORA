@@ -61,7 +61,7 @@ libre écrit dans la caisse d'autrui, zéro caisse sur une station étrangère.
 | `npm run build` | vert, initial 499,82 Ko |
 | `npm run audit:mobile` à 320, 375 et 1280 px, deux thèmes | vert |
 | Captures regardées | fenêtre de remboursement (deux thèmes), caisse avec la sortie « par Khady Mbaye » |
-| `npm run e2e` | non joué (secrets absents) ; le test de remboursement vérifie désormais le montant proposé, le tiroir par défaut et un remboursement partiel |
+| `npm run e2e` | suite connectée non jouée (secrets absents) ; le test de remboursement vérifie désormais le montant proposé, le tiroir par défaut et un remboursement partiel. Les 14 tests sans secret : verts (deux réparés, voir plus bas) |
 
 ## Base réelle
 
@@ -82,6 +82,48 @@ Un premier essai dans l'éditeur a tourné dans un **autre projet** que celui de
 l'application (« Success », mais rien dans `liragiqjtwlwqkfiyedk`) : donner
 toujours le lien direct de l'éditeur du bon projet, et vérifier après coup.
 
+## « Afficher le mot de passe »
+
+Demande du propriétaire, après un compte bloqué sur PC alors qu'il marchait
+sur téléphone : sur un clavier AZERTY, les chiffres demandent Maj, et sans voir
+ce qu'on tape, « 1234 » devient « &é"' ». Un bouton « Afficher » / « Masquer »
+dans le champ, sur les trois écrans où l'on tape un mot de passe (connexion,
+création de compte, nouveau mot de passe), le même partout :
+`shared/ui/mot-de-passe.component.ts`.
+
+- **Le bundle initial avait pris 820 octets** et dépassé son seuil, alors que
+  ces écrans sont chargés à la demande : `contentChild()` faisait entrer le
+  moteur des requêtes de contenu dans le morceau initial partagé. Le champ
+  demande désormais l'état à sa boîte par injection : 499,87 Ko.
+- **Le champ dépassait de la carte de 51 px à 320 px**, audit vert. Dans la
+  boîte, il perdait l'étirement de la colonne flex de `.vh-field`. Vu sur la
+  capture, pas par l'audit : son contrôle de débordement ignore ce qui est sous
+  un `overflow: hidden`, et les écrans de connexion en posent un pour leurs
+  halos. Nouveau contrôle n° 7, « champ hors de son cadre » ; vérifié en échec
+  avant la correction (connexion et inscription), vert après, sans faux
+  positif sur les autres écrans.
+- **Le formulaire du nouveau mot de passe n'avait jamais été audité** : sans la
+  session qu'ouvre le lien de récupération, l'écran affiche « Ce lien a
+  expiré ». Il est désormais audité aussi sous un profil connecté.
+- Test de parcours : la bascule masque, affiche, garde la saisie et ne soumet
+  pas le formulaire. Il ne demande ni compte ni secret.
+
+## Intégration continue : rouge depuis le 8 octobre
+
+En regardant l'état de l'intégration continue avant de pousser : **toutes les
+exécutions terminées depuis le 8 octobre sont en échec**. Sans les secrets
+`VEHORA_TEST_*`, 14 tests tournent, et deux étaient faux :
+
+| Test | Rouge depuis | Cause | Correction |
+| --- | --- | --- | --- |
+| aucun secret dans le bundle | au moins le 8 octobre | il cherchait le **mot** `sb_secret_`, que supabase-js contient lui-même (`key.startsWith('sb_secret_')`) — deuxième occurrence de « un test qui cherche un mot » ; vert en local par hasard de chargement | il cherche une **clé** : le préfixe suivi d'au moins 20 caractères. Vérifié sur le bundle réel : l'ancienne règle crie au loup, la nouvelle se tait et attrape une clé glissée |
+| cibles tactiles ≥ 44 px | phase 24 | `boundingBox()` mesure la boîte transformée : pendant le zoom d'entrée (`scale(0.96)`), 44 px en valaient 42,24 | taille de mise en page (`offsetWidth`, `offsetHeight`) ; reproduit sur le code commité avant correction |
+
+**Pourquoi l'étape durait près de deux heures** pour 11 à 19 secondes de
+tests : en échouant, `expect(tout).not.toContain(…)` imprimait tout le
+JavaScript servi, sources comprises — un journal de 640 000 caractères sur une
+ligne. Le test n'extrait plus que ce qu'il cherche.
+
 ## Leçons
 
 - **Une référence de caisse est une clé étrangère multi-tenant comme les
@@ -93,3 +135,9 @@ toujours le lien direct de l'éditeur du bon projet, et vérifier après coup.
   station : se connecter sous `postgres` dans ce cas.
 - **Un écran d'argent montre le montant.** La fenêtre de remboursement rendait
   le paiement entier sans l'afficher.
+- **Une capture montre ce qu'un contrôle ignore.** L'audit était vert sur un
+  champ sorti de sa carte ; le contrôle qui manquait a été ajouté, et vérifié
+  en échec avant la correction.
+- **Rouge n'est pas un état normal.** Dix jours d'intégration continue rouge,
+  pris pour l'effet des secrets absents. Regarder ce qui échoue avant de
+  pousser, à chaque fois.

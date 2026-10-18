@@ -21,7 +21,7 @@ test.describe('Session connectée', () => {
   test('connexion, claims et déconnexion', async ({ page }) => {
     await page.goto('/connexion');
     await page.getByLabel('Adresse e-mail').fill(email!);
-    await page.getByLabel('Mot de passe').fill(motDePasse!);
+    await page.getByLabel('Mot de passe', { exact: true }).fill(motDePasse!);
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
     // Accès au tableau de bord : la garde de session et celle d'organisation
@@ -52,7 +52,7 @@ test.describe('Session connectée', () => {
   test('la session survit à un rechargement', async ({ page }) => {
     await page.goto('/connexion');
     await page.getByLabel('Adresse e-mail').fill(email!);
-    await page.getByLabel('Mot de passe').fill(motDePasse!);
+    await page.getByLabel('Mot de passe', { exact: true }).fill(motDePasse!);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page).toHaveURL(/\/tableau-de-bord/, { timeout: 20_000 });
 

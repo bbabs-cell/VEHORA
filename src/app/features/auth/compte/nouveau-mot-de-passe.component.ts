@@ -8,6 +8,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { MotDePasseComponent, RevelableDirective } from '../../../shared/ui/mot-de-passe.component';
 import { SceneComponent } from '../../../shared/ui/scene.component';
 import { CompteService } from './compte.service';
 import { messageCompte } from './messages-compte';
@@ -29,7 +30,13 @@ function identiques(groupe: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'vh-nouveau-mot-de-passe',
   standalone: true,
-  imports: [SceneComponent, ReactiveFormsModule, RouterLink],
+  imports: [
+    SceneComponent,
+    ReactiveFormsModule,
+    RouterLink,
+    MotDePasseComponent,
+    RevelableDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './compte.css',
   template: `
@@ -54,24 +61,30 @@ function identiques(groupe: AbstractControl): ValidationErrors | null {
             <form [formGroup]="form" (ngSubmit)="soumettre()" novalidate>
               <div class="vh-field">
                 <label class="vh-label" for="password">Nouveau mot de passe</label>
-                <input
-                  id="password"
-                  class="vh-input"
-                  type="password"
-                  formControlName="password"
-                  autocomplete="new-password"
-                />
+                <vh-mot-de-passe>
+                  <input
+                    id="password"
+                    vhRevelable
+                    class="vh-input"
+                    type="password"
+                    formControlName="password"
+                    autocomplete="new-password"
+                  />
+                </vh-mot-de-passe>
                 <p class="vh-aide">Au moins 8 caractères.</p>
               </div>
               <div class="vh-field">
                 <label class="vh-label" for="confirmation">Le même, une seconde fois</label>
-                <input
-                  id="confirmation"
-                  class="vh-input"
-                  type="password"
-                  formControlName="confirmation"
-                  autocomplete="new-password"
-                />
+                <vh-mot-de-passe>
+                  <input
+                    id="confirmation"
+                    vhRevelable
+                    class="vh-input"
+                    type="password"
+                    formControlName="confirmation"
+                    autocomplete="new-password"
+                  />
+                </vh-mot-de-passe>
                 @if (form.touched && form.invalid) {
                   <p class="vh-field__erreur">
                     {{

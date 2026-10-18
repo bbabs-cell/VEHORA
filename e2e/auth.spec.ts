@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { installerRelaisReseau } from './relais-reseau';
 
 test.describe('Authentification', () => {
@@ -42,7 +42,7 @@ test.describe('Authentification', () => {
   }) => {
     await page.goto('/connexion');
     await page.getByLabel('Adresse e-mail').fill('inconnu@vehora.test');
-    await page.getByLabel('Mot de passe').fill('motdepasse-invalide');
+    await page.getByLabel('Mot de passe', { exact: true }).fill('motdepasse-invalide');
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
     const alerte = page.getByRole('alert');
@@ -55,12 +55,42 @@ test.describe('Authentification', () => {
 
   test('les cibles tactiles respectent le minimum de 44px', async ({ page }) => {
     await page.goto('/connexion');
+    // Taille de mise en page, pas `boundingBox()` : la carte entre avec un
+    // zoom (scale 0,96), et la boîte mesurée pendant l'animation donnait
+    // 42,24 px pour un champ de 44 — rouge depuis la phase 24.
+    const taille = (cible: Locator) =>
+      cible.evaluate((el: HTMLElement) => ({ l: el.offsetWidth, h: el.offsetHeight }));
     for (const nom of ['Adresse e-mail', 'Mot de passe']) {
-      const boite = await page.getByLabel(nom).boundingBox();
-      expect(boite?.height ?? 0).toBeGreaterThanOrEqual(44);
+      // Exact : « Afficher le mot de passe » contient aussi « Mot de passe ».
+      expect((await taille(page.getByLabel(nom, { exact: true }))).h).toBeGreaterThanOrEqual(44);
     }
-    const bouton = await page.getByRole('button', { name: 'Se connecter' }).boundingBox();
-    expect(bouton?.height ?? 0).toBeGreaterThanOrEqual(44);
+    for (const nom of ['Se connecter', 'Afficher le mot de passe']) {
+      const { l, h } = await taille(page.getByRole('button', { name: nom }));
+      expect(h).toBeGreaterThanOrEqual(44);
+      expect(l).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  // Sur un clavier AZERTY, les chiffres demandent Maj : sans voir ce qu'on
+  // tape, la connexion est refusée sans qu'on sache pourquoi.
+  test("le mot de passe s'affiche et se masque sans perdre la saisie", async ({ page }) => {
+    await page.goto('/connexion');
+    const champ = page.getByLabel('Mot de passe', { exact: true });
+    await champ.fill('Liberte6-2026!');
+    await expect(champ).toHaveAttribute('type', 'password');
+
+    await page.getByRole('button', { name: 'Afficher le mot de passe' }).click();
+    await expect(champ).toHaveAttribute('type', 'text');
+    const masquer = page.getByRole('button', { name: 'Masquer le mot de passe' });
+    await expect(masquer).toHaveText('Masquer');
+
+    await masquer.click();
+    await expect(champ).toHaveAttribute('type', 'password');
+    await expect(champ).toHaveValue('Liberte6-2026!');
+
+    // Le bouton est un « button » : il ne soumet pas le formulaire.
+    await expect(page.getByText('Saisissez votre mot de passe.')).toHaveCount(0);
+    await expect(page.getByText('Saisissez une adresse e-mail valide.')).toHaveCount(0);
   });
 
   test('aucun secret ni clé service_role dans le bundle servi', async ({ page }) => {
@@ -81,7 +111,14 @@ test.describe('Authentification', () => {
     // propre documentation, en silence tant qu'un hasard de chargement le lui
     // épargnait, puis en rouge dès que l'intégration continue a servi le bundle
     // à froid. Un garde-fou qui crie au loup discrédite les autres.
-    expect(tout).not.toContain('sb_secret_');
+    //
+    // Deuxième occurrence : supabase-js contient lui-même le préfixe
+    // (`key.startsWith('sb_secret_')`, pour reconnaître le format). Une clé,
+    // c'est le préfixe SUIVI de ses caractères. Et le message ne cite que ce
+    // qu'on a trouvé : `expect(tout)` imprimait tout le JavaScript servi
+    // (plusieurs Mo) dans le journal de l'intégration continue.
+    const secrets = tout.match(/sb_secret_[A-Za-z0-9_-]{20,}/g) ?? [];
+    expect(secrets, 'une clé secrète est servie au navigateur').toEqual([]);
 
     // Une clé `service_role` est un JWT dont la charge utile porte ce rôle.
     // On les décode tous plutôt que de chercher un mot quelque part.

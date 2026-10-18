@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { MotDePasseComponent, RevelableDirective } from '../../../shared/ui/mot-de-passe.component';
 import { SceneComponent } from '../../../shared/ui/scene.component';
 import { CompteService } from './compte.service';
 import { messageCompte } from './messages-compte';
@@ -14,7 +15,13 @@ import { messageCompte } from './messages-compte';
 @Component({
   selector: 'vh-inscription',
   standalone: true,
-  imports: [SceneComponent, ReactiveFormsModule, RouterLink],
+  imports: [
+    SceneComponent,
+    ReactiveFormsModule,
+    RouterLink,
+    MotDePasseComponent,
+    RevelableDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './compte.css',
   template: `
@@ -73,16 +80,19 @@ import { messageCompte } from './messages-compte';
 
               <div class="vh-field">
                 <label class="vh-label" for="password">Mot de passe</label>
-                <input
-                  id="password"
-                  class="vh-input"
-                  type="password"
-                  formControlName="password"
-                  autocomplete="new-password"
-                  [attr.aria-invalid]="
-                    form.controls.password.touched && form.controls.password.invalid
-                  "
-                />
+                <vh-mot-de-passe>
+                  <input
+                    id="password"
+                    vhRevelable
+                    class="vh-input"
+                    type="password"
+                    formControlName="password"
+                    autocomplete="new-password"
+                    [attr.aria-invalid]="
+                      form.controls.password.touched && form.controls.password.invalid
+                    "
+                  />
+                </vh-mot-de-passe>
                 <p class="vh-aide">Au moins 8 caractères.</p>
                 @if (form.controls.password.touched && form.controls.password.invalid) {
                   <p class="vh-field__erreur">Le mot de passe comporte au moins 8 caractères.</p>

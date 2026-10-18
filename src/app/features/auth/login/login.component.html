@@ -36,19 +36,22 @@
 
       <div class="vh-field">
         <label class="vh-label" for="password">Mot de passe</label>
-        <input
-          id="password"
-          class="vh-input"
-          type="password"
-          formControlName="password"
-          autocomplete="current-password"
-          [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
-          [attr.aria-describedby]="
-            form.controls.password.touched && form.controls.password.invalid
-              ? 'erreur-password'
-              : null
-          "
-        />
+        <vh-mot-de-passe>
+          <input
+            id="password"
+            vhRevelable
+            class="vh-input"
+            type="password"
+            formControlName="password"
+            autocomplete="current-password"
+            [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+            [attr.aria-describedby]="
+              form.controls.password.touched && form.controls.password.invalid
+                ? 'erreur-password'
+                : null
+            "
+          />
+        </vh-mot-de-passe>
         @if (form.controls.password.touched && form.controls.password.invalid) {
           <p id="erreur-password" class="connexion__erreur-champ">Saisissez votre mot de passe.</p>
         }

@@ -45,7 +45,9 @@ Configuré dans `angular.json` → un dépassement **casse le build**.
 - Pas d'animation sur une propriété qui déclenche un recalcul de mise en page :
   `transform` et `opacity` uniquement (skill `animations-vivantes`).
 - Une règle globale que rien n'utilise est du poids pour chaque téléphone : le
-  bundle initial est à 150 octets de son seuil d'alerte (phase 24).
+  bundle initial est à 130 octets de son seuil d'alerte (phase 27). Le moteur
+  aussi pèse : un `contentChild()` y a fait entrer 820 octets ; préférer
+  l'injection du parent par l'enfant.
 
 ## Formulaires
 

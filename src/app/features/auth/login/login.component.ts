@@ -3,12 +3,19 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { traduireErreur } from '../../../core/erreurs/traduire-erreur';
+import { MotDePasseComponent, RevelableDirective } from '../../../shared/ui/mot-de-passe.component';
 import { SceneComponent } from '../../../shared/ui/scene.component';
 
 @Component({
   selector: 'vh-login',
   standalone: true,
-  imports: [SceneComponent, ReactiveFormsModule, RouterLink],
+  imports: [
+    SceneComponent,
+    ReactiveFormsModule,
+    RouterLink,
+    MotDePasseComponent,
+    RevelableDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',

@@ -154,7 +154,10 @@ rembourse ; trois références de caisse non vérifiées corrigées, dont une
 appliquée le 18 octobre par le propriétaire dans l'éditeur SQL (elle contient
 un `DROP POLICY`, que le connecteur ne passe pas sans confirmation), puis
 inscrite dans `schema_migrations` sous la version de son fichier. Logo intégré
-(`public/marque.svg`, icônes d'onglet et d'écran d'accueil).
+(`public/marque.svg`, icônes d'onglet et d'écran d'accueil). « Afficher le mot
+de passe » sur les trois écrans où l'on en tape un (`shared/ui/mot-de-passe`).
+**Intégration continue rouge depuis le 8 octobre**, sur chaque exécution
+terminée : deux tests sans secret faux, réparés en phase 27 (voir plus bas).
 **Base réelle remise à zéro le 18 octobre**, à la demande du propriétaire :
 comptes, entreprises et données effacés ; restent la structure, les
 référentiels et l'organisation technique `vehora-platform`. Les comptes se
@@ -199,8 +202,16 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **`npm run audit:mobile` simule Supabase** (`scripts/maquette/`) : tous les
   écrans de tous les profils, sans compte ni secret, sous la CSP réelle. Il
   échoue sur débordement, bouton écrasé, **deuxième bouton plein**, texte coupé
-  par un `overflow: hidden`, texte sous 13 px, violation de CSP, erreur JS. Un
-  écran ajouté = un chemin dans `PARCOURS` et ses lignes dans `donnees.mjs`.
+  par un `overflow: hidden`, texte sous 13 px, violation de CSP, erreur JS,
+  image cassée, **champ sorti de son cadre**. Un écran ajouté = un chemin dans
+  `PARCOURS` et ses lignes dans `donnees.mjs`. Un écran qui n'existe qu'avec
+  une session (le formulaire du nouveau mot de passe) s'audite sous un profil
+  connecté : sous `anonyme`, on n'en voyait que le message d'expiration.
+- **Le contrôle de débordement ignore ce qui est sous un `overflow: hidden`** —
+  et les écrans de connexion en posent un pour leurs halos. Le mot de passe y
+  dépassait de la carte de 51 px à 320 px, audit vert. Un champ placé dans une
+  boîte perd l'étirement de la colonne flex de `.vh-field` : la boîte doit
+  être elle-même une colonne flex.
 - **Un seul bouton à fond de marque par écran** (méthode, règle 1). L'action
   propre à une ligne (« Démarrer », l'étape suivante d'un dossier) est en
   **trait** : `.vh-button--trait`. La file en avait un plein par véhicule.
@@ -234,8 +245,11 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
 - **Angular supprime l'espace seul entre deux balises.** Entre le nombre et
   l'unité d'un montant, c'est lui qui laisse « F CFA » passer à la ligne :
   `&ngsp;`. Sans lui, « 976 500 FCFA » sortait de sa tuile.
-- **Le bundle initial est à 170 octets de son seuil d'alerte** (499,83 Ko bruts,
-  124 Ko transférés). Ce qui ne sert qu'une fois par personne n'y va pas : les
+- **Le bundle initial est à 130 octets de son seuil d'alerte** (499,87 Ko bruts,
+  124 Ko transférés). Le moteur Angular aussi a un poids : un seul
+  `contentChild()`, dans un composant chargé à la demande, a fait entrer
+  820 octets de requêtes de contenu dans le morceau initial partagé. Le champ
+  du mot de passe demande l'état à sa boîte par injection, à la place. Ce qui ne sert qu'une fois par personne n'y va pas : les
   appels de création de compte et de mot de passe vivent dans `CompteService`,
   chargé avec leurs écrans — dans `AuthService`, ils dépassaient le seuil. Une règle globale que rien n'utilise est du poids pour
   chaque téléphone : `.vh-table-stack` a été retiré faute de tableau — le
@@ -501,12 +515,25 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   dans le commentaire d'`environment.ts` qui dit justement que cette clé ne doit
   jamais s'y trouver. Vert en local par un hasard de chargement, rouge dès que
   l'intégration continue a servi le bundle à froid. On cherche désormais une
-  **clé** : le préfixe `sb_secret_`, et tout JWT dont la charge utile décodée
-  porte `service_role`. Un garde-fou qui crie au loup discrédite les autres.
-- **Sans les secrets `VEHORA_TEST_*` dans GitHub, la CI ignore 246 tests sur
-  258 et met 17 secondes** : exactement le « skipped massif qui ressemble à un
-  succès ». Les déclarer est la première chose à faire pour que l'intégration
-  continue garde quelque chose.
+  **clé** : tout JWT dont la charge utile décodée porte `service_role`, et
+  `sb_secret_` **suivi de ses caractères**. **Deuxième occurrence** : le
+  préfixe seul est dans supabase-js (`key.startsWith('sb_secret_')`), et ce
+  test a tenu l'intégration continue en rouge du 8 au 18 octobre, vert en local.
+  Un garde-fou qui crie au loup discrédite les autres.
+- **Un message d'échec ne cite pas la botte de foin.** `expect(tout).not
+  .toContain(…)` imprimait tout le JavaScript servi (des Mo, sources
+  comprises) : un journal de 640 000 caractères sur une ligne, et une étape de
+  19 s de tests qui durait près de deux heures. On extrait ce qu'on cherche,
+  puis on compare la liste à `[]`.
+- **Une taille se mesure hors animation.** `boundingBox()` rend la boîte
+  TRANSFORMÉE : pendant le zoom d'entrée (`scale(0.96)`), un champ de 44 px en
+  mesurait 42,24, et le test des cibles tactiles était rouge depuis la phase 24.
+  `offsetWidth` / `offsetHeight` donnent la taille de mise en page.
+- **Sans les secrets `VEHORA_TEST_*` dans GitHub, la CI ignore 256 tests sur
+  270** : exactement le « skipped massif qui ressemble à un succès ». Les
+  déclarer est la première chose à faire pour que l'intégration continue garde
+  quelque chose. **Rouge ne veut pas dire « secrets absents »** : les 14 tests
+  qui tournent sans eux échouaient, et personne ne l'a vu pendant dix jours.
 - **Premier test unitaire** : `npm run test:unit` (`scripts/verifier-csv.mjs`,
   16 assertions). Node exécute le TypeScript tel quel depuis la 23.6 : un module
   sans réseau ni DOM se vérifie sans navigateur, en quelques millisecondes.
