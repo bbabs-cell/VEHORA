@@ -150,11 +150,15 @@ Chromium préinstallé) ; en local, laisser la variable vide.
 **Phase 27** — le tiroir d'où sort l'argent (ADR-006) : un remboursement en
 espèces s'inscrit dans la caisse d'où sortent les billets, désignée par qui
 rembourse ; trois références de caisse non vérifiées corrigées, dont une
-écriture **inter-organisations** (`docs/phases/phase-27.md`). **Migration
-`20261017200000_tiroir_remboursement.sql` pas encore appliquée à la base
-réelle** : elle contient un `DROP POLICY`, et le connecteur Supabase exige une
-confirmation pour toute instruction destructrice — voir plus bas. Logo intégré
+écriture **inter-organisations** (`docs/phases/phase-27.md`). Migration
+appliquée le 18 octobre par le propriétaire dans l'éditeur SQL (elle contient
+un `DROP POLICY`, que le connecteur ne passe pas sans confirmation), puis
+inscrite dans `schema_migrations` sous la version de son fichier. Logo intégré
 (`public/marque.svg`, icônes d'onglet et d'écran d'accueil).
+**Base réelle remise à zéro le 18 octobre**, à la demande du propriétaire :
+comptes, entreprises et données effacés ; restent la structure, les
+référentiels et l'organisation technique `vehora-platform`. Les comptes se
+recréent dans Supabase (Authentication → Add user, « Auto Confirm »).
 **Phase 26 validée** — vérification de l'existant et réparation : un dossier
 réel restait bloqué à l'inspection (l'écran ne rattachait jamais l'inspection
 au dossier), et environ vingt-cinq chemins cassés dans la file, l'encaissement,
@@ -259,7 +263,7 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   le dit.
 - Projet Supabase rattaché : `VEHORA` (`liragiqjtwlwqkfiyedk`, eu-west-3) —
   celui que servent `environment*.ts` et la CSP.
-- 49 migrations appliquées. **Le MCP `apply_migration` horodate à
+- 50 migrations appliquées. **Le MCP `apply_migration` horodate à
   l'application**, pas au nom du fichier : renommer le fichier (avant commit)
   avec la version enregistrée, sinon la CLI Supabase rejouerait la migration.
   Référentiel : 10 rôles, 37 permissions, 9 types de véhicules, 10 zones
@@ -682,7 +686,11 @@ Tout le reste des notifications est fait ; il ne manque que l'envoi
   l'intégration continue, dans cet ordre.
 - Le jeu de démonstration a **deux stations** (Liberté 6, Ouakam) : les tests
   de caisse en dépendent, et l'affichage multi-station aussi.
-- Comptes de démonstration (à supprimer avant production) : `awa@vehora.test`
+- **Supprimés de la base réelle le 18 octobre** (remise à zéro), comme les deux
+  organisations `Test plateforme` : les tests de parcours exigeront de les
+  recréer (`supabase/seed/demonstration.sql` et `adhesions.sql`, et les comptes
+  dans Supabase Auth) avant de pouvoir tourner. Ils étaient :
+  `awa@vehora.test`
   (OWNER), `ousmane@vehora.test` et `ibrahima@vehora.test` (CASHIER),
   `fatou@vehora.test` (OWNER d'une seconde organisation),
   `sansorg@vehora.test` (volontairement sans organisation — ne jamais le

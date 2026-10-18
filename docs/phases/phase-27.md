@@ -65,14 +65,22 @@ libre écrit dans la caisse d'autrui, zéro caisse sur une station étrangère.
 
 ## Base réelle
 
-**Migration écrite, testée, mais pas encore appliquée** : l'outil
-`apply_migration` du MCP Supabase a expiré deux fois (60 s) sans rien
-atteindre — aucune trace dans les journaux PostgreSQL, aucun verrou, aucune
-requête en cours, aucune ligne dans `schema_migrations`. À rejouer ; le fichier
-prendra alors le nom de la version enregistrée par la base.
+**Appliquée le 18 octobre par le propriétaire, dans l'éditeur SQL de
+Supabase**, puis inscrite dans `schema_migrations` sous la version de son
+fichier (`20261017200000`) : 50 migrations, dépôt et base alignés. Les
+déclencheurs, la fonction et la policy ont été vérifiés en place ; advisors
+sans nouveau signalement.
 
-L'application est compatible avec la base actuelle : sans la migration, une
-caisse désignée est ignorée et l'ancien comportement s'applique.
+Pourquoi pas par le connecteur : `apply_migration` a expiré quatre fois (60 s)
+sans rien atteindre. Le connecteur demande une confirmation avant toute
+instruction destructrice — la migration contient un `DROP POLICY` — et cette
+demande n'arrive pas au propriétaire dans une session cloud. La réécrire pour
+échapper au garde-fou a été refusé, à juste titre ; le fichier commité est
+celui qui a été appliqué.
+
+Un premier essai dans l'éditeur a tourné dans un **autre projet** que celui de
+l'application (« Success », mais rien dans `liragiqjtwlwqkfiyedk`) : donner
+toujours le lien direct de l'éditeur du bon projet, et vérifier après coup.
 
 ## Leçons
 
